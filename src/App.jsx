@@ -36,52 +36,42 @@ const BASE_GEOMETRIES = [
   [4, 2, 0, 3, 1]  // #14: 5-3-1-4-2
 ];
 
-// Colores pastel para los 5 Despachos (con Sala Roja pastel)
+// Colores pastel para los 5 Despachos
 const ROOMS = [
   {
     id: 0,
     name: 'Azul',
     bgHex: '#DBEAFE',
     bgActive: '#BFDBFE',
-    borderHex: '#2563EB',
-    badgeBg: 'bg-blue-950/90 text-blue-200 border-blue-700/80',
-    dotColor: 'bg-blue-400'
+    borderHex: '#2563EB'
   },
   {
     id: 1,
     name: 'Roja',
     bgHex: '#FEE2E2',
     bgActive: '#FECACA',
-    borderHex: '#DC2626',
-    badgeBg: 'bg-red-950/90 text-red-200 border-red-700/80',
-    dotColor: 'bg-red-400'
+    borderHex: '#DC2626'
   },
   {
     id: 2,
     name: 'Verde',
     bgHex: '#D1FAE5',
     bgActive: '#A7F3D0',
-    borderHex: '#059669',
-    badgeBg: 'bg-emerald-950/90 text-emerald-200 border-emerald-700/80',
-    dotColor: 'bg-emerald-400'
+    borderHex: '#059669'
   },
   {
     id: 3,
     name: 'Amarillo',
     bgHex: '#FEF9C3',
     bgActive: '#FEF08A',
-    borderHex: '#CA8A04',
-    badgeBg: 'bg-yellow-950/90 text-yellow-200 border-yellow-700/80',
-    dotColor: 'bg-yellow-400'
+    borderHex: '#CA8A04'
   },
   {
     id: 4,
     name: 'Morado',
     bgHex: '#EDE9FE',
     bgActive: '#DDD6FE',
-    borderHex: '#7C3AED',
-    badgeBg: 'bg-purple-950/90 text-purple-200 border-purple-700/80',
-    dotColor: 'bg-purple-400'
+    borderHex: '#7C3AED'
   }
 ];
 
@@ -94,42 +84,12 @@ const SUSPECTS = [
 ];
 
 const CLUE_CATEGORIES = {
-  Umbral: {
-    id: 'Umbral',
-    label: 'Umbral / Puertas',
-    badge: 'bg-sky-950 text-sky-300 border-sky-800',
-    desc: 'Proximidad a puertas numeradas, conectividad y callejones sin salida'
-  },
-  Fachada: {
-    id: 'Fachada',
-    label: 'Fachada / Cardinal',
-    badge: 'bg-amber-950 text-amber-300 border-amber-800',
-    desc: 'Muros exteriores Norte/Sur/Este/Oeste, esquinas e interior'
-  },
-  Claustrofobia: {
-    id: 'Claustrofobia',
-    label: 'Claustrofobia / Tamaño',
-    badge: 'bg-purple-950 text-purple-300 border-purple-800',
-    desc: 'Área en casillas del poliominó, salas más grandes o más pequeñas'
-  },
-  Escenario: {
-    id: 'Escenario',
-    label: 'Contacto Escenario',
-    badge: 'bg-emerald-950 text-emerald-300 border-emerald-800',
-    desc: 'Contacto ortogonal con muros de otras salas o con el sandwich mordido 🥪'
-  },
-  Paranoia: {
-    id: 'Paranoia',
-    label: 'Paranoia Cruzada',
-    badge: 'bg-rose-950 text-rose-300 border-rose-800',
-    desc: 'Acusaciones directas, dieta del ladrón y condicionales lógicos'
-  },
-  Despacho: {
-    id: 'Despacho',
-    label: 'Despacho / Dieta',
-    badge: 'bg-slate-800 text-slate-300 border-slate-700',
-    desc: 'Ubicación directa por color de habitación o tipo de dieta'
-  }
+  Umbral: { id: 'Umbral', label: 'Umbral / Puertas' },
+  Fachada: { id: 'Fachada', label: 'Fachada / Cardinal' },
+  Claustrofobia: { id: 'Claustrofobia', label: 'Claustrofobia / Tamaño' },
+  Escenario: { id: 'Escenario', label: 'Contacto Escenario' },
+  Paranoia: { id: 'Paranoia', label: 'Paranoia Cruzada' },
+  Despacho: { id: 'Despacho', label: 'Despacho / Dieta' }
 };
 
 const generatePermutations = (arr) => {
@@ -1147,7 +1107,7 @@ function generateCompleteLevel(
 }
 
 // ============================================================================
-// 4. COMPONENTE PRINCIPAL DE LA APLICACIÓN
+// 4. COMPONENTE PRINCIPAL DE LA APLICACIÓN (ESTÉTICA MINIMALISTA TRADE REPUBLIC)
 // ============================================================================
 
 export default function App() {
@@ -1217,58 +1177,20 @@ export default function App() {
     }
   }, []);
 
-  // Medidor de dificultad basado en el número de geometrías válidas (K) del embudo
+  // Medidor de dificultad minimalista monocromático
   const difficultyInfo = useMemo(() => {
     if (!level) return null;
     const k = level.survivingGeos.length; // K oscila entre 2 y 6
-    if (k <= 2) {
-      return {
-        label: 'Fácil',
-        bars: 1,
-        badgeClass: isDark
-          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-          : 'bg-emerald-100 text-emerald-800 border-emerald-300',
-        barColor: 'bg-emerald-500'
-      };
-    }
-    if (k === 3) {
-      return {
-        label: 'Media',
-        bars: 2,
-        badgeClass: isDark
-          ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
-          : 'bg-sky-100 text-sky-800 border-sky-300',
-        barColor: 'bg-sky-500'
-      };
-    }
-    if (k === 4) {
-      return {
-        label: 'Difícil',
-        bars: 3,
-        badgeClass: isDark
-          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-          : 'bg-amber-100 text-amber-800 border-amber-300',
-        barColor: 'bg-amber-500'
-      };
-    }
-    if (k === 5) {
-      return {
-        label: 'Experto',
-        bars: 4,
-        badgeClass: isDark
-          ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
-          : 'bg-orange-100 text-orange-800 border-orange-300',
-        barColor: 'bg-orange-500'
-      };
-    }
-    return {
-      label: 'Maestro',
-      bars: 5,
-      badgeClass: isDark
-        ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
-        : 'bg-rose-100 text-rose-800 border-rose-300',
-      barColor: 'bg-rose-500'
-    };
+    const badgeClass = isDark
+      ? 'bg-neutral-800 text-neutral-200 border-neutral-700'
+      : 'bg-neutral-100 text-neutral-800 border-neutral-300';
+    const barColor = isDark ? 'bg-white' : 'bg-neutral-900';
+
+    if (k <= 2) return { label: 'Fácil', bars: 1, badgeClass, barColor };
+    if (k === 3) return { label: 'Media', bars: 2, badgeClass, barColor };
+    if (k === 4) return { label: 'Difícil', bars: 3, badgeClass, barColor };
+    if (k === 5) return { label: 'Experto', bars: 4, badgeClass, barColor };
+    return { label: 'Maestro', bars: 5, badgeClass, barColor };
   }, [level, isDark]);
 
   // Mapa inverso: suspectId -> { r, c } si está colocado en el tablero
@@ -1438,7 +1360,7 @@ export default function App() {
     const modeLabel = isDailyMode ? dailyConfig.formattedDate : `Caso #${level?.caseNumber ?? ''}`;
     return `🥪 ¿Quién ha robado mi sandwich? (${modeLabel})\n⏱️ Lo descubrí en ${formatTime(
       seconds
-    )} min.\n¡A ver si mejoras mi tiempo! 👇\nhttps://sandwichcase.io/`;
+    )} min.\n¡A ver si mejoras mi tiempo! 👇\nhttps://who-stole-my-sandwich.vercel.app/`;
   }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, seconds]);
 
   const handleCopyShareText = () => {
@@ -1465,14 +1387,17 @@ export default function App() {
   const currentSuspect = SUSPECTS[activeSuspect];
   const currentClue = level.clues.find((c) => c.suspectId === activeSuspect);
 
-  // Clases dinámicas según el tema del sistema (Claro / Oscuro)
+  // Paleta gris neutro (estilo Trade Republic, sin subtonos azulados)
   const pageBgClass = isDark
-    ? 'bg-slate-950 text-slate-100'
-    : 'bg-slate-100 text-slate-900';
+    ? 'bg-[#0a0a0a] text-neutral-100'
+    : 'bg-[#f7f7f7] text-neutral-900';
   const cardBgClass = isDark
-    ? 'bg-slate-900 border-slate-800'
-    : 'bg-white border-slate-200';
-  const subTextClass = isDark ? 'text-slate-400' : 'text-slate-500';
+    ? 'bg-[#141414] border-neutral-800'
+    : 'bg-white border-neutral-200';
+  const subTextClass = isDark ? 'text-neutral-400' : 'text-neutral-500';
+  const primaryActionBtnClass = isDark
+    ? 'bg-white hover:bg-neutral-200 text-black'
+    : 'bg-neutral-900 hover:bg-neutral-800 text-white';
 
   return (
     <div
@@ -1500,8 +1425,8 @@ export default function App() {
                 title="Volver al reto diario"
                 className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
                   isDark
-                    ? 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800'
-                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300 shadow-2xs'
+                    ? 'bg-[#141414] hover:bg-neutral-800 text-neutral-300 border-neutral-800'
+                    : 'bg-white hover:bg-neutral-100 text-neutral-700 border-neutral-300 shadow-2xs'
                 }`}
               >
                 Diario
@@ -1511,7 +1436,7 @@ export default function App() {
               type="button"
               onClick={handleNewRandomLevel}
               title="Generar un nivel aleatorio nuevo"
-              className="px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-xs transition cursor-pointer"
+              className={`px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-xs transition cursor-pointer ${primaryActionBtnClass}`}
             >
               <Shuffle className="w-3.5 h-3.5" />
               <span>Aleatorio</span>
@@ -1541,8 +1466,8 @@ export default function App() {
                     bar <= difficultyInfo.bars
                       ? difficultyInfo.barColor
                       : isDark
-                      ? 'bg-slate-800'
-                      : 'bg-slate-200'
+                      ? 'bg-neutral-800'
+                      : 'bg-neutral-200'
                   }`}
                 />
               ))}
@@ -1555,7 +1480,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsShareModalOpen(true)}
-                className="px-2.5 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] flex items-center gap-1 transition cursor-pointer shadow-2xs"
+                className={`px-2.5 py-1 rounded-xl font-black text-[11px] flex items-center gap-1 transition cursor-pointer shadow-2xs ${primaryActionBtnClass}`}
               >
                 <Share2 className="w-3 h-3" />
                 <span>Compartir</span>
@@ -1564,13 +1489,17 @@ export default function App() {
             <div
               className={`px-2.5 py-1 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 border ${
                 isDark
-                  ? 'bg-slate-950 border-slate-800 text-slate-100'
-                  : 'bg-slate-100 border-slate-200 text-slate-900'
+                  ? 'bg-[#0a0a0a] border-neutral-800 text-neutral-100'
+                  : 'bg-neutral-100 border-neutral-200 text-neutral-900'
               }`}
             >
               <span
                 className={`w-2 h-2 rounded-full ${
-                  gameWon ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'
+                  gameWon
+                    ? isDark
+                      ? 'bg-white'
+                      : 'bg-neutral-900'
+                    : 'bg-emerald-500 animate-pulse'
                 }`}
               />
               <span>{formatTime(seconds)}</span>
@@ -1585,7 +1514,7 @@ export default function App() {
             <div className="absolute top-0 inset-x-0 h-5 flex items-center justify-center pointer-events-none">
               <span
                 className={`text-[10px] font-black uppercase tracking-widest ${
-                  isDark ? 'text-amber-400' : 'text-amber-600'
+                  isDark ? 'text-neutral-400' : 'text-neutral-500'
                 }`}
               >
                 NORTE
@@ -1596,7 +1525,7 @@ export default function App() {
             <div className="absolute bottom-0 inset-x-0 h-5 flex items-center justify-center pointer-events-none">
               <span
                 className={`text-[10px] font-black uppercase tracking-widest ${
-                  isDark ? 'text-amber-400' : 'text-amber-600'
+                  isDark ? 'text-neutral-400' : 'text-neutral-500'
                 }`}
               >
                 SUR
@@ -1607,7 +1536,7 @@ export default function App() {
             <div className="absolute left-0 inset-y-0 w-5 flex items-center justify-center pointer-events-none">
               <span
                 className={`text-[10px] font-black uppercase tracking-widest [writing-mode:vertical-lr] rotate-180 ${
-                  isDark ? 'text-amber-400' : 'text-amber-600'
+                  isDark ? 'text-neutral-400' : 'text-neutral-500'
                 }`}
               >
                 OESTE
@@ -1618,7 +1547,7 @@ export default function App() {
             <div className="absolute right-0 inset-y-0 w-5 flex items-center justify-center pointer-events-none">
               <span
                 className={`text-[10px] font-black uppercase tracking-widest [writing-mode:vertical-lr] ${
-                  isDark ? 'text-amber-400' : 'text-amber-600'
+                  isDark ? 'text-neutral-400' : 'text-neutral-500'
                 }`}
               >
                 ESTE
@@ -1627,7 +1556,7 @@ export default function App() {
 
             {/* CUADRÍCULA 5x5 */}
             <div className="relative w-full h-full">
-              <div className="w-full h-full grid grid-cols-5 grid-rows-5 border-4 border-slate-900 rounded-xl overflow-hidden bg-slate-900 shadow-inner">
+              <div className="w-full h-full grid grid-cols-5 grid-rows-5 border-4 border-neutral-900 rounded-xl overflow-hidden bg-neutral-900 shadow-inner">
                 {Array.from({ length: 5 }).map((_, r) =>
                   Array.from({ length: 5 }).map((__, c) => {
                     const key = `${r},${c}`;
@@ -1654,17 +1583,17 @@ export default function App() {
                         style={{
                           backgroundColor: roomObj.bgHex,
                           borderTop: topWall
-                            ? '3px solid #0f172a'
-                            : '1px solid rgba(15, 23, 42, 0.14)',
+                            ? '3px solid #171717'
+                            : '1px solid rgba(23, 23, 23, 0.14)',
                           borderBottom: bottomWall
-                            ? '3px solid #0f172a'
-                            : '1px solid rgba(15, 23, 42, 0.14)',
+                            ? '3px solid #171717'
+                            : '1px solid rgba(23, 23, 23, 0.14)',
                           borderLeft: leftWall
-                            ? '3px solid #0f172a'
-                            : '1px solid rgba(15, 23, 42, 0.14)',
+                            ? '3px solid #171717'
+                            : '1px solid rgba(23, 23, 23, 0.14)',
                           borderRight: rightWall
-                            ? '3px solid #0f172a'
-                            : '1px solid rgba(15, 23, 42, 0.14)'
+                            ? '3px solid #171717'
+                            : '1px solid rgba(23, 23, 23, 0.14)'
                         }}
                         className={`relative w-full h-full flex flex-col items-center justify-center p-0 overflow-hidden focus:outline-none cursor-pointer ${
                           hasConflict ? 'ring-3 ring-inset ring-rose-600 z-10' : ''
@@ -1678,7 +1607,7 @@ export default function App() {
                               alt="Sandwich robado"
                               className="w-8 h-8 object-contain"
                             />
-                            <span className="text-[8px] font-black uppercase bg-rose-600 text-white px-1 rounded mt-0.5">
+                            <span className="text-[8px] font-black uppercase bg-neutral-900 text-white px-1 rounded mt-0.5">
                               CRIMEN
                             </span>
                           </div>
@@ -1697,8 +1626,8 @@ export default function App() {
                                 hasConflict
                                   ? 'bg-rose-600 text-white'
                                   : placedSuspect.id === activeSuspect
-                                  ? 'bg-amber-500 text-slate-950'
-                                  : 'bg-slate-900 text-white'
+                                  ? 'bg-white text-black ring-1 ring-neutral-900 shadow-2xs'
+                                  : 'bg-neutral-900 text-white'
                               }`}
                             >
                               {placedSuspect.code}
@@ -1708,7 +1637,7 @@ export default function App() {
 
                         {/* Crucecita gris (✕) automática de casilla bloqueada */}
                         {!isVase && !placedSuspect && isInvalidated && (
-                          <span className="text-slate-400 font-black text-lg leading-none pointer-events-none">
+                          <span className="text-neutral-400 font-black text-lg leading-none pointer-events-none">
                             ✕
                           </span>
                         )}
@@ -1736,7 +1665,7 @@ export default function App() {
                       left: `${leftPct}%`,
                       top: `${topPct}%`
                     }}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 z-20 w-6 h-6 rounded-full bg-slate-950 text-white border-2 border-white flex items-center justify-center font-black text-[11px] shadow-md pointer-events-none"
+                    className="absolute -translate-x-1/2 -translate-y-1/2 z-20 w-6 h-6 rounded-full bg-neutral-950 text-white border-2 border-white flex items-center justify-center font-black text-[11px] shadow-md pointer-events-none"
                   >
                     {door.number}
                   </div>
@@ -1751,15 +1680,15 @@ export default function App() {
           <span
             className={`text-[11px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full border ${
               isDark
-                ? 'bg-rose-950/60 text-rose-300 border-rose-800/70'
-                : 'bg-rose-100 text-rose-700 border-rose-300'
+                ? 'bg-neutral-900 text-neutral-300 border-neutral-800'
+                : 'bg-neutral-200/80 text-neutral-700 border-neutral-300'
             }`}
           >
             ¡El ladrón miente!
           </span>
         </div>
 
-        {/* 3. PÍLDORAS HORIZONTALES SELECTORAS DE PERSONAS (A, B, C, D, E) */}
+        {/* 3. PÍLDORAS HORIZONTALES SELECTORAS DE PERSONAS (SELECCIÓN BLANCA EN MODO OSCURO) */}
         <div className="w-full grid grid-cols-5 gap-1.5 h-12">
           {SUSPECTS.map((s) => {
             const isSelected = activeSuspect === s.id;
@@ -1771,16 +1700,18 @@ export default function App() {
                 key={s.id}
                 type="button"
                 onClick={() => setActiveSuspect(s.id)}
-                className={`relative h-full rounded-xl font-black transition-colors flex flex-col items-center justify-center border cursor-pointer ${
+                className={`relative h-full rounded-xl font-black transition-all flex flex-col items-center justify-center border cursor-pointer ${
                   isSelected
-                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm'
+                    ? isDark
+                      ? 'bg-white text-black border-white shadow-sm'
+                      : 'bg-neutral-900 text-white border-neutral-900 shadow-sm'
                     : isPlaced
                     ? isDark
-                      ? 'bg-slate-800 text-white border-emerald-500/60'
-                      : 'bg-emerald-50 text-slate-900 border-emerald-500/70'
+                      ? 'bg-neutral-800/90 text-white border-neutral-600'
+                      : 'bg-neutral-100 text-neutral-900 border-neutral-400'
                     : isDark
-                    ? 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
-                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                    ? 'bg-[#141414] text-neutral-400 border-neutral-800 hover:bg-neutral-800/60'
+                    : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
                 }`}
               >
                 {isPlaced && (
@@ -1801,10 +1732,12 @@ export default function App() {
                 <span
                   className={`text-[9px] font-bold mt-0.5 truncate max-w-full px-1 ${
                     isSelected
-                      ? 'text-slate-900'
+                      ? isDark
+                        ? 'text-neutral-800'
+                        : 'text-neutral-200'
                       : isDark
-                      ? 'text-slate-400'
-                      : 'text-slate-500'
+                      ? 'text-neutral-400'
+                      : 'text-neutral-500'
                   }`}
                 >
                   {s.name}
@@ -1823,8 +1756,8 @@ export default function App() {
               <span
                 className={`w-7 h-7 rounded-lg border flex items-center justify-center overflow-hidden shrink-0 ${
                   isDark
-                    ? 'bg-slate-800 border-slate-700'
-                    : 'bg-slate-100 border-slate-200'
+                    ? 'bg-neutral-800 border-neutral-700'
+                    : 'bg-neutral-100 border-neutral-200'
                 }`}
               >
                 <img
@@ -1835,20 +1768,16 @@ export default function App() {
               </span>
               <span
                 className={`font-black text-xs truncate ${
-                  isDark ? 'text-white' : 'text-slate-900'
+                  isDark ? 'text-white' : 'text-neutral-900'
                 }`}
               >
                 {currentSuspect.code} — {currentSuspect.name}
               </span>
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
-                  currentSuspect.isCarnivore
-                    ? isDark
-                      ? 'bg-purple-950/80 text-purple-300 border-purple-800'
-                      : 'bg-purple-100 text-purple-800 border-purple-300'
-                    : isDark
-                    ? 'bg-blue-950/80 text-blue-300 border-blue-800'
-                    : 'bg-blue-100 text-blue-800 border-blue-300'
+                  isDark
+                    ? 'bg-neutral-800 text-neutral-300 border-neutral-700'
+                    : 'bg-neutral-100 text-neutral-700 border-neutral-300'
                 }`}
               >
                 {currentSuspect.isCarnivore ? 'Mujer' : 'Hombre'}
@@ -1859,7 +1788,7 @@ export default function App() {
           <div className="flex-1 flex items-center">
             <p
               className={`text-xs sm:text-sm font-semibold leading-snug line-clamp-2 ${
-                isDark ? 'text-amber-100' : 'text-slate-800'
+                isDark ? 'text-neutral-100' : 'text-neutral-800'
               }`}
             >
               {currentClue?.text}
@@ -1871,20 +1800,26 @@ export default function App() {
       {/* 5. POPUP MODAL DE COMPARTIR */}
       {isShareModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fadeIn"
           onClick={() => setIsShareModalOpen(false)}
         >
           <div
             className={`w-full max-w-sm rounded-3xl border p-6 shadow-2xl flex flex-col gap-4 ${
               isDark
-                ? 'bg-slate-900 border-slate-800 text-slate-100'
-                : 'bg-white border-slate-200 text-slate-900'
+                ? 'bg-[#141414] border-neutral-800 text-neutral-100'
+                : 'bg-white border-neutral-200 text-neutral-900'
             }`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2.5">
-                <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center p-1.5">
+                <div
+                  className={`w-11 h-11 rounded-2xl border flex items-center justify-center p-1.5 ${
+                    isDark
+                      ? 'bg-neutral-800 border-neutral-700'
+                      : 'bg-neutral-100 border-neutral-200'
+                  }`}
+                >
                   <img
                     src={sandwichSvg}
                     alt="Sandwich"
@@ -1910,8 +1845,8 @@ export default function App() {
                 onClick={() => setIsShareModalOpen(false)}
                 className={`p-1.5 rounded-xl border transition cursor-pointer ${
                   isDark
-                    ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
-                    : 'bg-slate-100 border-slate-200 text-slate-500 hover:text-slate-900'
+                    ? 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:text-white'
+                    : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
                 }`}
               >
                 <X className="w-4 h-4" />
@@ -1922,8 +1857,8 @@ export default function App() {
             <div
               className={`rounded-2xl p-3.5 border text-xs font-mono whitespace-pre-line leading-relaxed ${
                 isDark
-                  ? 'bg-slate-950 border-slate-800 text-slate-300'
-                  : 'bg-slate-50 border-slate-200 text-slate-700'
+                  ? 'bg-[#0a0a0a] border-neutral-800 text-neutral-300'
+                  : 'bg-neutral-50 border-neutral-200 text-neutral-700'
               }`}
             >
               {shareText}
@@ -1934,7 +1869,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={handleNativeOrWhatsAppShare}
-                className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm"
+                className={`w-full py-2.5 px-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm ${primaryActionBtnClass}`}
               >
                 <Share2 className="w-4 h-4" />
                 <span>Compartir resultado</span>
@@ -1946,8 +1881,8 @@ export default function App() {
                   onClick={handleCopyShareText}
                   className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border transition cursor-pointer ${
                     isDark
-                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
+                      ? 'bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border-neutral-700'
+                      : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border-neutral-300'
                   }`}
                 >
                   {copiedShare ? (
@@ -1966,7 +1901,11 @@ export default function App() {
                 <button
                   type="button"
                   onClick={handleNewRandomLevel}
-                  className="py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-600 dark:text-amber-300 border border-amber-500/40 transition cursor-pointer"
+                  className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border transition cursor-pointer ${
+                    isDark
+                      ? 'bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border-neutral-700'
+                      : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border-neutral-300'
+                  }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
                   <span>Nivel aleatorio</span>
