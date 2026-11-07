@@ -1799,7 +1799,7 @@ export default function App() {
                     : 'bg-blue-950/80 text-blue-300 border-blue-800'
                 }`}
               >
-                {currentSuspect.isCarnivore ? 'Mujer' : 'Hombre'}
+                {currentSuspect.isCarnivore ? '♀️ Mujer' : '♂️ Hombre'}
               </span>
             </div>
 
