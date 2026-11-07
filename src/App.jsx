@@ -83,11 +83,11 @@ const ROOMS = [
 ];
 
 const SUSPECTS = [
-  { id: 0, code: 'A', name: 'Alce', emoji: '🫎', diet: 'Herbívoro', isCarnivore: false },
-  { id: 1, code: 'B', name: 'Boa', emoji: '🐍', diet: 'Carnívora', isCarnivore: true },
-  { id: 2, code: 'C', name: 'Caimán', emoji: '🐊', diet: 'Carnívoro', isCarnivore: true },
-  { id: 3, code: 'D', name: 'Dodo', emoji: '🦤', diet: 'Herbívoro', isCarnivore: false },
-  { id: 4, code: 'E', name: 'Elefante', emoji: '🐘', diet: 'Herbívoro', isCarnivore: false }
+  { id: 0, code: 'A', name: 'Auditor', emoji: '👨🏻‍🦲', diet: 'Hombre', isCarnivore: false },
+  { id: 1, code: 'B', name: 'Becario', emoji: '👧🏼', diet: 'Mujer', isCarnivore: true },
+  { id: 2, code: 'C', name: 'Consultor', emoji: '👩🏾‍🦰', diet: 'Mujer', isCarnivore: true },
+  { id: 3, code: 'D', name: 'Director', emoji: '🧑🏻‍🦳', diet: 'Hombre', isCarnivore: false },
+  { id: 4, code: 'E', name: 'Empleado', emoji: '🧔🏽‍♂️', diet: 'Hombre', isCarnivore: false }
 ];
 
 const CLUE_CATEGORIES = {
