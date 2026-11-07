@@ -672,7 +672,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_north`,
     category: 'Fachada',
     weight: 16,
-    text: `«Me situé pegado a la fachada Norte de la mansión.»`,
+    text: `«Me situé pegado a la fachada Norte de la oficina.»`,
     evalFn: (st) => st.suspectRow[speakerId] === 0
   });
 
@@ -680,7 +680,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_south`,
     category: 'Fachada',
     weight: 16,
-    text: `«Me situé pegado a la fachada Sur de la mansión.»`,
+    text: `«Me situé pegado a la fachada Sur de la oficina.»`,
     evalFn: (st) => st.suspectRow[speakerId] === 4
   });
 
@@ -688,7 +688,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_west`,
     category: 'Fachada',
     weight: 16,
-    text: `«Estaba junto al ventanal de la fachada Oeste.»`,
+    text: `«Estaba pegado a la fachada Oeste de la oficina..»`,
     evalFn: (st) => st.suspectCol[speakerId] === 0
   });
 
@@ -696,7 +696,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_east`,
     category: 'Fachada',
     weight: 16,
-    text: `«Estaba junto al ventanal de la fachada Este.»`,
+    text: `«Estaba pegado a la fachada Este de la oficina..»`,
     evalFn: (st) => st.suspectCol[speakerId] === 4
   });
 
@@ -704,7 +704,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_corner`,
     category: 'Fachada',
     weight: 17,
-    text: `«Me oculté en una de las 4 esquinas exteriores de la mansión.»`,
+    text: `«Me oculté en una de las 4 esquinas exteriores de la oficina.»`,
     evalFn: (st) =>
       (st.suspectRow[speakerId] === 0 || st.suspectRow[speakerId] === 4) &&
       (st.suspectCol[speakerId] === 0 || st.suspectCol[speakerId] === 4)
@@ -714,7 +714,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_interior`,
     category: 'Fachada',
     weight: 15,
-    text: `«Me mantuve en el interior de la mansión, sin tocar ninguna fachada exterior.»`,
+    text: `«Me mantuve en el interior de la oficina, sin tocar ninguna fachada exterior.»`,
     evalFn: (st) =>
       st.suspectRow[speakerId] > 0 &&
       st.suspectRow[speakerId] < 4 &&
@@ -747,7 +747,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `self_largest_room`,
       category: 'Claustrofobia',
       weight: 16,
-      text: `«Me escondí en la estancia más grande de toda la mansión (${maxSize} casillas).»`,
+      text: `«Me escondí en la estancia más grande de toda la oficina (${maxSize} casillas).»`,
       evalFn: (st) => st.suspectRoom[speakerId] === largestRooms[0]
     });
   }
@@ -757,7 +757,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `self_smallest_room`,
       category: 'Claustrofobia',
       weight: 16,
-      text: `«Me escondí en la estancia más pequeña de la mansión (${minSize} casillas).»`,
+      text: `«Me escondí en la estancia más pequeña de la oficina (${minSize} casillas).»`,
       evalFn: (st) => st.suspectRoom[speakerId] === smallestRooms[0]
     });
   }
@@ -1799,7 +1799,7 @@ export default function App() {
                     : 'bg-blue-950/80 text-blue-300 border-blue-800'
                 }`}
               >
-                {currentSuspect.isCarnivore ? '♀️ Mujer' : '♂️ Hombre'}
+                {currentSuspect.isCarnivore ? 'Mujer' : 'Hombre'}
               </span>
             </div>
 
