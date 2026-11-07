@@ -530,7 +530,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `carnivore_door_${dNum}`,
       category: 'Umbral',
       weight: 14,
-      text: `«Un carnívoro merodeaba junto a la puerta ${dNum}.»`,
+      text: `«Una mujer merodeaba junto a la puerta ${dNum}.»`,
       evalFn: (st) => {
         const occ = st.doorOccupant[dNum];
         return occ !== -1 && SUSPECTS[occ].isCarnivore;
@@ -541,7 +541,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `herbivore_door_${dNum}`,
       category: 'Umbral',
       weight: 13,
-      text: `«Un herbívoro estaba junto a la puerta ${dNum}.»`,
+      text: `«Un hombre estaba junto a la puerta ${dNum}.»`,
       evalFn: (st) => {
         const occ = st.doorOccupant[dNum];
         return occ !== -1 && !SUSPECTS[occ].isCarnivore;
@@ -638,7 +638,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `other_carnivore_even_door`,
       category: 'Umbral',
       weight: 16,
-      text: `«La sala del otro carnívoro y la mía están comunicadas por una puerta par.»`,
+      text: `«La sala de la otra mujer y la mía están comunicadas por una puerta par.»`,
       evalFn: (st) => {
         const rm1 = st.suspectRoom[speakerId];
         const rm2 = st.suspectRoom[otherCarnivoreId];
@@ -654,7 +654,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `other_carnivore_odd_door`,
       category: 'Umbral',
       weight: 16,
-      text: `«La sala del otro carnívoro y la mía están comunicadas por una puerta impar.»`,
+      text: `«La sala de la otra mujer y la mía están comunicadas por una puerta impar.»`,
       evalFn: (st) => {
         const rm1 = st.suspectRoom[speakerId];
         const rm2 = st.suspectRoom[otherCarnivoreId];
@@ -846,7 +846,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `thief_is_carnivore`,
     category: 'Paranoia',
     weight: 16,
-    text: `«El ladrón que miente es un carnívoro.»`,
+    text: `«El ladrón es una mujer.»`,
     evalFn: (st) => SUSPECTS[st.roomSuspect[vaseRoom]].isCarnivore
   });
 
@@ -854,7 +854,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `thief_is_herbivore`,
     category: 'Paranoia',
     weight: 15,
-    text: `«El ladrón que robó la leche es un herbívoro.»`,
+    text: `«El ladrón que robó la leche es un hombre.»`,
     evalFn: (st) => !SUSPECTS[st.roomSuspect[vaseRoom]].isCarnivore
   });
 
@@ -893,7 +893,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `carnivore_in_room_${rm}`,
       category: 'Estancia',
       weight: 11,
-      text: `«Un carnívoro ocupaba la sala ${rmName}.»`,
+      text: `«Una mujer ocupaba la sala ${rmName}.»`,
       evalFn: (st) => SUSPECTS[st.roomSuspect[rm]].isCarnivore
     });
 
@@ -901,7 +901,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `herbivore_in_room_${rm}`,
       category: 'Estancia',
       weight: 9,
-      text: `«Un herbívoro ocupaba la sala ${rmName}.»`,
+      text: `«Un hombre ocupaba la sala ${rmName}.»`,
       evalFn: (st) => !SUSPECTS[st.roomSuspect[rm]].isCarnivore
     });
 
@@ -1795,11 +1795,11 @@ export default function App() {
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
                   currentSuspect.isCarnivore
-                    ? 'bg-rose-950/80 text-rose-300 border-rose-800'
-                    : 'bg-emerald-950/80 text-emerald-300 border-emerald-800'
+                    ? 'bg-purple-950/80 text-purple-300 border-purple-800'
+                    : 'bg-blue-950/80 text-blue-300 border-blue-800'
                 }`}
               >
-                {currentSuspect.isCarnivore ? '🥩 Carnívoro' : '🌿 Herbívoro'}
+                {currentSuspect.isCarnivore ? '♀️ Mujer' : '♂️ Hombre'}
               </span>
             </div>
 
