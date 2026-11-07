@@ -1,15 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Sparkles,
-  RotateCcw,
-  Eye,
   CheckCircle2,
   AlertTriangle,
-  Cpu,
-  Calendar,
   XCircle,
   Share2,
-  Check
+  Check,
+  X,
+  Copy,
+  Shuffle
 } from 'lucide-react';
 
 // ============================================================================
@@ -1144,13 +1143,34 @@ function generateCompleteLevel(
 }
 
 // ============================================================================
-// 4. COMPONENTE PRINCIPAL DE LA APLICACIÓN (DISEÑO MÓVIL SIN SALTOS VISUALES)
+// 4. COMPONENTE PRINCIPAL DE LA APLICACIÓN
 // ============================================================================
 
 export default function App() {
+  // Detección reactiva del tema del sistema operativo/navegador del usuario
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e) => setIsDark(e.matches);
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } else if (mediaQuery.addListener) {
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
+    }
+  }, []);
+
   const dailyConfig = useMemo(() => getDailyConfig(), []);
   const [isDailyMode, setIsDailyMode] = useState(true);
-  const [enabledCategories, setEnabledCategories] = useState(dailyConfig.categories);
 
   const [level, setLevel] = useState(() =>
     generateCompleteLevel(dailyConfig.categories, dailyConfig.seed)
@@ -1159,9 +1179,10 @@ export default function App() {
   const [placements, setPlacements] = useState({});
   // Sospechoso activo en las píldoras horizontales (0..4 -> A..E)
   const [activeSuspect, setActiveSuspect] = useState(0);
-  // Cronómetro y estado de resolución
+  // Cronómetro, estado de resolución y modal de compartir
   const [seconds, setSeconds] = useState(0);
   const [isSolved, setIsSolved] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
 
   const resetBoardState = (nextLevel) => {
@@ -1170,21 +1191,21 @@ export default function App() {
     setActiveSuspect(0);
     setSeconds(0);
     setIsSolved(false);
+    setIsShareModalOpen(false);
     setCopiedShare(false);
   };
 
   // Cargar reto diario determinista
   const handleLoadDaily = useCallback(() => {
     setIsDailyMode(true);
-    setEnabledCategories(dailyConfig.categories);
     const nextLevel = generateCompleteLevel(dailyConfig.categories, dailyConfig.seed);
     if (nextLevel) {
       resetBoardState(nextLevel);
     }
   }, [dailyConfig]);
 
-  // Generar un nuevo caso libre
-  const handleNewCase = useCallback(() => {
+  // Generar un nuevo nivel aleatorio
+  const handleNewRandomLevel = useCallback(() => {
     setIsDailyMode(false);
     const nextLevel = generateCompleteLevel();
     if (nextLevel) {
@@ -1200,41 +1221,51 @@ export default function App() {
       return {
         label: 'Fácil',
         bars: 1,
-        badgeClass: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
-        barColor: 'bg-emerald-400'
+        badgeClass: isDark
+          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+          : 'bg-emerald-100 text-emerald-800 border-emerald-300',
+        barColor: 'bg-emerald-500'
       };
     }
     if (k === 3) {
       return {
         label: 'Media',
         bars: 2,
-        badgeClass: 'bg-sky-500/20 text-sky-300 border-sky-500/40',
-        barColor: 'bg-sky-400'
+        badgeClass: isDark
+          ? 'bg-sky-500/20 text-sky-300 border-sky-500/40'
+          : 'bg-sky-100 text-sky-800 border-sky-300',
+        barColor: 'bg-sky-500'
       };
     }
     if (k === 4) {
       return {
         label: 'Difícil',
         bars: 3,
-        badgeClass: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
-        barColor: 'bg-amber-400'
+        badgeClass: isDark
+          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+          : 'bg-amber-100 text-amber-800 border-amber-300',
+        barColor: 'bg-amber-500'
       };
     }
     if (k === 5) {
       return {
         label: 'Experto',
         bars: 4,
-        badgeClass: 'bg-orange-500/20 text-orange-300 border-orange-500/40',
-        barColor: 'bg-orange-400'
+        badgeClass: isDark
+          ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
+          : 'bg-orange-100 text-orange-800 border-orange-300',
+        barColor: 'bg-orange-500'
       };
     }
     return {
       label: 'Maestro',
       bars: 5,
-      badgeClass: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
+      badgeClass: isDark
+        ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+        : 'bg-rose-100 text-rose-800 border-rose-300',
       barColor: 'bg-rose-500'
     };
-  }, [level]);
+  }, [level, isDark]);
 
   // Mapa inverso: suspectId -> { r, c } si está colocado en el tablero
   const suspectPositions = useMemo(() => {
@@ -1251,7 +1282,7 @@ export default function App() {
     const set = new Set();
     if (!level) return set;
 
-    Object.entries(placements).forEach(([key, _sId]) => {
+    Object.entries(placements).forEach(([key]) => {
       const [sr, sc] = key.split(',').map(Number);
       const sRoom = level.grid[sr][sc];
 
@@ -1354,6 +1385,7 @@ export default function App() {
   useEffect(() => {
     if (validation?.allCluesValid && !isSolved) {
       setIsSolved(true);
+      setIsShareModalOpen(true);
     }
   }, [validation, isSolved]);
 
@@ -1366,9 +1398,7 @@ export default function App() {
     return () => clearInterval(timer);
   }, [gameWon]);
 
-  // Clic en una celda de la cuadrícula 5x5:
-  // - Si la celda ya tiene un sospechoso -> lo elimina (y desaparecen sus X grises)
-  // - Si la celda está libre -> coloca al sospechoso activo (y marca sus X grises)
+  // Clic en una celda de la cuadrícula 5x5
   const handleCellClick = (r, c) => {
     if (!level) return;
     if (r === level.vasePos.r && c === level.vasePos.c) return;
@@ -1394,42 +1424,35 @@ export default function App() {
     setPlacements(nextPlacements);
   };
 
-  // Resolver automáticamente
-  const handleRevealSolution = () => {
-    if (!level) return;
-    const solPlacements = {};
-    for (let sId = 0; sId < 5; sId++) {
-      const r = level.trueState.suspectRow[sId];
-      const c = level.trueState.suspectCol[sId];
-      solPlacements[`${r},${c}`] = sId;
-    }
-    setPlacements(solPlacements);
-  };
-
   const formatTime = (secs) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  // Compartir por WhatsApp o menú nativo del móvil con el texto exacto solicitado
-  const handleShare = async () => {
-    const shareText = `🥪 ¿Quién robó el sandwich? (${dailyConfig.formattedDate})\n⏱️ Lo descubrí en ${formatTime(
+  const shareText = useMemo(() => {
+    const modeLabel = isDailyMode ? dailyConfig.formattedDate : `Caso #${level?.caseNumber ?? ''}`;
+    return `🥪 ¿Quién ha robado mi sandwich? (${modeLabel})\n⏱️ Lo descubrí en ${formatTime(
       seconds
     )} min.\n¡A ver si mejoras mi tiempo! 👇\nhttps://who-stole-my-sandwich.vercel.app/`;
+  }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, seconds]);
 
+  const handleCopyShareText = () => {
+    navigator.clipboard?.writeText(shareText);
+    setCopiedShare(true);
+    setTimeout(() => setCopiedShare(false), 2500);
+  };
+
+  const handleNativeOrWhatsAppShare = async () => {
     if (navigator.share) {
       try {
         await navigator.share({ text: shareText });
         return;
       } catch (_err) {
-        // Si se cancela el diálogo nativo, abrimos WhatsApp y copiamos al portapapeles
+        // Fallback a copiar y abrir WhatsApp
       }
     }
-
-    navigator.clipboard?.writeText(shareText);
-    setCopiedShare(true);
-    setTimeout(() => setCopiedShare(false), 2500);
+    handleCopyShareText();
     window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
@@ -1438,111 +1461,110 @@ export default function App() {
   const currentSuspect = SUSPECTS[activeSuspect];
   const currentClue = level.clues.find((c) => c.suspectId === activeSuspect);
   const currentPos = suspectPositions[activeSuspect];
-  const currentRoomObj = currentPos ? ROOMS[level.grid[currentPos.r][currentPos.c]] : null;
+
+  // Clases dinámicas según el tema del sistema (Claro / Oscuro)
+  const pageBgClass = isDark
+    ? 'bg-slate-950 text-slate-100'
+    : 'bg-slate-100 text-slate-900';
+  const cardBgClass = isDark
+    ? 'bg-slate-900 border-slate-800'
+    : 'bg-white border-slate-200';
+  const subTextClass = isDark ? 'text-slate-400' : 'text-slate-500';
 
   return (
-    <div className="min-h-dvh bg-slate-950 text-slate-100 font-sans select-none flex flex-col items-center justify-start py-4 px-4">
-      {/* CONTENEDOR MÓVIL CON MAYOR ESPACIADO ENTRE ELEMENTOS Y ALTURA ESTABLE */}
-      <div className="w-full max-w-[410px] flex flex-col gap-4">
-        
-        {/* 1. CABECERA + TEMPORIZADOR ARRIBA A LA DERECHA + MEDIDOR DE DIFICULTAD */}
-        <header className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-md">
-          <div className="flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl shrink-0">
-                🥪
-              </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <h1 className="text-sm font-black tracking-tight text-white truncate">
-                    ¿Quién robó el sandwich?
-                  </h1>
-                </div>
-                <p className="text-[11px] text-slate-400 leading-none mt-1 truncate">
-                  {isDailyMode ? `Diario #${dailyConfig.dayNumber}` : `Caso #${level.caseNumber}`} &bull; Sala {ROOMS[level.vaseRoom].name} (🥪)
-                </p>
-              </div>
-            </div>
+    <div
+      className={`min-h-dvh font-sans select-none flex flex-col items-center justify-start py-4 px-4 transition-colors duration-200 ${pageBgClass}`}
+    >
+      <div className="w-full max-w-[410px] flex flex-col gap-3.5">
+        {/* TÍTULO PRINCIPAL ARRIBA DEL TODO + OPCIÓN PARA NIVELES ALEATORIOS */}
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-2xl shrink-0">🥪</span>
+            <h1 className="text-base sm:text-lg font-black tracking-tight truncate">
+              ¿Quién ha robado mi sandwich?
+            </h1>
+          </div>
 
-            {/* Controles rápidos y Temporizador arriba a la derecha */}
-            <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
+            {!isDailyMode && (
               <button
                 type="button"
-                onClick={() => {
-                  setPlacements({});
-                  setIsSolved(false);
-                }}
-                title="Limpiar tablero"
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer transition"
+                onClick={handleLoadDaily}
+                title="Volver al reto diario"
+                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+                  isDark
+                    ? 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800'
+                    : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300 shadow-2xs'
+                }`}
               >
-                <RotateCcw className="w-3.5 h-3.5" />
+                Diario
               </button>
-              <button
-                type="button"
-                onClick={handleRevealSolution}
-                title="Ver solución"
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer transition"
-              >
-                <Eye className="w-3.5 h-3.5" />
-              </button>
-              <button
-                type="button"
-                onClick={isDailyMode ? handleNewCase : handleLoadDaily}
-                title={isDailyMode ? 'Jugar caso aleatorio' : 'Volver al caso diario'}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 cursor-pointer transition"
-              >
-                {isDailyMode ? (
-                  <Sparkles className="w-3.5 h-3.5" />
-                ) : (
-                  <Calendar className="w-3.5 h-3.5" />
-                )}
-              </button>
+            )}
+            <button
+              type="button"
+              onClick={handleNewRandomLevel}
+              title="Generar un nivel aleatorio nuevo"
+              className="px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-xs transition cursor-pointer"
+            >
+              <Shuffle className="w-3.5 h-3.5" />
+              <span>Aleatorio</span>
+            </button>
+          </div>
+        </div>
 
-              {/* Temporizador arriba a la derecha */}
-              <div className="bg-slate-950 border border-slate-700 px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 shadow-inner">
+        {/* 1. APARTADO SUPERIOR: SOLO NIVEL DE DIFICULTAD Y TEMPORIZADOR */}
+        <header
+          className={`border rounded-2xl px-4 py-3 shadow-xs flex items-center justify-between gap-3 ${cardBgClass}`}
+        >
+          {/* Nivel de dificultad */}
+          <div className="flex items-center gap-2.5">
+            <span
+              className={`px-2.5 py-0.5 rounded-md font-black uppercase tracking-wider border text-[11px] ${difficultyInfo.badgeClass}`}
+            >
+              {difficultyInfo.label}
+            </span>
+            <div
+              className="flex items-center gap-1"
+              title={`Dificultad: ${difficultyInfo.label}`}
+            >
+              {[1, 2, 3, 4, 5].map((bar) => (
                 <span
-                  className={`w-2 h-2 rounded-full ${
-                    gameWon ? 'bg-amber-400' : 'bg-emerald-400 animate-pulse'
+                  key={bar}
+                  className={`w-3 h-2 rounded-xs ${
+                    bar <= difficultyInfo.bars
+                      ? difficultyInfo.barColor
+                      : isDark
+                      ? 'bg-slate-800'
+                      : 'bg-slate-200'
                   }`}
                 />
-                <span>{formatTime(seconds)}</span>
-              </div>
+              ))}
             </div>
           </div>
 
-          {/* Barra de Dificultad según el Embudo Algorítmico (Geometrías Válidas K) */}
-          <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2 text-[11px]">
-            <div className="flex items-center gap-2">
-              <span
-                className={`px-2 py-0.5 rounded-md font-black uppercase tracking-wider border text-[10px] ${difficultyInfo.badgeClass}`}
-              >
-                {difficultyInfo.label}
-              </span>
-              <div className="flex items-center gap-1" title="Nivel de dificultad según geometrías válidas">
-                {[1, 2, 3, 4, 5].map((bar) => (
-                  <span
-                    key={bar}
-                    className={`w-2.5 h-1.5 rounded-xs ${
-                      bar <= difficultyInfo.bars ? difficultyInfo.barColor : 'bg-slate-800'
-                    }`}
-                  />
-                ))}
-              </div>
-            </div>
-
-            <div className="font-mono text-[10px] text-slate-400 flex items-center gap-1">
-              <Cpu className="w-3 h-3 text-indigo-400 shrink-0" />
-              <span>
-                Embudo: <strong className="text-white">{level.survivingGeos.length}</strong> geom. ({level.totalStates} est.)
-              </span>
-            </div>
+          {/* Temporizador */}
+          <div
+            className={`px-3 py-1 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 border ${
+              isDark
+                ? 'bg-slate-950 border-slate-800 text-slate-100'
+                : 'bg-slate-100 border-slate-200 text-slate-900'
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                gameWon ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'
+              }`}
+            />
+            <span>{formatTime(seconds)}</span>
           </div>
         </header>
 
-        {/* 2. BARRA DE ESTADO DE ALTURA FIJA (CON BOTÓN DE COMPARTIR AL GANAR) */}
-        <div className="h-11 rounded-2xl px-3.5 flex items-center justify-between text-xs font-bold border bg-slate-900 border-slate-800 shadow-sm">
+        {/* 2. BARRA DE ESTADO DE ALTURA FIJA (CON BOTÓN PARA ABRIR EL POPUP DE COMPARTIR AL GANAR) */}
+        <div
+          className={`h-11 rounded-2xl px-3.5 flex items-center justify-between text-xs font-bold border shadow-2xs ${cardBgClass}`}
+        >
           {gameWon ? (
-            <div className="w-full flex items-center justify-between gap-2 text-emerald-400">
+            <div className="w-full flex items-center justify-between gap-2 text-emerald-600 dark:text-emerald-400">
               <span className="flex items-center gap-1.5 truncate">
                 <CheckCircle2 className="w-4 h-4 shrink-0" />
                 <span className="truncate">
@@ -1551,24 +1573,15 @@ export default function App() {
               </span>
               <button
                 type="button"
-                onClick={handleShare}
-                className="px-3 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] flex items-center gap-1.5 shrink-0 transition cursor-pointer shadow-xs"
+                onClick={() => setIsShareModalOpen(true)}
+                className="px-3 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] flex items-center gap-1.5 shrink-0 transition cursor-pointer shadow-2xs"
               >
-                {copiedShare ? (
-                  <>
-                    <Check className="w-3.5 h-3.5" />
-                    <span>¡Copiado!</span>
-                  </>
-                ) : (
-                  <>
-                    <Share2 className="w-3.5 h-3.5" />
-                    <span>Compartir</span>
-                  </>
-                )}
+                <Share2 className="w-3.5 h-3.5" />
+                <span>Compartir</span>
               </button>
             </div>
           ) : validation.conflicts.size > 0 ? (
-            <div className="w-full flex items-center justify-between text-rose-400">
+            <div className="w-full flex items-center justify-between text-rose-600 dark:text-rose-400">
               <span className="flex items-center gap-1.5 truncate">
                 <AlertTriangle className="w-4 h-4 shrink-0" />
                 <span>Conflicto de posición entre sospechosos</span>
@@ -1576,7 +1589,7 @@ export default function App() {
               <span className="text-[10px] font-mono">{validation.placedCount}/5</span>
             </div>
           ) : validation.placedCount === 5 ? (
-            <div className="w-full flex items-center justify-between text-amber-400">
+            <div className="w-full flex items-center justify-between text-amber-600 dark:text-amber-400">
               <span className="flex items-center gap-1.5 truncate">
                 <XCircle className="w-4 h-4 shrink-0" />
                 <span>Alguna declaración no cuadra con la sala 🥪</span>
@@ -1584,51 +1597,74 @@ export default function App() {
               <span className="text-[10px] font-mono">5/5</span>
             </div>
           ) : (
-            <div className="w-full flex items-center justify-between text-slate-400">
+            <div className={`w-full flex items-center justify-between ${subTextClass}`}>
               <span className="truncate">
-                Toca una celda para colocar a <strong className="text-white">{currentSuspect.code} ({currentSuspect.name})</strong>
+                Toca una celda para colocar a{' '}
+                <strong className={isDark ? 'text-white' : 'text-slate-900'}>
+                  {currentSuspect.code} ({currentSuspect.name})
+                </strong>
               </span>
-              <span className="text-[10px] font-mono text-slate-300 bg-slate-800 px-2 py-0.5 rounded-md">
+              <span
+                className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${
+                  isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
+                }`}
+              >
                 {validation.placedCount}/5
               </span>
             </div>
           )}
         </div>
 
-        {/* 3. TABLERO 5x5 CON COLORES PASTEL, CRUCES GRISES Y CARDINALES SIN FLECHAS */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-md">
+        {/* 3. TABLERO 5x5 CON COLORES PASTEL, CRUCES GRISES Y CARDINALES */}
+        <div className={`border rounded-2xl p-3.5 shadow-xs ${cardBgClass}`}>
           <div className="relative w-full aspect-square pt-6 pb-6 px-6">
-            {/* NORTE (sin flechas) */}
+            {/* NORTE */}
             <div className="absolute top-0 inset-x-0 h-6 flex items-center justify-center pointer-events-none">
-              <span className="text-[11px] font-black uppercase tracking-widest text-amber-400">
+              <span
+                className={`text-[11px] font-black uppercase tracking-widest ${
+                  isDark ? 'text-amber-400' : 'text-amber-600'
+                }`}
+              >
                 NORTE
               </span>
             </div>
 
-            {/* SUR (sin flechas) */}
+            {/* SUR */}
             <div className="absolute bottom-0 inset-x-0 h-6 flex items-center justify-center pointer-events-none">
-              <span className="text-[11px] font-black uppercase tracking-widest text-amber-400">
+              <span
+                className={`text-[11px] font-black uppercase tracking-widest ${
+                  isDark ? 'text-amber-400' : 'text-amber-600'
+                }`}
+              >
                 SUR
               </span>
             </div>
 
-            {/* OESTE (sin flechas) */}
+            {/* OESTE */}
             <div className="absolute left-0 inset-y-0 w-6 flex items-center justify-center pointer-events-none">
-              <span className="text-[11px] font-black uppercase tracking-widest text-amber-400 [writing-mode:vertical-lr] rotate-180">
+              <span
+                className={`text-[11px] font-black uppercase tracking-widest [writing-mode:vertical-lr] rotate-180 ${
+                  isDark ? 'text-amber-400' : 'text-amber-600'
+                }`}
+              >
                 OESTE
               </span>
             </div>
 
-            {/* ESTE (sin flechas) */}
+            {/* ESTE */}
             <div className="absolute right-0 inset-y-0 w-6 flex items-center justify-center pointer-events-none">
-              <span className="text-[11px] font-black uppercase tracking-widest text-amber-400 [writing-mode:vertical-lr]">
+              <span
+                className={`text-[11px] font-black uppercase tracking-widest [writing-mode:vertical-lr] ${
+                  isDark ? 'text-amber-400' : 'text-amber-600'
+                }`}
+              >
                 ESTE
               </span>
             </div>
 
             {/* CUADRÍCULA 5x5 */}
             <div className="relative w-full h-full">
-              <div className="w-full h-full grid grid-cols-5 grid-rows-5 border-4 border-slate-950 rounded-xl overflow-hidden bg-slate-950 shadow-inner">
+              <div className="w-full h-full grid grid-cols-5 grid-rows-5 border-4 border-slate-900 rounded-xl overflow-hidden bg-slate-900 shadow-inner">
                 {Array.from({ length: 5 }).map((_, r) =>
                   Array.from({ length: 5 }).map((__, c) => {
                     const key = `${r},${c}`;
@@ -1671,7 +1707,7 @@ export default function App() {
                           hasConflict ? 'ring-3 ring-inset ring-rose-600 z-10' : ''
                         }`}
                       >
-                        {/* sandwich Robada 🥪 */}
+                        {/* Sandwich Robado 🥪 */}
                         {isVase && (
                           <div className="flex flex-col items-center justify-center leading-none pointer-events-none">
                             <span className="text-xl">🥪</span>
@@ -1739,7 +1775,20 @@ export default function App() {
           </div>
         </div>
 
-        {/* 4. PÍLDORAS HORIZONTALES (A, B, C, D, E) */}
+        {/* AVISO ANTES DEL SELECTOR DE PERSONAS: "¡El ladrón miente!" */}
+        <div className="flex items-center justify-center">
+          <span
+            className={`text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full border ${
+              isDark
+                ? 'bg-rose-950/60 text-rose-300 border-rose-800/70'
+                : 'bg-rose-100 text-rose-700 border-rose-300'
+            }`}
+          >
+            ¡El ladrón miente!
+          </span>
+        </div>
+
+        {/* 4. PÍLDORAS HORIZONTALES SELECTORAS DE PERSONAS (A, B, C, D, E) */}
         <div className="w-full grid grid-cols-5 gap-2 h-14">
           {SUSPECTS.map((s) => {
             const isSelected = activeSuspect === s.id;
@@ -1753,16 +1802,20 @@ export default function App() {
                 onClick={() => setActiveSuspect(s.id)}
                 className={`relative h-full rounded-2xl font-black transition-colors flex flex-col items-center justify-center border cursor-pointer ${
                   isSelected
-                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md'
+                    ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm'
                     : isPlaced
-                    ? 'bg-slate-800 text-white border-emerald-500/60'
-                    : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
+                    ? isDark
+                      ? 'bg-slate-800 text-white border-emerald-500/60'
+                      : 'bg-emerald-50 text-slate-900 border-emerald-500/70'
+                    : isDark
+                    ? 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
+                    : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                 }`}
               >
                 {isPlaced && (
                   <span
                     className={`absolute top-1.5 right-2 w-2 h-2 rounded-full ${
-                      evalRes && !evalRes.isConsistent ? 'bg-rose-500' : 'bg-emerald-400'
+                      evalRes && !evalRes.isConsistent ? 'bg-rose-500' : 'bg-emerald-500'
                     }`}
                   />
                 )}
@@ -1772,7 +1825,11 @@ export default function App() {
                 </div>
                 <span
                   className={`text-[10px] font-bold mt-1 truncate max-w-full px-1 ${
-                    isSelected ? 'text-slate-900' : 'text-slate-400'
+                    isSelected
+                      ? 'text-slate-900'
+                      : isDark
+                      ? 'text-slate-400'
+                      : 'text-slate-500'
                   }`}
                 >
                   {s.name}
@@ -1782,49 +1839,66 @@ export default function App() {
           })}
         </div>
 
-        {/* 5. DECLARACIÓN DEL SOSPECHOSO SELECCIONADO (MISMO ANCHO QUE PÍLDORAS Y ALTURA FIJA) */}
-        <div className="w-full h-36 bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between shadow-md overflow-hidden">
+        {/* 5. DECLARACIÓN DEL SOSPECHOSO SELECCIONADO (SIN TAGS DE ESTANCIA) */}
+        <div
+          className={`w-full h-36 border rounded-2xl p-4 flex flex-col justify-between shadow-xs overflow-hidden ${cardBgClass}`}
+        >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
-              <span className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center text-base shrink-0">
+              <span
+                className={`w-7 h-7 rounded-lg border flex items-center justify-center text-base shrink-0 ${
+                  isDark
+                    ? 'bg-slate-800 border-slate-700'
+                    : 'bg-slate-100 border-slate-200'
+                }`}
+              >
                 {currentSuspect.emoji}
               </span>
-              <span className="font-black text-xs text-white truncate">
+              <span
+                className={`font-black text-xs truncate ${
+                  isDark ? 'text-white' : 'text-slate-900'
+                }`}
+              >
                 {currentSuspect.code} — {currentSuspect.name}
               </span>
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
                   currentSuspect.isCarnivore
-                    ? 'bg-purple-950/80 text-purple-300 border-purple-800'
-                    : 'bg-blue-950/80 text-blue-300 border-blue-800'
+                    ? isDark
+                      ? 'bg-purple-950/80 text-purple-300 border-purple-800'
+                      : 'bg-purple-100 text-purple-800 border-purple-300'
+                    : isDark
+                    ? 'bg-blue-950/80 text-blue-300 border-blue-800'
+                    : 'bg-blue-100 text-blue-800 border-blue-300'
                 }`}
               >
                 {currentSuspect.isCarnivore ? '♀️ Mujer' : '♂️ Hombre'}
               </span>
             </div>
-
-            <div className="shrink-0">
-              {currentRoomObj ? (
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${currentRoomObj.badgeBg}`}>
-                  Sala {currentRoomObj.name}
-                </span>
-              ) : (
-                <span className="text-[10px] font-medium text-slate-500">
-                  Sin colocar
-                </span>
-              )}
-            </div>
           </div>
 
           <div className="flex-1 flex items-center my-1">
-            <p className="text-xs sm:text-sm font-semibold text-amber-100 leading-snug line-clamp-3">
+            <p
+              className={`text-xs sm:text-sm font-semibold leading-snug line-clamp-3 ${
+                isDark ? 'text-amber-100' : 'text-slate-800'
+              }`}
+            >
               {currentClue?.text}
             </p>
           </div>
 
-          <div className="flex items-center justify-between text-[10px] text-slate-400 border-t border-slate-800/80 pt-2">
+          <div
+            className={`flex items-center justify-between text-[10px] border-t pt-2 ${
+              isDark
+                ? 'text-slate-400 border-slate-800/80'
+                : 'text-slate-500 border-slate-200'
+            }`}
+          >
             <span>
-              Categoría: <strong className="text-slate-300">{currentClue?.category}</strong>
+              Categoría:{' '}
+              <strong className={isDark ? 'text-slate-300' : 'text-slate-700'}>
+                {currentClue?.category}
+              </strong>
             </span>
             <span>
               {currentPos
@@ -1833,8 +1907,107 @@ export default function App() {
             </span>
           </div>
         </div>
-
       </div>
+
+      {/* 6. POPUP MODAL DE COMPARTIR */}
+      {isShareModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn"
+          onClick={() => setIsShareModalOpen(false)}
+        >
+          <div
+            className={`w-full max-w-sm rounded-3xl border p-6 shadow-2xl flex flex-col gap-4 ${
+              isDark
+                ? 'bg-slate-900 border-slate-800 text-slate-100'
+                : 'bg-white border-slate-200 text-slate-900'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-2xl">
+                  🥪
+                </div>
+                <div>
+                  <h2 className="text-base font-black leading-tight">
+                    ¡Caso resuelto!
+                  </h2>
+                  <p className={`text-xs ${subTextClass}`}>
+                    {SUSPECTS[level.thiefId].emoji} {SUSPECTS[level.thiefId].name} robó el sandwich
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsShareModalOpen(false)}
+                className={`p-1.5 rounded-xl border transition cursor-pointer ${
+                  isDark
+                    ? 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                    : 'bg-slate-100 border-slate-200 text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Resumen estadístico y vista previa del mensaje */}
+            <div
+              className={`rounded-2xl p-3.5 border text-xs font-mono whitespace-pre-line leading-relaxed ${
+                isDark
+                  ? 'bg-slate-950 border-slate-800 text-slate-300'
+                  : 'bg-slate-50 border-slate-200 text-slate-700'
+              }`}
+            >
+              {shareText}
+            </div>
+
+            {/* Botones de acción en el popup */}
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleNativeOrWhatsAppShare}
+                className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm"
+              >
+                <Share2 className="w-4 h-4" />
+                <span>Compartir resultado</span>
+              </button>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={handleCopyShareText}
+                  className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border transition cursor-pointer ${
+                    isDark
+                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700'
+                      : 'bg-slate-100 hover:bg-slate-200 text-slate-800 border-slate-300'
+                  }`}
+                >
+                  {copiedShare ? (
+                    <>
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                      <span>¡Copiado!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>Copiar texto</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleNewRandomLevel}
+                  className="py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 bg-amber-500/20 hover:bg-amber-500/30 text-amber-600 dark:text-amber-300 border border-amber-500/40 transition cursor-pointer"
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <span>Nivel aleatorio</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
