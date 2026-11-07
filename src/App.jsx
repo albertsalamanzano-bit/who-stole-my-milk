@@ -1597,23 +1597,12 @@ export default function App() {
               <span className="text-[10px] font-mono">5/5</span>
             </div>
           ) : (
-            <div className={`w-full flex items-center justify-between ${subTextClass}`}>
-              <span className="truncate">
-                Toca una celda para colocar a{' '}
-                <strong className={isDark ? 'text-white' : 'text-slate-900'}>
-                  {currentSuspect.code} ({currentSuspect.name})
-                </strong>
-              </span>
-              <span
-                className={`text-[10px] font-mono px-2 py-0.5 rounded-md ${
-                  isDark ? 'bg-slate-800 text-slate-300' : 'bg-slate-200 text-slate-700'
-                }`}
-              >
-                {validation.placedCount}/5
-              </span>
-            </div>
-          )}
-        </div>
+  <div className="w-full flex items-center justify-end text-slate-500 dark:text-slate-400">
+    <span className="text-[10px] font-mono text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+      {validation.placedCount}/5
+    </span>
+  </div>
+)}
 
         {/* 3. TABLERO 5x5 CON COLORES PASTEL, CRUCES GRISES Y CARDINALES */}
         <div className={`border rounded-2xl p-3.5 shadow-xs ${cardBgClass}`}>
