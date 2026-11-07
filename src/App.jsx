@@ -1676,7 +1676,7 @@ export default function App() {
                           <div className="flex flex-col items-center justify-center leading-none pointer-events-none">
                             <span className="text-xl">🥛</span>
                             <span className="text-[8px] font-black uppercase bg-rose-600 text-white px-1 rounded mt-0.5">
-                              ROBO
+                              MENTIROSO
                             </span>
                           </div>
                         )}
