@@ -1416,7 +1416,7 @@ export default function App() {
   const handleShare = async () => {
     const shareText = `🥪 ¿Quién robó la sandwich? (${dailyConfig.formattedDate})\n⏱️ Lo descubrí en ${formatTime(
       seconds
-    )} min.\n¡A ver si mejoras mi tiempo! 👇\nhttps://who-stole-my-milk.vercel.app/`;
+    )} min.\n¡A ver si mejoras mi tiempo! 👇\nhttps://who-stole-my-sandwich.vercel.app/`;
 
     if (navigator.share) {
       try {
