@@ -1438,7 +1438,7 @@ export default function App() {
     const modeLabel = isDailyMode ? dailyConfig.formattedDate : `Caso #${level?.caseNumber ?? ''}`;
     return `🥪 ¿Quién ha robado mi sandwich? (${modeLabel})\n⏱️ Lo descubrí en ${formatTime(
       seconds
-    )} min.\n¡A ver si mejoras mi tiempo! 👇\nhttps://who-stole-my-sandwich.vercel.app/`;
+    )} min.\n¡A ver si mejoras mi tiempo! 👇\nhttps://sandwichcase.io/`;
   }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, seconds]);
 
   const handleCopyShareText = () => {
