@@ -1,9 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Sparkles,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
   Share2,
   Check,
   X,
@@ -32,7 +29,7 @@ const BASE_GEOMETRIES = [
   [4, 2, 0, 3, 1]  // #14: 5-3-1-4-2
 ];
 
-// Colores pastel para las 5 Despachos (con Sala Roja pastel)
+// Colores pastel para los 5 Despachos (con Sala Roja pastel)
 const ROOMS = [
   {
     id: 0,
@@ -621,7 +618,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
         id: `conn_${otherId}_door_${dNum}`,
         category: 'Umbral',
         weight: 14,
-        text: `«el Despacho de ${SUSPECTS[otherId].name} y el mío están conectados por la puerta ${dNum}.»`,
+        text: `«El Despacho de ${SUSPECTS[otherId].name} y el mío están conectados por la puerta ${dNum}.»`,
         evalFn: (st) => {
           const rm1 = st.suspectRoom[speakerId];
           const rm2 = st.suspectRoom[otherId];
@@ -756,7 +753,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `self_smallest_room`,
       category: 'Claustrofobia',
       weight: 16,
-      text: `«Me escondí en el Despacho más pequeña de la oficina (${minSize} casillas).»`,
+      text: `«Me escondí en el Despacho más pequeño de la oficina (${minSize} casillas).»`,
       evalFn: (st) => st.suspectRoom[speakerId] === smallestRooms[0]
     });
   }
@@ -1460,7 +1457,6 @@ export default function App() {
 
   const currentSuspect = SUSPECTS[activeSuspect];
   const currentClue = level.clues.find((c) => c.suspectId === activeSuspect);
-  const currentPos = suspectPositions[activeSuspect];
 
   // Clases dinámicas según el tema del sistema (Claro / Oscuro)
   const pageBgClass = isDark
@@ -1473,14 +1469,14 @@ export default function App() {
 
   return (
     <div
-      className={`min-h-dvh font-sans select-none flex flex-col items-center justify-start py-4 px-4 transition-colors duration-200 ${pageBgClass}`}
+      className={`min-h-dvh font-sans select-none flex flex-col items-center justify-start py-2 px-3 transition-colors duration-200 ${pageBgClass}`}
     >
-      <div className="w-full max-w-[410px] flex flex-col gap-3.5">
+      <div className="w-full max-w-[400px] flex flex-col gap-2">
         {/* TÍTULO PRINCIPAL ARRIBA DEL TODO + OPCIÓN PARA NIVELES ALEATORIOS */}
-        <div className="flex items-center justify-between gap-2 pt-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-2xl shrink-0">🥪</span>
-            <h1 className="text-base sm:text-lg font-black tracking-tight truncate">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <span className="text-xl shrink-0">🥪</span>
+            <h1 className="text-sm sm:text-base font-black tracking-tight truncate">
               ¿Quién ha robado mi sandwich?
             </h1>
           </div>
@@ -1491,7 +1487,7 @@ export default function App() {
                 type="button"
                 onClick={handleLoadDaily}
                 title="Volver al reto diario"
-                className={`px-2.5 py-1.5 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
+                className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
                   isDark
                     ? 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800'
                     : 'bg-white hover:bg-slate-50 text-slate-700 border-slate-300 shadow-2xs'
@@ -1504,7 +1500,7 @@ export default function App() {
               type="button"
               onClick={handleNewRandomLevel}
               title="Generar un nivel aleatorio nuevo"
-              className="px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-xs transition cursor-pointer"
+              className="px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 shadow-xs transition cursor-pointer"
             >
               <Shuffle className="w-3.5 h-3.5" />
               <span>Aleatorio</span>
@@ -1514,12 +1510,12 @@ export default function App() {
 
         {/* 1. APARTADO SUPERIOR: SOLO NIVEL DE DIFICULTAD Y TEMPORIZADOR */}
         <header
-          className={`border rounded-2xl px-4 py-3 shadow-xs flex items-center justify-between gap-3 ${cardBgClass}`}
+          className={`border rounded-2xl px-3.5 py-2 shadow-xs flex items-center justify-between gap-3 ${cardBgClass}`}
         >
           {/* Nivel de dificultad */}
-          <div className="flex items-center gap-2.5">
+          <div className="flex items-center gap-2">
             <span
-              className={`px-2.5 py-0.5 rounded-md font-black uppercase tracking-wider border text-[11px] ${difficultyInfo.badgeClass}`}
+              className={`px-2 py-0.5 rounded-md font-black uppercase tracking-wider border text-[10px] ${difficultyInfo.badgeClass}`}
             >
               {difficultyInfo.label}
             </span>
@@ -1530,7 +1526,7 @@ export default function App() {
               {[1, 2, 3, 4, 5].map((bar) => (
                 <span
                   key={bar}
-                  className={`w-3 h-2 rounded-xs ${
+                  className={`w-2.5 h-1.5 rounded-xs ${
                     bar <= difficultyInfo.bars
                       ? difficultyInfo.barColor
                       : isDark
@@ -1542,75 +1538,42 @@ export default function App() {
             </div>
           </div>
 
-          {/* Temporizador */}
-          <div
-            className={`px-3 py-1 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 border ${
-              isDark
-                ? 'bg-slate-950 border-slate-800 text-slate-100'
-                : 'bg-slate-100 border-slate-200 text-slate-900'
-            }`}
-          >
-            <span
-              className={`w-2 h-2 rounded-full ${
-                gameWon ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'
-              }`}
-            />
-            <span>{formatTime(seconds)}</span>
-          </div>
-        </header>
-
-        {/* 2. BARRA DE ESTADO DE ALTURA FIJA (CON BOTÓN PARA ABRIR EL POPUP DE COMPARTIR AL GANAR) */}
-        <div
-          className={`h-11 rounded-2xl px-3.5 flex items-center justify-between text-xs font-bold border shadow-2xs ${cardBgClass}`}
-        >
-          {gameWon ? (
-            <div className="w-full flex items-center justify-between gap-2 text-emerald-600 dark:text-emerald-400">
-              <span className="flex items-center gap-1.5 truncate">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span className="truncate">
-                  ¡Fue {SUSPECTS[level.thiefId].name} en {formatTime(seconds)}!
-                </span>
-              </span>
+          {/* Temporizador (+ botón Compartir si ya se resolvió) */}
+          <div className="flex items-center gap-2">
+            {gameWon && (
               <button
                 type="button"
                 onClick={() => setIsShareModalOpen(true)}
-                className="px-3 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] flex items-center gap-1.5 shrink-0 transition cursor-pointer shadow-2xs"
+                className="px-2.5 py-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] flex items-center gap-1 transition cursor-pointer shadow-2xs"
               >
-                <Share2 className="w-3.5 h-3.5" />
+                <Share2 className="w-3 h-3" />
                 <span>Compartir</span>
               </button>
-            </div>
-          ) : validation.conflicts.size > 0 ? (
-            <div className="w-full flex items-center justify-between text-rose-600 dark:text-rose-400">
-              <span className="flex items-center gap-1.5 truncate">
-                <AlertTriangle className="w-4 h-4 shrink-0" />
-                <span>Conflicto de posición entre sospechosos</span>
-              </span>
-              <span className="text-[10px] font-mono">{validation.placedCount}/5</span>
-            </div>
-          ) : validation.placedCount === 5 ? (
-            <div className="w-full flex items-center justify-between text-amber-600 dark:text-amber-400">
-              <span className="flex items-center gap-1.5 truncate">
-                <XCircle className="w-4 h-4 shrink-0" />
-                <span>Alguna declaración no cuadra con la sala 🥪</span>
-              </span>
-              <span className="text-[10px] font-mono">5/5</span>
-            </div>
-          ) : (
-  <div className="w-full flex items-center justify-end text-slate-500 dark:text-slate-400">
-    <span className="text-[10px] font-mono text-slate-600 dark:text-slate-300 bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded-md">
-      {validation.placedCount}/5
-    </span>
-  </div>
-)}
-
-        {/* 3. TABLERO 5x5 CON COLORES PASTEL, CRUCES GRISES Y CARDINALES */}
-        <div className={`border rounded-2xl p-3.5 shadow-xs ${cardBgClass}`}>
-          <div className="relative w-full aspect-square pt-6 pb-6 px-6">
-            {/* NORTE */}
-            <div className="absolute top-0 inset-x-0 h-6 flex items-center justify-center pointer-events-none">
+            )}
+            <div
+              className={`px-2.5 py-1 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 border ${
+                isDark
+                  ? 'bg-slate-950 border-slate-800 text-slate-100'
+                  : 'bg-slate-100 border-slate-200 text-slate-900'
+              }`}
+            >
               <span
-                className={`text-[11px] font-black uppercase tracking-widest ${
+                className={`w-2 h-2 rounded-full ${
+                  gameWon ? 'bg-amber-500' : 'bg-emerald-500 animate-pulse'
+                }`}
+              />
+              <span>{formatTime(seconds)}</span>
+            </div>
+          </div>
+        </header>
+
+        {/* 2. TABLERO 5x5 CON COLORES PASTEL, CRUCES GRISES Y CARDINALES */}
+        <div className={`border rounded-2xl p-2.5 shadow-xs ${cardBgClass}`}>
+          <div className="relative w-full aspect-square pt-5 pb-5 px-5">
+            {/* NORTE */}
+            <div className="absolute top-0 inset-x-0 h-5 flex items-center justify-center pointer-events-none">
+              <span
+                className={`text-[10px] font-black uppercase tracking-widest ${
                   isDark ? 'text-amber-400' : 'text-amber-600'
                 }`}
               >
@@ -1619,9 +1582,9 @@ export default function App() {
             </div>
 
             {/* SUR */}
-            <div className="absolute bottom-0 inset-x-0 h-6 flex items-center justify-center pointer-events-none">
+            <div className="absolute bottom-0 inset-x-0 h-5 flex items-center justify-center pointer-events-none">
               <span
-                className={`text-[11px] font-black uppercase tracking-widest ${
+                className={`text-[10px] font-black uppercase tracking-widest ${
                   isDark ? 'text-amber-400' : 'text-amber-600'
                 }`}
               >
@@ -1630,9 +1593,9 @@ export default function App() {
             </div>
 
             {/* OESTE */}
-            <div className="absolute left-0 inset-y-0 w-6 flex items-center justify-center pointer-events-none">
+            <div className="absolute left-0 inset-y-0 w-5 flex items-center justify-center pointer-events-none">
               <span
-                className={`text-[11px] font-black uppercase tracking-widest [writing-mode:vertical-lr] rotate-180 ${
+                className={`text-[10px] font-black uppercase tracking-widest [writing-mode:vertical-lr] rotate-180 ${
                   isDark ? 'text-amber-400' : 'text-amber-600'
                 }`}
               >
@@ -1641,9 +1604,9 @@ export default function App() {
             </div>
 
             {/* ESTE */}
-            <div className="absolute right-0 inset-y-0 w-6 flex items-center justify-center pointer-events-none">
+            <div className="absolute right-0 inset-y-0 w-5 flex items-center justify-center pointer-events-none">
               <span
-                className={`text-[11px] font-black uppercase tracking-widest [writing-mode:vertical-lr] ${
+                className={`text-[10px] font-black uppercase tracking-widest [writing-mode:vertical-lr] ${
                   isDark ? 'text-amber-400' : 'text-amber-600'
                 }`}
               >
@@ -1767,7 +1730,7 @@ export default function App() {
         {/* AVISO ANTES DEL SELECTOR DE PERSONAS: "¡El ladrón miente!" */}
         <div className="flex items-center justify-center">
           <span
-            className={`text-xs font-black uppercase tracking-wider px-3 py-1 rounded-full border ${
+            className={`text-[11px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full border ${
               isDark
                 ? 'bg-rose-950/60 text-rose-300 border-rose-800/70'
                 : 'bg-rose-100 text-rose-700 border-rose-300'
@@ -1777,8 +1740,8 @@ export default function App() {
           </span>
         </div>
 
-        {/* 4. PÍLDORAS HORIZONTALES SELECTORAS DE PERSONAS (A, B, C, D, E) */}
-        <div className="w-full grid grid-cols-5 gap-2 h-14">
+        {/* 3. PÍLDORAS HORIZONTALES SELECTORAS DE PERSONAS (A, B, C, D, E) */}
+        <div className="w-full grid grid-cols-5 gap-1.5 h-12">
           {SUSPECTS.map((s) => {
             const isSelected = activeSuspect === s.id;
             const isPlaced = suspectPositions[s.id] !== undefined;
@@ -1789,7 +1752,7 @@ export default function App() {
                 key={s.id}
                 type="button"
                 onClick={() => setActiveSuspect(s.id)}
-                className={`relative h-full rounded-2xl font-black transition-colors flex flex-col items-center justify-center border cursor-pointer ${
+                className={`relative h-full rounded-xl font-black transition-colors flex flex-col items-center justify-center border cursor-pointer ${
                   isSelected
                     ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-sm'
                     : isPlaced
@@ -1803,17 +1766,17 @@ export default function App() {
               >
                 {isPlaced && (
                   <span
-                    className={`absolute top-1.5 right-2 w-2 h-2 rounded-full ${
+                    className={`absolute top-1 right-1.5 w-2 h-2 rounded-full ${
                       evalRes && !evalRes.isConsistent ? 'bg-rose-500' : 'bg-emerald-500'
                     }`}
                   />
                 )}
                 <div className="flex items-center gap-1 leading-none">
-                  <span className="text-base font-black">{s.code}</span>
-                  <span className="text-sm">{s.emoji}</span>
+                  <span className="text-sm font-black">{s.code}</span>
+                  <span className="text-xs">{s.emoji}</span>
                 </div>
                 <span
-                  className={`text-[10px] font-bold mt-1 truncate max-w-full px-1 ${
+                  className={`text-[9px] font-bold mt-0.5 truncate max-w-full px-1 ${
                     isSelected
                       ? 'text-slate-900'
                       : isDark
@@ -1828,14 +1791,14 @@ export default function App() {
           })}
         </div>
 
-        {/* 5. DECLARACIÓN DEL SOSPECHOSO SELECCIONADO (SIN TAGS DE Despacho) */}
+        {/* 4. DECLARACIÓN DEL SOSPECHOSO SELECCIONADO COMPACTA */}
         <div
-          className={`w-full h-36 border rounded-2xl p-4 flex flex-col justify-between shadow-xs overflow-hidden ${cardBgClass}`}
+          className={`w-full h-24 border rounded-2xl p-3 flex flex-col justify-between shadow-xs overflow-hidden ${cardBgClass}`}
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <span
-                className={`w-7 h-7 rounded-lg border flex items-center justify-center text-base shrink-0 ${
+                className={`w-6 h-6 rounded-lg border flex items-center justify-center text-sm shrink-0 ${
                   isDark
                     ? 'bg-slate-800 border-slate-700'
                     : 'bg-slate-100 border-slate-200'
@@ -1866,39 +1829,19 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex-1 flex items-center my-1">
+          <div className="flex-1 flex items-center">
             <p
-              className={`text-xs sm:text-sm font-semibold leading-snug line-clamp-3 ${
+              className={`text-xs sm:text-sm font-semibold leading-snug line-clamp-2 ${
                 isDark ? 'text-amber-100' : 'text-slate-800'
               }`}
             >
               {currentClue?.text}
             </p>
           </div>
-
-          <div
-            className={`flex items-center justify-between text-[10px] border-t pt-2 ${
-              isDark
-                ? 'text-slate-400 border-slate-800/80'
-                : 'text-slate-500 border-slate-200'
-            }`}
-          >
-            <span>
-              Categoría:{' '}
-              <strong className={isDark ? 'text-slate-300' : 'text-slate-700'}>
-                {currentClue?.category}
-              </strong>
-            </span>
-            <span>
-              {currentPos
-                ? `Casilla (${currentPos.r + 1}, ${currentPos.c + 1}) • Toca en la red para quitar`
-                : 'Toca una casilla libre para colocar'}
-            </span>
-          </div>
         </div>
       </div>
 
-      {/* 6. POPUP MODAL DE COMPARTIR */}
+      {/* 5. POPUP MODAL DE COMPARTIR */}
       {isShareModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-fadeIn"
