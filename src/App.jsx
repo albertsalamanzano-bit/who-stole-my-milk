@@ -790,7 +790,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `adj_to_vase_orth`,
     category: 'Escenario',
     weight: 18,
-    text: `«Mi casilla estaba pegada ortogonalmente a la sandwich mordido (🥪), aunque hubiera muro en medio.»`,
+    text: `«Mi casilla estaba pegada ortogonalmente a el sandwich mordido (🥪), aunque hubiera muro en medio.»`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) +
         Math.abs(st.suspectCol[speakerId] - vasePos.c) ===
@@ -801,7 +801,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `adj_to_vase_king`,
     category: 'Escenario',
     weight: 17,
-    text: `«Estaba a solo una casilla de distancia (incluso en diagonal) de la sandwich mordido (🥪).»`,
+    text: `«Estaba a solo una casilla de distancia (incluso en diagonal) de el sandwich mordido (🥪).»`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) <= 1 &&
       Math.abs(st.suspectCol[speakerId] - vasePos.c) <= 1
@@ -854,7 +854,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `thief_is_herbivore`,
     category: 'Paranoia',
     weight: 15,
-    text: `«El ladrón que robó la sandwich es un hombre.»`,
+    text: `«El ladrón que robó el sandwich es un hombre.»`,
     evalFn: (st) => !SUSPECTS[st.roomSuspect[vaseRoom]].isCarnivore
   });
 
@@ -1414,7 +1414,7 @@ export default function App() {
 
   // Compartir por WhatsApp o menú nativo del móvil con el texto exacto solicitado
   const handleShare = async () => {
-    const shareText = `🥪 ¿Quién robó la sandwich? (${dailyConfig.formattedDate})\n⏱️ Lo descubrí en ${formatTime(
+    const shareText = `🥪 ¿Quién robó el sandwich? (${dailyConfig.formattedDate})\n⏱️ Lo descubrí en ${formatTime(
       seconds
     )} min.\n¡A ver si mejoras mi tiempo! 👇\nhttps://who-stole-my-sandwich.vercel.app/`;
 
@@ -1455,7 +1455,7 @@ export default function App() {
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
                   <h1 className="text-sm font-black tracking-tight text-white truncate">
-                    ¿Quién robó la sandwich?
+                    ¿Quién robó el sandwich?
                   </h1>
                 </div>
                 <p className="text-[11px] text-slate-400 leading-none mt-1 truncate">
