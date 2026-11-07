@@ -113,7 +113,7 @@ const CLUE_CATEGORIES = {
     id: 'Escenario',
     label: 'Contacto Escenario',
     badge: 'bg-emerald-950 text-emerald-300 border-emerald-800',
-    desc: 'Contacto ortogonal con muros de otras salas o con la leche derramada 🥛'
+    desc: 'Contacto ortogonal con muros de otras salas o con la leche derramada 🍶'
   },
   Paranoia: {
     id: 'Paranoia',
@@ -785,12 +785,12 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     });
   }
 
-  // 4. Contacto con Escenario (Leche 🥛)
+  // 4. Contacto con Escenario (Leche 🍶)
   clues.push({
     id: `adj_to_vase_orth`,
     category: 'Escenario',
     weight: 18,
-    text: `«Mi casilla estaba pegada ortogonalmente a la leche derramada (🥛), aunque hubiera muro en medio.»`,
+    text: `«Mi casilla estaba pegada ortogonalmente a la leche derramada (🍶), aunque hubiera muro en medio.»`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) +
         Math.abs(st.suspectCol[speakerId] - vasePos.c) ===
@@ -801,7 +801,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `adj_to_vase_king`,
     category: 'Escenario',
     weight: 17,
-    text: `«Estaba a solo una casilla de distancia (incluso en diagonal) de la leche derramada (🥛).»`,
+    text: `«Estaba a solo una casilla de distancia (incluso en diagonal) de la leche derramada (🍶).»`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) <= 1 &&
       Math.abs(st.suspectCol[speakerId] - vasePos.c) <= 1
@@ -1414,7 +1414,7 @@ export default function App() {
 
   // Compartir por WhatsApp o menú nativo del móvil con el texto exacto solicitado
   const handleShare = async () => {
-    const shareText = `🥛 ¿Quién robó la leche? (${dailyConfig.formattedDate})\n⏱️ Lo descubrí en ${formatTime(
+    const shareText = `🍶 ¿Quién robó la leche? (${dailyConfig.formattedDate})\n⏱️ Lo descubrí en ${formatTime(
       seconds
     )} min.\n¡A ver si mejoras mi tiempo! 👇\nhttps://who-stole-my-milk.vercel.app/`;
 
@@ -1450,7 +1450,7 @@ export default function App() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-xl shrink-0">
-                🥛
+                🍶
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -1459,7 +1459,7 @@ export default function App() {
                   </h1>
                 </div>
                 <p className="text-[11px] text-slate-400 leading-none mt-1 truncate">
-                  {isDailyMode ? `Diario #${dailyConfig.dayNumber}` : `Caso #${level.caseNumber}`} &bull; Sala {ROOMS[level.vaseRoom].name} (🥛)
+                  {isDailyMode ? `Diario #${dailyConfig.dayNumber}` : `Caso #${level.caseNumber}`} &bull; Sala {ROOMS[level.vaseRoom].name} (🍶)
                 </p>
               </div>
             </div>
@@ -1579,7 +1579,7 @@ export default function App() {
             <div className="w-full flex items-center justify-between text-amber-400">
               <span className="flex items-center gap-1.5 truncate">
                 <XCircle className="w-4 h-4 shrink-0" />
-                <span>Alguna declaración no cuadra con la sala 🥛</span>
+                <span>Alguna declaración no cuadra con la sala 🍶</span>
               </span>
               <span className="text-[10px] font-mono">5/5</span>
             </div>
@@ -1671,12 +1671,12 @@ export default function App() {
                           hasConflict ? 'ring-3 ring-inset ring-rose-600 z-10' : ''
                         }`}
                       >
-                        {/* Leche Robada 🥛 */}
+                        {/* Leche Robada 🍶 */}
                         {isVase && (
                           <div className="flex flex-col items-center justify-center leading-none pointer-events-none">
-                            <span className="text-xl">🥛</span>
+                            <span className="text-xl">🍶</span>
                             <span className="text-[8px] font-black uppercase bg-rose-600 text-white px-1 rounded mt-0.5">
-                              MENTIROSO
+                              ROBO
                             </span>
                           </div>
                         )}
