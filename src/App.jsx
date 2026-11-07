@@ -8,6 +8,13 @@ import {
   Shuffle
 } from 'lucide-react';
 
+import auditorSvg from './assets/auditor.svg';
+import becarioSvg from './assets/becario.svg';
+import consultorSvg from './assets/consultor.svg';
+import directorSvg from './assets/director.svg';
+import empleadoSvg from './assets/empleado.svg';
+import sandwichSvg from './assets/sandwich.svg';
+
 // ============================================================================
 // 1. CONSTANTES MATEMÁTICAS Y CONFIGURACIÓN DEL SISTEMA
 // ============================================================================
@@ -79,11 +86,11 @@ const ROOMS = [
 ];
 
 const SUSPECTS = [
-  { id: 0, code: 'A', name: 'Auditor', emoji: '👨🏻‍🦲', diet: 'Hombre', isCarnivore: false },
-  { id: 1, code: 'B', name: 'Becario', emoji: '👧🏼', diet: 'Mujer', isCarnivore: true },
-  { id: 2, code: 'C', name: 'Consultor', emoji: '👩🏾‍🦰', diet: 'Mujer', isCarnivore: true },
-  { id: 3, code: 'D', name: 'Director', emoji: '🧑🏻‍🦳', diet: 'Hombre', isCarnivore: false },
-  { id: 4, code: 'E', name: 'Empleado', emoji: '🧔🏽‍♂️', diet: 'Hombre', isCarnivore: false }
+  { id: 0, code: 'A', name: 'Auditor', emoji: auditorSvg, diet: 'Hombre', isCarnivore: false },
+  { id: 1, code: 'B', name: 'Becario', emoji: becarioSvg, diet: 'Mujer', isCarnivore: true },
+  { id: 2, code: 'C', name: 'Consultor', emoji: consultorSvg, diet: 'Mujer', isCarnivore: true },
+  { id: 3, code: 'D', name: 'Director', emoji: directorSvg, diet: 'Hombre', isCarnivore: false },
+  { id: 4, code: 'E', name: 'Empleado', emoji: empleadoSvg, diet: 'Hombre', isCarnivore: false }
 ];
 
 const CLUE_CATEGORIES = {
@@ -550,7 +557,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
         id: `other_${otherId}_door_${dNum}`,
         category: 'Umbral',
         weight: 15,
-        text: `«${SUSPECTS[otherId].name} estaba junto a la puerta ${dNum}.»`,
+        text: `${SUSPECTS[otherId].name} estaba junto a la puerta ${dNum}.`,
         evalFn: (st) => st.doorOccupant[dNum] === otherId
       });
     }
@@ -650,7 +657,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `other_carnivore_odd_door`,
       category: 'Umbral',
       weight: 16,
-      text: `El despacho de la otra mujer y el mío están comunicados por una puerta impar.»`,
+      text: `El despacho de la otra mujer y el mío están comunicados por una puerta impar.`,
       evalFn: (st) => {
         const rm1 = st.suspectRoom[speakerId];
         const rm2 = st.suspectRoom[otherCarnivoreId];
@@ -907,7 +914,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
         id: `other_${otherId}_in_room_${rm}`,
         category: 'Despacho',
         weight: 11,
-        text: `${SUSPECTS[otherId].name} estaba en el despacho ${rmName}.»`,
+        text: `${SUSPECTS[otherId].name} estaba en el despacho ${rmName}.`,
         evalFn: (st) => st.suspectRoom[otherId] === rm
       });
     }
@@ -1475,7 +1482,11 @@ export default function App() {
         {/* TÍTULO PRINCIPAL ARRIBA DEL TODO + OPCIÓN PARA NIVELES ALEATORIOS */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-xl shrink-0">🥪</span>
+            <img
+              src={sandwichSvg}
+              alt="Sandwich"
+              className="w-7 h-7 object-contain shrink-0"
+            />
             <h1 className="text-sm sm:text-base font-black tracking-tight truncate">
               ¿Quién ha robado mi sandwich?
             </h1>
@@ -1659,10 +1670,14 @@ export default function App() {
                           hasConflict ? 'ring-3 ring-inset ring-rose-600 z-10' : ''
                         }`}
                       >
-                        {/* Sandwich Robado 🥪 */}
+                        {/* Sandwich Robado */}
                         {isVase && (
                           <div className="flex flex-col items-center justify-center leading-none pointer-events-none">
-                            <span className="text-xl">🥪</span>
+                            <img
+                              src={sandwichSvg}
+                              alt="Sandwich robado"
+                              className="w-8 h-8 object-contain"
+                            />
                             <span className="text-[8px] font-black uppercase bg-rose-600 text-white px-1 rounded mt-0.5">
                               CRIMEN
                             </span>
@@ -1672,7 +1687,11 @@ export default function App() {
                         {/* Sospechoso colocado (clicar lo quita) */}
                         {!isVase && placedSuspect && (
                           <div className="flex flex-col items-center justify-center leading-none pointer-events-none">
-                            <span className="text-xl leading-none">{placedSuspect.emoji}</span>
+                            <img
+                              src={placedSuspect.emoji}
+                              alt={placedSuspect.name}
+                              className="w-7 h-7 object-contain"
+                            />
                             <span
                               className={`mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-black leading-tight ${
                                 hasConflict
@@ -1773,7 +1792,11 @@ export default function App() {
                 )}
                 <div className="flex items-center gap-1 leading-none">
                   <span className="text-sm font-black">{s.code}</span>
-                  <span className="text-xs">{s.emoji}</span>
+                  <img
+                    src={s.emoji}
+                    alt={s.name}
+                    className="w-5 h-5 object-contain"
+                  />
                 </div>
                 <span
                   className={`text-[9px] font-bold mt-0.5 truncate max-w-full px-1 ${
@@ -1798,13 +1821,17 @@ export default function App() {
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <span
-                className={`w-6 h-6 rounded-lg border flex items-center justify-center text-sm shrink-0 ${
+                className={`w-7 h-7 rounded-lg border flex items-center justify-center overflow-hidden shrink-0 ${
                   isDark
                     ? 'bg-slate-800 border-slate-700'
                     : 'bg-slate-100 border-slate-200'
                 }`}
               >
-                {currentSuspect.emoji}
+                <img
+                  src={currentSuspect.emoji}
+                  alt={currentSuspect.name}
+                  className="w-6 h-6 object-contain"
+                />
               </span>
               <span
                 className={`font-black text-xs truncate ${
@@ -1857,15 +1884,24 @@ export default function App() {
           >
             <div className="flex items-start justify-between gap-2">
               <div className="flex items-center gap-2.5">
-                <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-2xl">
-                  🥪
+                <div className="w-11 h-11 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center p-1.5">
+                  <img
+                    src={sandwichSvg}
+                    alt="Sandwich"
+                    className="w-full h-full object-contain"
+                  />
                 </div>
                 <div>
                   <h2 className="text-base font-black leading-tight">
                     ¡Caso resuelto!
                   </h2>
-                  <p className={`text-xs ${subTextClass}`}>
-                    {SUSPECTS[level.thiefId].emoji} {SUSPECTS[level.thiefId].name} robó el sandwich
+                  <p className={`text-xs flex items-center gap-1.5 mt-0.5 ${subTextClass}`}>
+                    <img
+                      src={SUSPECTS[level.thiefId].emoji}
+                      alt={SUSPECTS[level.thiefId].name}
+                      className="w-4 h-4 object-contain"
+                    />
+                    <span>{SUSPECTS[level.thiefId].name} robó el sandwich</span>
                   </p>
                 </div>
               </div>
