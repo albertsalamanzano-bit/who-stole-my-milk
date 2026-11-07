@@ -32,7 +32,7 @@ const BASE_GEOMETRIES = [
   [4, 2, 0, 3, 1]  // #14: 5-3-1-4-2
 ];
 
-// Colores pastel para las 5 estancias (con Sala Roja pastel)
+// Colores pastel para las 5 Despachos (con Sala Roja pastel)
 const ROOMS = [
   {
     id: 0,
@@ -120,9 +120,9 @@ const CLUE_CATEGORIES = {
     badge: 'bg-rose-950 text-rose-300 border-rose-800',
     desc: 'Acusaciones directas, dieta del ladrón y condicionales lógicos'
   },
-  Estancia: {
-    id: 'Estancia',
-    label: 'Estancia / Dieta',
+  Despacho: {
+    id: 'Despacho',
+    label: 'Despacho / Dieta',
     badge: 'bg-slate-800 text-slate-300 border-slate-700',
     desc: 'Ubicación directa por color de habitación o tipo de dieta'
   }
@@ -168,16 +168,16 @@ const shuffle = (array, rng = Math.random) => {
 };
 
 const COMPLEMENTARY_TRIO_PAIRS = [
-  [['Umbral', 'Fachada', 'Claustrofobia'], ['Escenario', 'Paranoia', 'Estancia']],
-  [['Umbral', 'Fachada', 'Escenario'],     ['Claustrofobia', 'Paranoia', 'Estancia']],
-  [['Umbral', 'Fachada', 'Paranoia'],      ['Claustrofobia', 'Escenario', 'Estancia']],
-  [['Umbral', 'Fachada', 'Estancia'],      ['Claustrofobia', 'Escenario', 'Paranoia']],
-  [['Umbral', 'Claustrofobia', 'Escenario'],['Fachada', 'Paranoia', 'Estancia']],
-  [['Umbral', 'Claustrofobia', 'Paranoia'],['Fachada', 'Escenario', 'Estancia']],
-  [['Umbral', 'Claustrofobia', 'Estancia'],['Fachada', 'Escenario', 'Paranoia']],
-  [['Umbral', 'Escenario', 'Paranoia'],    ['Fachada', 'Claustrofobia', 'Estancia']],
-  [['Umbral', 'Escenario', 'Estancia'],    ['Fachada', 'Claustrofobia', 'Paranoia']],
-  [['Umbral', 'Paranoia', 'Estancia'],     ['Fachada', 'Claustrofobia', 'Escenario']]
+  [['Umbral', 'Fachada', 'Claustrofobia'], ['Escenario', 'Paranoia', 'Despacho']],
+  [['Umbral', 'Fachada', 'Escenario'],     ['Claustrofobia', 'Paranoia', 'Despacho']],
+  [['Umbral', 'Fachada', 'Paranoia'],      ['Claustrofobia', 'Escenario', 'Despacho']],
+  [['Umbral', 'Fachada', 'Despacho'],      ['Claustrofobia', 'Escenario', 'Paranoia']],
+  [['Umbral', 'Claustrofobia', 'Escenario'],['Fachada', 'Paranoia', 'Despacho']],
+  [['Umbral', 'Claustrofobia', 'Paranoia'],['Fachada', 'Escenario', 'Despacho']],
+  [['Umbral', 'Claustrofobia', 'Despacho'],['Fachada', 'Escenario', 'Paranoia']],
+  [['Umbral', 'Escenario', 'Paranoia'],    ['Fachada', 'Claustrofobia', 'Despacho']],
+  [['Umbral', 'Escenario', 'Despacho'],    ['Fachada', 'Claustrofobia', 'Paranoia']],
+  [['Umbral', 'Paranoia', 'Despacho'],     ['Fachada', 'Claustrofobia', 'Escenario']]
 ];
 
 function getDailyConfig(date = new Date()) {
@@ -579,7 +579,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `room_dead_end`,
     category: 'Umbral',
     weight: 15,
-    text: `«Mi estancia es un callejón sin salida (solo tiene 1 puerta numerada).»`,
+    text: `«Mi Despacho es un callejón sin salida (solo tiene 1 puerta numerada).»`,
     evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].length === 1
   });
 
@@ -587,7 +587,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `room_multi_doors`,
     category: 'Umbral',
     weight: 13,
-    text: `«Mi estancia cuenta con al menos 2 puertas numeradas en sus muros.»`,
+    text: `«Mi Despacho cuenta con al menos 2 puertas numeradas en sus muros.»`,
     evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].length >= 2
   });
 
@@ -595,7 +595,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `room_no_even_doors`,
     category: 'Umbral',
     weight: 14,
-    text: `«Mi estancia no tiene ninguna puerta par en sus muros.»`,
+    text: `«Mi Despacho no tiene ninguna puerta par en sus muros.»`,
     evalFn: (st) => {
       const dList = roomDoors[st.suspectRoom[speakerId]];
       return !dList.includes(2) && !dList.includes(4);
@@ -606,7 +606,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `room_no_odd_doors`,
     category: 'Umbral',
     weight: 14,
-    text: `«Mi estancia no tiene ninguna puerta impar en sus muros.»`,
+    text: `«Mi Despacho no tiene ninguna puerta impar en sus muros.»`,
     evalFn: (st) => {
       const dList = roomDoors[st.suspectRoom[speakerId]];
       return !dList.includes(1) && !dList.includes(3);
@@ -621,7 +621,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
         id: `conn_${otherId}_door_${dNum}`,
         category: 'Umbral',
         weight: 14,
-        text: `«La estancia de ${SUSPECTS[otherId].name} y la mía están conectadas por la puerta ${dNum}.»`,
+        text: `«el Despacho de ${SUSPECTS[otherId].name} y el mío están conectados por la puerta ${dNum}.»`,
         evalFn: (st) => {
           const rm1 = st.suspectRoom[speakerId];
           const rm2 = st.suspectRoom[otherId];
@@ -637,7 +637,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `other_carnivore_even_door`,
       category: 'Umbral',
       weight: 16,
-      text: `«La sala de la otra mujer y la mía están comunicadas por una puerta par.»`,
+      text: `«La sala de la otra mujer y el mío están comunicadas por una puerta par.»`,
       evalFn: (st) => {
         const rm1 = st.suspectRoom[speakerId];
         const rm2 = st.suspectRoom[otherCarnivoreId];
@@ -653,7 +653,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `other_carnivore_odd_door`,
       category: 'Umbral',
       weight: 16,
-      text: `«La sala de la otra mujer y la mía están comunicadas por una puerta impar.»`,
+      text: `«La sala de la otra mujer y el mío están comunicadas por una puerta impar.»`,
       evalFn: (st) => {
         const rm1 = st.suspectRoom[speakerId];
         const rm2 = st.suspectRoom[otherCarnivoreId];
@@ -746,7 +746,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `self_largest_room`,
       category: 'Claustrofobia',
       weight: 16,
-      text: `«Me escondí en la estancia más grande de toda la oficina (${maxSize} casillas).»`,
+      text: `«Me escondí en el Despacho más grande de toda la oficina (${maxSize} casillas).»`,
       evalFn: (st) => st.suspectRoom[speakerId] === largestRooms[0]
     });
   }
@@ -756,7 +756,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `self_smallest_room`,
       category: 'Claustrofobia',
       weight: 16,
-      text: `«Me escondí en la estancia más pequeña de la oficina (${minSize} casillas).»`,
+      text: `«Me escondí en el Despacho más pequeña de la oficina (${minSize} casillas).»`,
       evalFn: (st) => st.suspectRoom[speakerId] === smallestRooms[0]
     });
   }
@@ -767,7 +767,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `self_room_size_${sz}`,
       category: 'Claustrofobia',
       weight: 15,
-      text: `«Mi estancia tiene una superficie exacta de ${sz} casillas.»`,
+      text: `«Mi Despacho tiene una superficie exacta de ${sz} casillas.»`,
       evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] === sz
     });
   }
@@ -778,7 +778,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `bigger_room_than_${otherId}`,
       category: 'Claustrofobia',
       weight: 14,
-      text: `«Mi estancia tiene más casillas que la estancia de ${SUSPECTS[otherId].name}.»`,
+      text: `«Mi Despacho tiene más casillas que el Despacho de ${SUSPECTS[otherId].name}.»`,
       evalFn: (st) =>
         roomSizes[st.suspectRoom[speakerId]] > roomSizes[st.suspectRoom[otherId]]
     });
@@ -876,13 +876,13 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     }
   });
 
-  // 6. Estancia / Dieta
+  // 6. Despacho / Dieta
   for (let rm = 0; rm < 5; rm++) {
     const rmName = ROOMS[rm].name.toLowerCase();
 
     clues.push({
       id: `self_in_room_${rm}`,
-      category: 'Estancia',
+      category: 'Despacho',
       weight: 9,
       text: `«Yo estaba en la sala ${rmName}.»`,
       evalFn: (st) => st.suspectRoom[speakerId] === rm
@@ -890,7 +890,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
     clues.push({
       id: `carnivore_in_room_${rm}`,
-      category: 'Estancia',
+      category: 'Despacho',
       weight: 11,
       text: `«Una mujer ocupaba la sala ${rmName}.»`,
       evalFn: (st) => SUSPECTS[st.roomSuspect[rm]].isCarnivore
@@ -898,7 +898,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
     clues.push({
       id: `herbivore_in_room_${rm}`,
-      category: 'Estancia',
+      category: 'Despacho',
       weight: 9,
       text: `«Un hombre ocupaba la sala ${rmName}.»`,
       evalFn: (st) => !SUSPECTS[st.roomSuspect[rm]].isCarnivore
@@ -908,7 +908,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       if (otherId === speakerId) continue;
       clues.push({
         id: `other_${otherId}_in_room_${rm}`,
-        category: 'Estancia',
+        category: 'Despacho',
         weight: 11,
         text: `«${SUSPECTS[otherId].name} estaba en la sala ${rmName}.»`,
         evalFn: (st) => st.suspectRoom[otherId] === rm
@@ -920,7 +920,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 }
 
 function generateCompleteLevel(
-  enabledCategories = ['Umbral', 'Fachada', 'Claustrofobia', 'Escenario', 'Paranoia', 'Estancia'],
+  enabledCategories = ['Umbral', 'Fachada', 'Claustrofobia', 'Escenario', 'Paranoia', 'Despacho'],
   seed = null
 ) {
   const rng = seed !== null ? createPrng(seed) : Math.random;
@@ -1059,7 +1059,7 @@ function generateCompleteLevel(
           if (!usedCategories.has(cand.category)) {
             score -= 12;
           }
-          if (cand.category !== 'Estancia') {
+          if (cand.category !== 'Despacho') {
             score -= 5;
           }
           score += rng() * 3;
@@ -1677,7 +1677,7 @@ export default function App() {
                     const isInvalidated = invalidatedCells.has(key);
                     const hasConflict = validation.conflicts.has(key);
 
-                    // Muros divisorios entre estancias
+                    // Muros divisorios entre Despachos
                     const topWall = r > 0 && level.grid[r - 1][c] !== roomId;
                     const bottomWall = r < 4 && level.grid[r + 1][c] !== roomId;
                     const leftWall = c > 0 && level.grid[r][c - 1] !== roomId;
@@ -1839,7 +1839,7 @@ export default function App() {
           })}
         </div>
 
-        {/* 5. DECLARACIÓN DEL SOSPECHOSO SELECCIONADO (SIN TAGS DE ESTANCIA) */}
+        {/* 5. DECLARACIÓN DEL SOSPECHOSO SELECCIONADO (SIN TAGS DE Despacho) */}
         <div
           className={`w-full h-36 border rounded-2xl p-4 flex flex-col justify-between shadow-xs overflow-hidden ${cardBgClass}`}
         >
@@ -1872,7 +1872,7 @@ export default function App() {
                     : 'bg-blue-100 text-blue-800 border-blue-300'
                 }`}
               >
-                {currentSuspect.isCarnivore ? '♀️ Mujer' : '♂️ Hombre'}
+                {currentSuspect.isCarnivore ? 'Mujer' : 'Hombre'}
               </span>
             </div>
           </div>
