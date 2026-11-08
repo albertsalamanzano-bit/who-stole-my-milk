@@ -1673,7 +1673,7 @@ export default function App() {
               isDark ? 'text-neutral-300' : 'text-neutral-700'
             }`}
           >
-            ¡El ladrón miente!
+            ¡El que está en la sala del crimen miente!
           </span>
         </div>
 
