@@ -484,7 +484,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `self_door_${dNum}`,
       category: 'Umbral',
       weight: 15,
-      text: `Yo estaba apostado junto a la puerta ${dNum}.`,
+      text: `Yo estaba junto a la puerta ${dNum}.`,
       evalFn: (st) => st.doorOccupant[dNum] === speakerId
     });
 
@@ -500,7 +500,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `someone_door_${dNum}`,
       category: 'Umbral',
       weight: 11,
-      text: `Vi a alguien apostado junto a la puerta ${dNum}.`,
+      text: `Vi a alguien junto a la puerta ${dNum}.`,
       evalFn: (st) => st.doorOccupant[dNum] !== -1
     });
 
@@ -851,7 +851,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `thief_at_some_door`,
     category: 'Paranoia',
     weight: 16,
-    text: `El ladrón estaba apostado junto a una de las 4 puertas numeradas.`,
+    text: `El ladrón estaba junto a una de las 4 puertas numeradas.`,
     evalFn: (st) => {
       const thiefInS = st.roomSuspect[vaseRoom];
       return st.suspectDoors[thiefInS].length > 0;
