@@ -79,6 +79,30 @@ const ROOMS = [
   }
 ];
 
+// Estilos adaptativos (Modo Claro / Modo Oscuro) para mencionar los despachos en las pistas
+const ROOM_TEXT_STYLES = {
+  azul: {
+    light: 'bg-blue-100/90 text-blue-900 border-blue-300/80',
+    dark: 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+  },
+  rojo: {
+    light: 'bg-red-100/90 text-red-900 border-red-300/80',
+    dark: 'bg-red-500/15 text-red-300 border-red-500/30'
+  },
+  verde: {
+    light: 'bg-emerald-100/90 text-emerald-900 border-emerald-300/80',
+    dark: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+  },
+  amarillo: {
+    light: 'bg-amber-100/90 text-amber-950 border-amber-300/90',
+    dark: 'bg-yellow-500/15 text-yellow-200 border-yellow-500/30'
+  },
+  morado: {
+    light: 'bg-purple-100/90 text-purple-900 border-purple-300/80',
+    dark: 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+  }
+};
+
 const SUSPECTS = [
   {
     id: 0,
@@ -152,17 +176,38 @@ const generatePermutations = (arr) => {
 
 const PERMUTATIONS_120 = generatePermutations([0, 1, 2, 3, 4]);
 
-// Función auxiliar para resaltar palabras clave (**...**) en black/semibold sobre texto normal
+// Función auxiliar para resaltar palabras clave (**...**) con contraste suave y colorear despachos
 function renderFormattedClue(text, isDark) {
   if (!text) return null;
   const parts = text.split(/(\*\*.*?\*\*)/g);
+
   return parts.map((part, idx) => {
     if (part.startsWith('**') && part.endsWith('**')) {
       const content = part.slice(2, -2);
+      const lower = content.toLowerCase();
+
+      // Comprobar si la palabra clave menciona alguno de los 5 colores de despacho
+      const matchedColor = Object.keys(ROOM_TEXT_STYLES).find((colorKey) =>
+        lower.includes(colorKey)
+      );
+
+      if (matchedColor) {
+        const styleObj = ROOM_TEXT_STYLES[matchedColor];
+        const colorClasses = isDark ? styleObj.dark : styleObj.light;
+        return (
+          <span
+            key={idx}
+            className={`inline-block font-semibold px-1.5 py-0.2 rounded-md border leading-baseline ${colorClasses}`}
+          >
+            {content}
+          </span>
+        );
+      }
+
       return (
         <strong
           key={idx}
-          className={`font-black ${isDark ? 'text-white' : 'text-neutral-950'}`}
+          className={`font-semibold ${isDark ? 'text-white' : 'text-neutral-950'}`}
         >
           {content}
         </strong>
@@ -1994,8 +2039,8 @@ export default function App() {
 
           <div className="flex-1 flex items-center">
             <p
-              className={`text-xs sm:text-sm font-normal leading-snug line-clamp-3 ${
-                isDark ? 'text-neutral-300' : 'text-neutral-600'
+              className={`text-xs sm:text-sm font-normal leading-relaxed line-clamp-3 ${
+                isDark ? 'text-neutral-200' : 'text-neutral-700'
               }`}
             >
               «{renderFormattedClue(currentClue?.text, isDark)}»
