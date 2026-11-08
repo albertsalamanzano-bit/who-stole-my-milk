@@ -76,11 +76,11 @@ const ROOMS = [
 ];
 
 const SUSPECTS = [
-  { id: 0, code: 'A', name: 'Auditor', emoji: auditorSvg, diet: 'Hombre', isCarnivore: false },
-  { id: 1, code: 'B', name: 'Becario', emoji: becarioSvg, diet: 'Mujer', isCarnivore: true },
-  { id: 2, code: 'C', name: 'Consultor', emoji: consultorSvg, diet: 'Mujer', isCarnivore: true },
+  { id: 0, code: 'A', name: 'Analista', emoji: auditorSvg, diet: 'Hombre', isCarnivore: false },
+  { id: 1, code: 'B', name: 'Becaria', emoji: becarioSvg, diet: 'Mujer', isCarnivore: true },
+  { id: 2, code: 'C', name: 'Contable', emoji: consultorSvg, diet: 'Mujer', isCarnivore: true },
   { id: 3, code: 'D', name: 'Director', emoji: directorSvg, diet: 'Hombre', isCarnivore: false },
-  { id: 4, code: 'E', name: 'Empleado', emoji: empleadoSvg, diet: 'Hombre', isCarnivore: false }
+  { id: 4, code: 'E', name: 'Experto', emoji: empleadoSvg, diet: 'Hombre', isCarnivore: false }
 ];
 
 const CLUE_CATEGORIES = {
@@ -1360,7 +1360,7 @@ export default function App() {
     const modeLabel = isDailyMode ? dailyConfig.formattedDate : `Caso #${level?.caseNumber ?? ''}`;
     return `🥪 ¿Quién ha robado mi sandwich? (${modeLabel})\n⏱️ Lo descubrí en ${formatTime(
       seconds
-    )} min.\n¡A ver si mejoras mi tiempo! 👇\nhttps://who-stole-my-sandwich.vercel.app/`;
+    )} min.\n¡A ver si mejoras mi tiempo! 👇\nhttps://https://www.sandwichcase.io/`;
   }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, seconds]);
 
   const handleCopyShareText = () => {
