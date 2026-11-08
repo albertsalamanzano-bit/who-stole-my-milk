@@ -50,7 +50,7 @@ const ROOMS = [
   },
   {
     id: 1,
-    name: 'Roja',
+    name: 'Rojo',
     bgHex: '#FEE2E2',
     bgActive: '#FECACA',
     borderHex: '#DC2626'
