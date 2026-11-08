@@ -876,7 +876,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `adj_to_vase_orth`,
     category: 'Escenario',
     weight: 18,
-    text: `Mi casilla estaba pegada **ortogonalmente** al **sándwich (🥪)**, aunque hubiera muro en medio.`,
+    text: `Estaba pared con pared con el mismísimo **sándwich (🥪)**.`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) +
         Math.abs(st.suspectCol[speakerId] - vasePos.c) ===
@@ -887,7 +887,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `adj_to_vase_king`,
     category: 'Escenario',
     weight: 17,
-    text: `Estaba a solo **1 casilla** (incluso en diagonal) del **sándwich mordido (🥪)**.`,
+    text: `Podía oler el **sándwich (🥪)** desde mi sitio, estaba a un paso`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) <= 1 &&
       Math.abs(st.suspectCol[speakerId] - vasePos.c) <= 1
@@ -899,7 +899,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `touch_wall_of_room_${rm}`,
       category: 'Escenario',
       weight: 16,
-      text: `Desde mi sitio escuchaba todo pegado por fuera al tabique del **despacho ${rmName}**.`,
+      text: `Estaba junto a la pared del despacho **despacho ${rmName}**.`,
       evalFn: (st) => {
         const r = st.suspectRow[speakerId];
         const c = st.suspectCol[speakerId];
@@ -940,7 +940,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `thief_is_herbivore`,
     category: 'Paranoia',
     weight: 15,
-    text: `Quien se zampó el sándwich (**el ladrón**) es **un hombre**.`,
+    text: `Quien se zampó el sándwich es **un hombre**.`,
     evalFn: (st) => !SUSPECTS[st.roomSuspect[vaseRoom]].isCarnivore
   });
 
