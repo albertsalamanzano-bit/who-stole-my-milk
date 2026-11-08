@@ -14,6 +14,7 @@ import consultorSvg from './assets/consultor.svg';
 import directorSvg from './assets/director.svg';
 import empleadoSvg from './assets/empleado.svg';
 import sandwichSvg from './assets/sandwich.svg';
+import { Analytics } from '@vercel/analytics/react';
 
 // ============================================================================
 // 1. CONSTANTES MATEMÁTICAS Y CONFIGURACIÓN DEL SISTEMA
@@ -1915,6 +1916,8 @@ export default function App() {
           </div>
         </div>
       )}
-    </div>
-  );
+ <Analytics />
+  
+</div>
+);
 }
