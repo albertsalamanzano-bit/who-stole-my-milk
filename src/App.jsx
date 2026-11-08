@@ -50,7 +50,7 @@ const ROOMS = [
   },
   {
     id: 1,
-    name: 'Rojo',
+    name: 'Roja',
     bgHex: '#FEE2E2',
     bgActive: '#FECACA',
     borderHex: '#DC2626'
@@ -1175,18 +1175,8 @@ export default function App() {
   // Sospechoso activo en las píldoras horizontales (0..4 -> A..E)
   const [activeSuspect, setActiveSuspect] = useState(0);
 
-  // Cronómetro persistente: si recarga a mitad del reto diario, calcula el tiempo real transcurrido
-  const [seconds, setSeconds] = useState(() => {
-    if (!initialDailySaved) return 0;
-    if (initialDailySaved.completed) return initialDailySaved.seconds || 0;
-    if (initialDailySaved.startedAt) {
-      return Math.max(
-        initialDailySaved.seconds || 0,
-        Math.floor((Date.now() - initialDailySaved.startedAt) / 1000)
-      );
-    }
-    return initialDailySaved.seconds || 0;
-  });
+  // Cronómetro persistente: guarda y recupera los segundos exactos jugados en el reto diario
+  const [seconds, setSeconds] = useState(() => initialDailySaved?.seconds || 0);
 
   const [isSolved, setIsSolved] = useState(() => Boolean(initialDailySaved?.completed));
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
@@ -1204,31 +1194,34 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Guardar progreso del reto diario en localStorage (evita reiniciar el reloj al refrescar)
+  // Guardar progreso del reto diario en localStorage (se pausa si pasas a modo aleatorio)
   useEffect(() => {
     if (!isDailyMode || typeof window === 'undefined') return;
     try {
       const existingRaw = localStorage.getItem(dailyStorageKey);
       const existing = existingRaw ? JSON.parse(existingRaw) : null;
 
-      // Si ya estaba completado en localStorage, no lo sobreescribimos con tiempos nuevos
+      // Si ya estaba completado en localStorage, no lo sobreescribimos
       if (existing?.completed && !isSolved) return;
 
-      const startedAt = existing?.startedAt || Date.now() - seconds * 1000;
       const payload = {
         completed: isSolved,
         seconds: existing?.completed ? existing.seconds : seconds,
-        placements: existing?.completed ? existing.placements : placements,
-        startedAt
+        placements: existing?.completed ? existing.placements : placements
       };
       localStorage.setItem(dailyStorageKey, JSON.stringify(payload));
     } catch (_e) {
-      // Ignorar errores de cuota o modo privado estricto
+      // Ignorar errores de almacenamiento
     }
   }, [isDailyMode, isSolved, seconds, placements, dailyStorageKey]);
 
-  // Cargar reto diario determinista (restaurando bloqueo si ya se completó hoy)
+  // Cargar reto diario determinista (restaurando el tiempo exacto en que se pausó)
   const handleLoadDaily = useCallback(() => {
+    if (isDailyMode) {
+      setIsModeModalOpen(false);
+      return;
+    }
+
     const nextLevel = generateCompleteLevel(dailyConfig.categories, dailyConfig.seed);
     if (!nextLevel) return;
 
@@ -1243,16 +1236,8 @@ export default function App() {
       const saved = raw ? JSON.parse(raw) : null;
       if (saved) {
         setPlacements(saved.placements || {});
-        if (saved.completed) {
-          setSeconds(saved.seconds || 0);
-          setIsSolved(true);
-          return;
-        }
-        const elapsed = saved.startedAt
-          ? Math.max(saved.seconds || 0, Math.floor((Date.now() - saved.startedAt) / 1000))
-          : saved.seconds || 0;
-        setSeconds(elapsed);
-        setIsSolved(false);
+        setSeconds(saved.seconds || 0);
+        setIsSolved(Boolean(saved.completed));
         return;
       }
     } catch (_e) {
@@ -1262,7 +1247,7 @@ export default function App() {
     setPlacements({});
     setSeconds(0);
     setIsSolved(false);
-  }, [dailyConfig, dailyStorageKey]);
+  }, [isDailyMode, dailyConfig, dailyStorageKey]);
 
   // Generar un nuevo nivel aleatorio
   const handleNewRandomLevel = useCallback(() => {
