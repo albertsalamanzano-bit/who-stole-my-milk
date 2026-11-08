@@ -901,16 +901,18 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   return clues;
 }
 
-function generateCompleteLevel(
-  enabledCategories = ['Umbral', 'Fachada', 'Claustrofobia', 'Escenario', 'Paranoia', 'Despacho'],
-  seed = null
-) {
+function generateCompleteLevel(enabledCategories = null, seed = null) {
   const rng = seed !== null ? createPrng(seed) : Math.random;
   const startTime = performance.now();
   let mapAttempts = 0;
-  const activeCatSet = new Set(
-    enabledCategories.length > 0 ? enabledCategories : Object.keys(CLUE_CATEGORIES)
-  );
+
+  // Si no se pasan categorías (modo aleatorio), se eligen 3 categorías al azar
+  const categoriesToUse =
+    enabledCategories && enabledCategories.length > 0
+      ? enabledCategories
+      : shuffle(Object.keys(CLUE_CATEGORIES), rng).slice(0, 3);
+
+  const activeCatSet = new Set(categoriesToUse);
 
   while (mapAttempts < 280) {
     mapAttempts++;
@@ -1098,6 +1100,7 @@ function generateCompleteLevel(
         caseNumber: seed !== null ? seed % 10000 : Math.floor(100 + Math.random() * 900),
         elapsedMs,
         mapAttempts,
+        categories: categoriesToUse,
         grid,
         roomSizes: topo.roomSizes,
         vasePos,
@@ -1250,7 +1253,7 @@ export default function App() {
     setIsSolved(false);
   }, [isDailyMode, dailyConfig, dailyStorageKey]);
 
-  // Generar un nuevo nivel aleatorio
+  // Generar un nuevo nivel aleatorio (con 3 categorías aleatorias)
   const handleNewRandomLevel = useCallback(() => {
     const nextLevel = generateCompleteLevel();
     if (nextLevel) {
