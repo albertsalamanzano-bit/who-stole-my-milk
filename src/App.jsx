@@ -1362,7 +1362,7 @@ export default function App() {
       ? `Caso diario (${dailyConfig.formattedDate})`
       : `Caso nº ${level?.caseNumber ?? ''}`;
     
-    return `🥪 *¿Quién ha robado mi sandwich?*\n📂 ${modeLabel}\n⏱️ Tiempo: *${formatTime(seconds)}*\n\n¡A ver si me superas! 👇\nhttps://www.sandwichcase.io`;
+    return `🥪 ¿Quién ha robado mi sandwich?\n📂 ${modeLabel}\n⏱️ Tiempo: ${formatTime(seconds)}\n\n¡A ver si me superas! 👇\nhttps://www.sandwichcase.io`;
   }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, seconds]);
 
   const handleCopyShareText = () => {
