@@ -80,11 +80,51 @@ const ROOMS = [
 ];
 
 const SUSPECTS = [
-  { id: 0, code: 'A', name: 'Analista', emoji: consultorSvg, diet: 'Mujer', isCarnivore: true },
-  { id: 1, code: 'B', name: 'Becaria', emoji: becarioSvg, diet: 'Mujer', isCarnivore: true },
-  { id: 2, code: 'C', name: 'Contable', emoji: auditorSvg, diet: 'Hombre', isCarnivore: false },
-  { id: 3, code: 'D', name: 'Director', emoji: directorSvg, diet: 'Hombre', isCarnivore: false },
-  { id: 4, code: 'E', name: 'Experto', emoji: empleadoSvg, diet: 'Hombre', isCarnivore: false }
+  {
+    id: 0,
+    code: 'A',
+    name: 'Analista',
+    emoji: consultorSvg,
+    diet: 'Mujer',
+    isCarnivore: true,
+    confession: '«Mis gráficas predecían que ese sándwich iba a caducar...»'
+  },
+  {
+    id: 1,
+    code: 'B',
+    name: 'Becaria',
+    emoji: becarioSvg,
+    diet: 'Mujer',
+    isCarnivore: true,
+    confession: '«¡Perdón! Pensé que era parte del catering de bienvenida...»'
+  },
+  {
+    id: 2,
+    code: 'C',
+    name: 'Contable',
+    emoji: auditorSvg,
+    diet: 'Hombre',
+    isCarnivore: false,
+    confession: '«Solo apliqué una retención del 100% sobre tu almuerzo.»'
+  },
+  {
+    id: 3,
+    code: 'D',
+    name: 'Director',
+    emoji: directorSvg,
+    diet: 'Hombre',
+    isCarnivore: false,
+    confession: '«Como jefe, consideré oportuno absorber tus recursos.»'
+  },
+  {
+    id: 4,
+    code: 'E',
+    name: 'Experto',
+    emoji: empleadoSvg,
+    diet: 'Hombre',
+    isCarnivore: false,
+    confession: '«Necesitaba carbohidratos urgentes para terminar el Excel.»'
+  }
 ];
 
 const CLUE_CATEGORIES = {
@@ -484,7 +524,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `self_door_${dNum}`,
       category: 'Umbral',
       weight: 15,
-      text: `Yo estaba junto a la puerta ${dNum}.`,
+      text: `Me quedé tomando un café junto a la puerta ${dNum}.`,
       evalFn: (st) => st.doorOccupant[dNum] === speakerId
     });
 
@@ -492,7 +532,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `nobody_door_${dNum}`,
       category: 'Umbral',
       weight: 11,
-      text: `Nadie vigilaba junto a la puerta ${dNum}.`,
+      text: `Por la puerta ${dNum} no había ni el tato vigilando.`,
       evalFn: (st) => st.doorOccupant[dNum] === -1
     });
 
@@ -500,7 +540,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `someone_door_${dNum}`,
       category: 'Umbral',
       weight: 11,
-      text: `Vi a alguien junto a la puerta ${dNum}.`,
+      text: `Vi a alguien cotilleando junto a la puerta ${dNum}.`,
       evalFn: (st) => st.doorOccupant[dNum] !== -1
     });
 
@@ -508,7 +548,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `carnivore_door_${dNum}`,
       category: 'Umbral',
       weight: 14,
-      text: `Una mujer merodeaba junto a la puerta ${dNum}.`,
+      text: `Había una mujer merodeando junto a la puerta ${dNum}.`,
       evalFn: (st) => {
         const occ = st.doorOccupant[dNum];
         return occ !== -1 && SUSPECTS[occ].isCarnivore;
@@ -519,7 +559,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `herbivore_door_${dNum}`,
       category: 'Umbral',
       weight: 13,
-      text: `Un hombre estaba junto a la puerta ${dNum}.`,
+      text: `Vi a un hombre plantado junto a la puerta ${dNum}.`,
       evalFn: (st) => {
         const occ = st.doorOccupant[dNum];
         return occ !== -1 && !SUSPECTS[occ].isCarnivore;
@@ -532,7 +572,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
         id: `other_${otherId}_door_${dNum}`,
         category: 'Umbral',
         weight: 15,
-        text: `${SUSPECTS[otherId].name} estaba junto a la puerta ${dNum}.`,
+        text: `Pillé a ${SUSPECTS[otherId].name} pegado a la puerta ${dNum}.`,
         evalFn: (st) => st.doorOccupant[dNum] === otherId
       });
     }
@@ -542,7 +582,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `self_even_door`,
     category: 'Umbral',
     weight: 14,
-    text: `Yo estaba junto a una puerta par (2 o 4).`,
+    text: `Me quedé vigilando una puerta par (la 2 o la 4).`,
     evalFn: (st) => st.doorOccupant[2] === speakerId || st.doorOccupant[4] === speakerId
   });
 
@@ -550,7 +590,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `self_odd_door`,
     category: 'Umbral',
     weight: 14,
-    text: `Yo estaba junto a una puerta impar (1 o 3).`,
+    text: `Estaba junto a una puerta impar (la 1 o la 3).`,
     evalFn: (st) => st.doorOccupant[1] === speakerId || st.doorOccupant[3] === speakerId
   });
 
@@ -558,7 +598,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `room_dead_end`,
     category: 'Umbral',
     weight: 15,
-    text: `Mi despacho solo tiene una puerta numerada.`,
+    text: `Mi despacho es una ratonera: solo tiene 1 puerta numerada.`,
     evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].length === 1
   });
 
@@ -566,7 +606,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `room_multi_doors`,
     category: 'Umbral',
     weight: 13,
-    text: `Mi despacho cuenta con al menos 2 puertas numeradas en sus muros.`,
+    text: `Mi despacho parece un pasillo, tiene 2 o más puertas numeradas.`,
     evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].length >= 2
   });
 
@@ -574,7 +614,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `room_no_even_doors`,
     category: 'Umbral',
     weight: 14,
-    text: `Mi despacho no tiene ninguna puerta par en sus muros.`,
+    text: `En los muros de mi despacho no hay ninguna puerta par.`,
     evalFn: (st) => {
       const dList = roomDoors[st.suspectRoom[speakerId]];
       return !dList.includes(2) && !dList.includes(4);
@@ -585,7 +625,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `room_no_odd_doors`,
     category: 'Umbral',
     weight: 14,
-    text: `Mi despacho no tiene ninguna puerta impar en sus muros.`,
+    text: `En los muros de mi despacho no hay ninguna puerta impar.`,
     evalFn: (st) => {
       const dList = roomDoors[st.suspectRoom[speakerId]];
       return !dList.includes(1) && !dList.includes(3);
@@ -600,7 +640,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
         id: `conn_${otherId}_door_${dNum}`,
         category: 'Umbral',
         weight: 14,
-        text: `El despacho de ${SUSPECTS[otherId].name} y el mío están conectados por la puerta ${dNum}.`,
+        text: `La puerta ${dNum} conecta mi despacho con el de ${SUSPECTS[otherId].name}.`,
         evalFn: (st) => {
           const rm1 = st.suspectRoom[speakerId];
           const rm2 = st.suspectRoom[otherId];
@@ -618,7 +658,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
         id: `other_carnivore_even_door`,
         category: 'Umbral',
         weight: 16,
-        text: `El despacho de la otra mujer y el mío están comunicados por una puerta par.`,
+        text: `Una puerta par comunica mi despacho con el de la otra mujer.`,
         evalFn: (st) => {
           const rm1 = st.suspectRoom[speakerId];
           const rm2 = st.suspectRoom[otherCarnivoreId];
@@ -634,7 +674,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
         id: `other_carnivore_odd_door`,
         category: 'Umbral',
         weight: 16,
-        text: `El despacho de la otra mujer y el mío están comunicados por una puerta impar.`,
+        text: `Una puerta impar comunica mi despacho con el de la otra mujer.`,
         evalFn: (st) => {
           const rm1 = st.suspectRoom[speakerId];
           const rm2 = st.suspectRoom[otherCarnivoreId];
@@ -653,7 +693,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_north`,
     category: 'Fachada',
     weight: 16,
-    text: `Me situé tocando la fachada Norte de la oficina.`,
+    text: `Estaba pegado al ventanal Norte de la oficina.`,
     evalFn: (st) => st.suspectRow[speakerId] === 0
   });
 
@@ -661,7 +701,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_south`,
     category: 'Fachada',
     weight: 16,
-    text: `Me situé tocando la fachada Sur de la oficina.`,
+    text: `Me quedé junto a la fachada Sur del edificio.`,
     evalFn: (st) => st.suspectRow[speakerId] === 4
   });
 
@@ -669,7 +709,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_west`,
     category: 'Fachada',
     weight: 16,
-    text: `Estaba tocando fachada Oeste de la oficina.`,
+    text: `Estaba arrimado a la fachada Oeste de la oficina.`,
     evalFn: (st) => st.suspectCol[speakerId] === 0
   });
 
@@ -677,7 +717,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_east`,
     category: 'Fachada',
     weight: 16,
-    text: `Estaba tocando la fachada Este de la oficina.`,
+    text: `Estaba junto a la fachada Este, donde da el sol.`,
     evalFn: (st) => st.suspectCol[speakerId] === 4
   });
 
@@ -685,7 +725,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_corner`,
     category: 'Fachada',
     weight: 17,
-    text: `Me oculté en una de las 4 esquinas exteriores de la oficina.`,
+    text: `Me escaqueé en una de las 4 esquinas exteriores de la planta.`,
     evalFn: (st) =>
       (st.suspectRow[speakerId] === 0 || st.suspectRow[speakerId] === 4) &&
       (st.suspectCol[speakerId] === 0 || st.suspectCol[speakerId] === 4)
@@ -695,7 +735,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_interior`,
     category: 'Fachada',
     weight: 15,
-    text: `Me mantuve en el interior de la oficina, sin tocar ninguna fachada exterior.`,
+    text: `Estaba en el centro de la oficina, sin tocar ninguna fachada exterior.`,
     evalFn: (st) =>
       st.suspectRow[speakerId] > 0 &&
       st.suspectRow[speakerId] < 4 &&
@@ -709,7 +749,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `more_north_than_${otherId}`,
       category: 'Fachada',
       weight: 14,
-      text: `Yo estaba más al Norte que ${SUSPECTS[otherId].name}.`,
+      text: `Yo estaba situado más al Norte que ${SUSPECTS[otherId].name}.`,
       evalFn: (st) => st.suspectRow[speakerId] < st.suspectRow[otherId]
     });
 
@@ -717,7 +757,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `more_west_than_${otherId}`,
       category: 'Fachada',
       weight: 14,
-      text: `Yo estaba más al Oeste que ${SUSPECTS[otherId].name}.`,
+      text: `Mi sitio estaba más al Oeste que el de ${SUSPECTS[otherId].name}.`,
       evalFn: (st) => st.suspectCol[speakerId] < st.suspectCol[otherId]
     });
   }
@@ -728,7 +768,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `self_largest_room`,
       category: 'Claustrofobia',
       weight: 16,
-      text: `Me escondí en el despacho más grande de toda la oficina (${maxSize} casillas).`,
+      text: `Me instalé en el despacho más grande de todos (${maxSize} casillas).`,
       evalFn: (st) => st.suspectRoom[speakerId] === largestRooms[0]
     });
   }
@@ -738,7 +778,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `self_smallest_room`,
       category: 'Claustrofobia',
       weight: 16,
-      text: `Me escondí en el despacho más pequeño de la oficina (${minSize} casillas).`,
+      text: `Me encerraron en el zulo más pequeño de la oficina (${minSize} casillas).`,
       evalFn: (st) => st.suspectRoom[speakerId] === smallestRooms[0]
     });
   }
@@ -749,7 +789,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `self_room_size_${sz}`,
       category: 'Claustrofobia',
       weight: 15,
-      text: `Mi despacho tiene una superficie exacta de ${sz} casillas.`,
+      text: `Mi despacho mide exactamente ${sz} casillas, las conté.`,
       evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] === sz
     });
   }
@@ -760,7 +800,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `bigger_room_than_${otherId}`,
       category: 'Claustrofobia',
       weight: 14,
-      text: `Mi despacho tiene más casillas que el despacho de ${SUSPECTS[otherId].name}.`,
+      text: `Mi despacho es más amplio que el de ${SUSPECTS[otherId].name}.`,
       evalFn: (st) =>
         roomSizes[st.suspectRoom[speakerId]] > roomSizes[st.suspectRoom[otherId]]
     });
@@ -771,7 +811,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `adj_to_vase_orth`,
     category: 'Escenario',
     weight: 18,
-    text: `Mi casilla estaba pegada ortogonalmente a el sandwich mordido (🥪), aunque hubiera muro en medio.`,
+    text: `Mi casilla tocaba en cruz con el sándwich (🥪), ¡incluso con muro en medio!`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) +
         Math.abs(st.suspectCol[speakerId] - vasePos.c) ===
@@ -782,7 +822,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `adj_to_vase_king`,
     category: 'Escenario',
     weight: 17,
-    text: `Estaba a solo una casilla de distancia (incluso en diagonal) de el sandwich mordido (🥪).`,
+    text: `Estaba a solo 1 casilla (incluso en diagonal) del sándwich mordido (🥪).`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) <= 1 &&
       Math.abs(st.suspectCol[speakerId] - vasePos.c) <= 1
@@ -794,7 +834,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `touch_wall_of_room_${rm}`,
       category: 'Escenario',
       weight: 16,
-      text: `Desde mi casilla tocaba por fuera el muro divisorio del despacho ${rmName}.`,
+      text: `Desde mi sitio escuchaba todo pegado por fuera al tabique del despacho ${rmName}.`,
       evalFn: (st) => {
         const r = st.suspectRow[speakerId];
         const c = st.suspectCol[speakerId];
@@ -810,7 +850,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `accuse_${otherId}`,
       category: 'Paranoia',
       weight: 15,
-      text: `${SUSPECTS[otherId].name} está mintiendo en su declaración.`,
+      text: `¡${SUSPECTS[otherId].name} miente descaradamente, tiene migas en la ropa!`,
       evalFn: (st) => st.suspectRoom[otherId] === vaseRoom
     });
 
@@ -818,7 +858,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `vouch_${otherId}`,
       category: 'Paranoia',
       weight: 13,
-      text: `Puedo asegurar que ${SUSPECTS[otherId].name} es inocente y dice la verdad.`,
+      text: `Pongo la mano en el fuego por ${SUSPECTS[otherId].name}: dice la verdad.`,
       evalFn: (st) => st.suspectRoom[otherId] !== vaseRoom
     });
   }
@@ -827,7 +867,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `thief_is_carnivore`,
     category: 'Paranoia',
     weight: 16,
-    text: `El ladrón es una mujer.`,
+    text: `El ladrón del almuerzo es una mujer, la vi abrir el tupper.`,
     evalFn: (st) => SUSPECTS[st.roomSuspect[vaseRoom]].isCarnivore
   });
 
@@ -835,7 +875,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `thief_is_herbivore`,
     category: 'Paranoia',
     weight: 15,
-    text: `El ladrón es un hombre.`,
+    text: `Quien se zampó el sándwich es un hombre.`,
     evalFn: (st) => !SUSPECTS[st.roomSuspect[vaseRoom]].isCarnivore
   });
 
@@ -843,7 +883,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `thief_on_north_half`,
     category: 'Paranoia',
     weight: 16,
-    text: `El ladrón se ocultó en las dos primeras filas del Norte.`,
+    text: `El tragón se esconde en las dos primeras filas del Norte.`,
     evalFn: (st) => st.suspectRow[st.roomSuspect[vaseRoom]] <= 1
   });
 
@@ -851,7 +891,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `thief_at_some_door`,
     category: 'Paranoia',
     weight: 16,
-    text: `El ladrón estaba junto a una de las 4 puertas numeradas.`,
+    text: `El culpable estaba apostado junto a una de las 4 puertas numeradas.`,
     evalFn: (st) => {
       const thiefInS = st.roomSuspect[vaseRoom];
       return st.suspectDoors[thiefInS].length > 0;
@@ -866,7 +906,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `self_in_room_${rm}`,
       category: 'Despacho',
       weight: 9,
-      text: `Yo estaba en el despacho ${rmName}.`,
+      text: `Yo estaba trabajando tranquilamente en el despacho ${rmName}.`,
       evalFn: (st) => st.suspectRoom[speakerId] === rm
     });
 
@@ -874,7 +914,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `carnivore_in_room_${rm}`,
       category: 'Despacho',
       weight: 11,
-      text: `Una mujer ocupaba el despacho ${rmName}.`,
+      text: `Vi a una mujer metida en el despacho ${rmName}.`,
       evalFn: (st) => SUSPECTS[st.roomSuspect[rm]].isCarnivore
     });
 
@@ -892,7 +932,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
         id: `other_${otherId}_in_room_${rm}`,
         category: 'Despacho',
         weight: 11,
-        text: `${SUSPECTS[otherId].name} estaba en el despacho ${rmName}.`,
+        text: `Vi a ${SUSPECTS[otherId].name} dentro del despacho ${rmName}.`,
         evalFn: (st) => st.suspectRoom[otherId] === rm
       });
     }
@@ -1447,10 +1487,10 @@ export default function App() {
 
   const shareText = useMemo(() => {
     const modeLabel = isDailyMode
-      ? `Caso diario (${dailyConfig.formattedDate})`
-      : `Caso nº ${level?.caseNumber ?? ''}`;
+      ? `Expediente diario (${dailyConfig.formattedDate})`
+      : `Expediente nº ${level?.caseNumber ?? ''}`;
 
-    return `🥪 ¿Quién ha robado mi sandwich?\n📂 ${modeLabel}\n⏱️ Tiempo: ${formatTime(seconds)}\n\n¡A ver si me superas! 👇\nhttps://www.sandwichcase.io`;
+    return `🥪 ¡Alguien ha robado mi sándwich en la oficina!\n📂 ${modeLabel}\n🕵️‍♂️ Culpable cazado en ${formatTime(seconds)}\n\n¿Lo resuelves más rápido que yo? 👇\nhttps://www.sandwichcase.io`;
   }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, seconds]);
 
   const handleCopyShareText = () => {
@@ -1524,8 +1564,8 @@ export default function App() {
               <div className="flex items-center gap-1.5 text-[11px] mt-0.5 flex-wrap">
                 <span className={`font-bold ${subTextClass}`}>
                   {isDailyMode
-                    ? `Caso diario · ${dailyConfig.formattedDate}`
-                    : `Caso nº ${level.caseNumber}`}
+                    ? `Robo del día · ${dailyConfig.formattedDate}`
+                    : `Expediente #${level.caseNumber}`}
                 </span>
                 <span className={subTextClass}>•</span>
                 <div
@@ -1764,7 +1804,7 @@ export default function App() {
               {isDailyMode ? (
                 <div className="flex items-center gap-1.5 text-[11px]">
                   <Clock className={`w-3.5 h-3.5 ${subTextClass}`} />
-                  <span className={subTextClass}>Siguiente caso en</span>
+                  <span className={subTextClass}>Próximo tupper en</span>
                   <span className="font-mono font-black tracking-wider">
                     {countdown}
                   </span>
@@ -1773,7 +1813,7 @@ export default function App() {
                 <div className="flex items-center gap-1.5 text-[11px]">
                   <Check className="w-3.5 h-3.5 text-emerald-500" />
                   <span className={`font-bold ${subTextClass}`}>
-                    ¡Caso nº {level.caseNumber} resuelto!
+                    ¡Expediente #{level.caseNumber} archivado!
                   </span>
                 </div>
               )}
@@ -1784,7 +1824,7 @@ export default function App() {
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-black flex items-center gap-1 transition cursor-pointer ${primaryActionBtnClass}`}
               >
                 <Shuffle className="w-3 h-3" />
-                <span>Jugar aleatorio</span>
+                <span>Otro robo</span>
               </button>
             </div>
           )}
@@ -1797,7 +1837,7 @@ export default function App() {
               isDark ? 'text-neutral-300' : 'text-neutral-700'
             }`}
           >
-            ¡El culpable miente!
+            ¡El ladrón tiene migas y miente!
           </span>
 
           <button
@@ -1810,7 +1850,7 @@ export default function App() {
                 : 'text-neutral-500 hover:text-neutral-900'
             }`}
           >
-            <span>Cómo se juega</span>
+            <span>Reglas de RR.HH.</span>
             <span
               className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] font-black leading-none ${
                 isDark
@@ -1893,7 +1933,7 @@ export default function App() {
 
         {/* 4. DECLARACIÓN DEL SOSPECHOSO SELECCIONADO COMPACTA */}
         <div
-          className={`w-full h-24 border rounded-2xl p-3 flex flex-col justify-between shadow-xs overflow-hidden ${cardBgClass}`}
+          className={`w-full min-h-24 border rounded-2xl p-3 flex flex-col justify-between gap-1.5 shadow-xs overflow-hidden ${cardBgClass}`}
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -1927,15 +1967,18 @@ export default function App() {
                 {currentSuspect.isCarnivore ? 'Mujer' : 'Hombre'}
               </span>
             </div>
+            <span className={`text-[10px] font-bold uppercase tracking-wider ${subTextClass}`}>
+              Coartada
+            </span>
           </div>
 
           <div className="flex-1 flex items-center">
             <p
-              className={`text-xs sm:text-sm font-semibold leading-snug line-clamp-2 ${
+              className={`text-xs sm:text-sm font-semibold leading-snug line-clamp-3 ${
                 isDark ? 'text-neutral-100' : 'text-neutral-800'
               }`}
             >
-              {currentClue?.text}
+              «{currentClue?.text}»
             </p>
           </div>
         </div>
@@ -1968,10 +2011,10 @@ export default function App() {
                 </div>
                 <div>
                   <h2 className="text-base font-black leading-tight">
-                    ¿Cómo se juega?
+                    Protocolo Anti-Robos
                   </h2>
                   <p className={`text-xs mt-0.5 ${subTextClass}`}>
-                    Reglas del expediente
+                    Alguien ha asaltado tu tupper en la oficina
                   </p>
                 </div>
               </div>
@@ -1997,11 +2040,11 @@ export default function App() {
                 }`}
               >
                 <span className="font-black block mb-0.5 text-current">
-                  1. Posición espacial
+                  1. Distancia social de oficina
                 </span>
-                Coloca a los 5 sospechosos en el tablero: solo puede haber{' '}
+                Coloca a los 5 sospechosos en el plano: solo cabe{' '}
                 <strong>uno por fila, uno por columna y uno por despacho de color</strong>.
-                Además, no pueden tocarse entre sí, ni siquiera en diagonal.
+                Además, no se aguantan: no pueden tocarse ni en diagonal.
               </div>
 
               <div
@@ -2012,11 +2055,11 @@ export default function App() {
                 }`}
               >
                 <span className="font-black block mb-0.5 text-current">
-                  2. El ladrón siempre miente
+                  2. El tragón siempre miente
                 </span>
-                Los 4 inocentes dicen siempre la verdad. El sospechoso que esté en el{' '}
+                Los 4 inocentes dicen la verdad. Quien esté en el{' '}
                 <strong>mismo despacho que el sándwich mordido (CRIMEN)</strong> es el
-                ladrón y su declaración es <strong>falsa</strong>.
+                culpable y su coartada es <strong>totalmente falsa</strong>.
               </div>
 
               <div
@@ -2027,7 +2070,7 @@ export default function App() {
                 }`}
               >
                 <span className="font-black block mb-0.5 text-current">
-                  3. Puertas numeradas
+                  3. Cotilleo en las puertas
                 </span>
                 Estar junto a una puerta significa ocupar cualquiera de las{' '}
                 <strong>dos casillas</strong> que conecta ese círculo numerado.
@@ -2039,7 +2082,7 @@ export default function App() {
               onClick={() => setIsHelpModalOpen(false)}
               className={`w-full py-2.5 px-4 rounded-xl font-black text-xs transition cursor-pointer ${primaryActionBtnClass}`}
             >
-              Entendido
+              ¡A interrogar!
             </button>
           </div>
         </div>
@@ -2076,10 +2119,10 @@ export default function App() {
                 </div>
                 <div>
                   <h2 className="text-base font-black leading-tight">
-                    Modo de juego
+                    Archivos de RR.HH.
                   </h2>
                   <p className={`text-xs mt-0.5 ${subTextClass}`}>
-                    Elige entre el reto del día o un caso aleatorio
+                    ¿Qué robo de almuerzo investigamos ahora?
                   </p>
                 </div>
               </div>
@@ -2114,7 +2157,7 @@ export default function App() {
                 <div className="flex items-center gap-3">
                   <Calendar className="w-5 h-5 shrink-0" />
                   <div>
-                    <div className="text-xs font-black">Reto Diario</div>
+                    <div className="text-xs font-black">El Robo del Día</div>
                     <div
                       className={`text-[11px] ${
                         isDailyMode
@@ -2124,7 +2167,7 @@ export default function App() {
                           : subTextClass
                       }`}
                     >
-                      Caso diario ({dailyConfig.formattedDate})
+                      El mismo misterio para toda la oficina ({dailyConfig.formattedDate})
                     </div>
                   </div>
                 </div>
@@ -2152,7 +2195,7 @@ export default function App() {
                 <div className="flex items-center gap-3">
                   <Shuffle className="w-5 h-5 shrink-0" />
                   <div>
-                    <div className="text-xs font-black">Caso Aleatorio</div>
+                    <div className="text-xs font-black">Horas Extra (Aleatorio)</div>
                     <div
                       className={`text-[11px] ${
                         !isDailyMode
@@ -2162,7 +2205,7 @@ export default function App() {
                           : subTextClass
                       }`}
                     >
-                      Generar un expediente nuevo al instante
+                      Generar un nuevo drama de oficina al instante
                     </div>
                   </div>
                 </div>
@@ -2201,29 +2244,24 @@ export default function App() {
                   }`}
                 >
                   <img
-                    src={sandwichSvg}
-                    alt="Sandwich"
+                    src={SUSPECTS[level.thiefId].emoji}
+                    alt={SUSPECTS[level.thiefId].name}
                     className="w-full h-full object-contain"
                   />
                 </div>
                 <div>
                   <h2 className="text-base font-black leading-tight">
-                    ¡Caso resuelto!
+                    ¡Pillas a {SUSPECTS[level.thiefId].name} masticando!
                   </h2>
-                  <p className={`text-xs flex items-center gap-1.5 mt-0.5 ${subTextClass}`}>
-                    <img
-                      src={SUSPECTS[level.thiefId].emoji}
-                      alt={SUSPECTS[level.thiefId].name}
-                      className="w-4 h-4 object-contain"
-                    />
-                    <span>{SUSPECTS[level.thiefId].name} robó el sandwich</span>
+                  <p className={`text-xs mt-0.5 italic ${subTextClass}`}>
+                    {SUSPECTS[level.thiefId].confession}
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setIsShareModalOpen(false)}
-                className={`p-1.5 rounded-xl border transition cursor-pointer ${
+                className={`p-1.5 rounded-xl border transition cursor-pointer shrink-0 ${
                   isDark
                     ? 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:text-white'
                     : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
@@ -2243,7 +2281,7 @@ export default function App() {
                 }`}
               >
                 <span className={`font-bold ${subTextClass}`}>
-                  Próximo reto diario en:
+                  Próximo robo en la nevera:
                 </span>
                 <span className="font-mono font-black text-sm tracking-wider">
                   {countdown}
@@ -2270,7 +2308,7 @@ export default function App() {
                 className={`w-full py-2.5 px-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm ${primaryActionBtnClass}`}
               >
                 <Share2 className="w-4 h-4" />
-                <span>Compartir resultado</span>
+                <span>Presumir en el grupo</span>
               </button>
 
               <div className="grid grid-cols-2 gap-2">
@@ -2291,7 +2329,7 @@ export default function App() {
                   ) : (
                     <>
                       <Copy className="w-3.5 h-3.5" />
-                      <span>Copiar texto</span>
+                      <span>Copiar informe</span>
                     </>
                   )}
                 </button>
@@ -2306,7 +2344,7 @@ export default function App() {
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Nivel aleatorio</span>
+                  <span>Otro robo</span>
                 </button>
               </div>
             </div>
