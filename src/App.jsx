@@ -6,7 +6,8 @@ import {
   X,
   Copy,
   Shuffle,
-  Calendar
+  Calendar,
+  Clock
 } from 'lucide-react';
 
 import auditorSvg from './assets/auditor.svg';
@@ -173,6 +174,17 @@ function getDailyConfig(date = new Date()) {
     categories: dailyCategories,
     formattedDate: `${d}/${m}/${y}`
   };
+}
+
+function getTimeUntilMidnight() {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+  const diff = Math.max(0, Math.floor((midnight - now) / 1000));
+
+  const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+  const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+  const s = String(diff % 60).padStart(2, '0');
+  return `${h}:${m}:${s}`;
 }
 
 // ============================================================================
@@ -598,38 +610,41 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   }
 
   if (speaker.isCarnivore) {
-    const otherCarnivoreId = speakerId === 1 ? 2 : 1;
-    clues.push({
-      id: `other_carnivore_even_door`,
-      category: 'Umbral',
-      weight: 16,
-      text: `El despacho de la otra mujer y el mío están comunicados por una puerta par.`,
-      evalFn: (st) => {
-        const rm1 = st.suspectRoom[speakerId];
-        const rm2 = st.suspectRoom[otherCarnivoreId];
-        const [r2A, r2B] = doorMap[2];
-        const [r4A, r4B] = doorMap[4];
-        const via2 = (rm1 === r2A && rm2 === r2B) || (rm1 === r2B && rm2 === r2A);
-        const via4 = (rm1 === r4A && rm2 === r4B) || (rm1 === r4B && rm2 === r4A);
-        return via2 || via4;
-      }
-    });
+    const otherCarnivore = SUSPECTS.find((s) => s.isCarnivore && s.id !== speakerId);
+    if (otherCarnivore) {
+      const otherCarnivoreId = otherCarnivore.id;
+      clues.push({
+        id: `other_carnivore_even_door`,
+        category: 'Umbral',
+        weight: 16,
+        text: `El despacho de la otra mujer y el mío están comunicados por una puerta par.`,
+        evalFn: (st) => {
+          const rm1 = st.suspectRoom[speakerId];
+          const rm2 = st.suspectRoom[otherCarnivoreId];
+          const [r2A, r2B] = doorMap[2];
+          const [r4A, r4B] = doorMap[4];
+          const via2 = (rm1 === r2A && rm2 === r2B) || (rm1 === r2B && rm2 === r2A);
+          const via4 = (rm1 === r4A && rm2 === r4B) || (rm1 === r4B && rm2 === r4A);
+          return via2 || via4;
+        }
+      });
 
-    clues.push({
-      id: `other_carnivore_odd_door`,
-      category: 'Umbral',
-      weight: 16,
-      text: `El despacho de la otra mujer y el mío están comunicados por una puerta impar.`,
-      evalFn: (st) => {
-        const rm1 = st.suspectRoom[speakerId];
-        const rm2 = st.suspectRoom[otherCarnivoreId];
-        const [r1A, r1B] = doorMap[1];
-        const [r3A, r3B] = doorMap[3];
-        const via1 = (rm1 === r1A && rm2 === r1B) || (rm1 === r1B && rm2 === r1A);
-        const via3 = (rm1 === r3A && rm2 === r3B) || (rm1 === r3B && rm2 === r3A);
-        return via1 || via3;
-      }
-    });
+      clues.push({
+        id: `other_carnivore_odd_door`,
+        category: 'Umbral',
+        weight: 16,
+        text: `El despacho de la otra mujer y el mío están comunicados por una puerta impar.`,
+        evalFn: (st) => {
+          const rm1 = st.suspectRoom[speakerId];
+          const rm2 = st.suspectRoom[otherCarnivoreId];
+          const [r1A, r1B] = doorMap[1];
+          const [r3A, r3B] = doorMap[3];
+          const via1 = (rm1 === r1A && rm2 === r1B) || (rm1 === r1B && rm2 === r1A);
+          const via3 = (rm1 === r3A && rm2 === r3B) || (rm1 === r3B && rm2 === r3A);
+          return via1 || via3;
+        }
+      });
+    }
   }
 
   // 2. Fachada / Cardinal
@@ -1136,48 +1151,132 @@ export default function App() {
   }, []);
 
   const dailyConfig = useMemo(() => getDailyConfig(), []);
+  const dailyStorageKey = `sandwich_daily_state_${dailyConfig.seed}`;
+
+  // Lectura inicial del progreso diario en localStorage (estilo Wordle)
+  const initialDailySaved = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem(dailyStorageKey);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_e) {
+      return null;
+    }
+  }, [dailyStorageKey]);
+
   const [isDailyMode, setIsDailyMode] = useState(true);
 
   const [level, setLevel] = useState(() =>
     generateCompleteLevel(dailyConfig.categories, dailyConfig.seed)
   );
+
   // placements: diccionario "r,c" -> suspectId (0..4)
-  const [placements, setPlacements] = useState({});
+  const [placements, setPlacements] = useState(() => initialDailySaved?.placements || {});
   // Sospechoso activo en las píldoras horizontales (0..4 -> A..E)
   const [activeSuspect, setActiveSuspect] = useState(0);
-  // Cronómetro, estado de resolución y modales
-  const [seconds, setSeconds] = useState(0);
-  const [isSolved, setIsSolved] = useState(false);
+
+  // Cronómetro persistente: si recarga a mitad del reto diario, calcula el tiempo real transcurrido
+  const [seconds, setSeconds] = useState(() => {
+    if (!initialDailySaved) return 0;
+    if (initialDailySaved.completed) return initialDailySaved.seconds || 0;
+    if (initialDailySaved.startedAt) {
+      return Math.max(
+        initialDailySaved.seconds || 0,
+        Math.floor((Date.now() - initialDailySaved.startedAt) / 1000)
+      );
+    }
+    return initialDailySaved.seconds || 0;
+  });
+
+  const [isSolved, setIsSolved] = useState(() => Boolean(initialDailySaved?.completed));
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isModeModalOpen, setIsModeModalOpen] = useState(false);
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
 
-  const resetBoardState = (nextLevel) => {
+  // Reloj de cuenta atrás hasta medianoche para el próximo reto diario
+  const [countdown, setCountdown] = useState(() => getTimeUntilMidnight());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown(getTimeUntilMidnight());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Guardar progreso del reto diario en localStorage (evita reiniciar el reloj al refrescar)
+  useEffect(() => {
+    if (!isDailyMode || typeof window === 'undefined') return;
+    try {
+      const existingRaw = localStorage.getItem(dailyStorageKey);
+      const existing = existingRaw ? JSON.parse(existingRaw) : null;
+
+      // Si ya estaba completado en localStorage, no lo sobreescribimos con tiempos nuevos
+      if (existing?.completed && !isSolved) return;
+
+      const startedAt = existing?.startedAt || Date.now() - seconds * 1000;
+      const payload = {
+        completed: isSolved,
+        seconds: existing?.completed ? existing.seconds : seconds,
+        placements: existing?.completed ? existing.placements : placements,
+        startedAt
+      };
+      localStorage.setItem(dailyStorageKey, JSON.stringify(payload));
+    } catch (_e) {
+      // Ignorar errores de cuota o modo privado estricto
+    }
+  }, [isDailyMode, isSolved, seconds, placements, dailyStorageKey]);
+
+  // Cargar reto diario determinista (restaurando bloqueo si ya se completó hoy)
+  const handleLoadDaily = useCallback(() => {
+    const nextLevel = generateCompleteLevel(dailyConfig.categories, dailyConfig.seed);
+    if (!nextLevel) return;
+
+    setIsDailyMode(true);
     setLevel(nextLevel);
-    setPlacements({});
     setActiveSuspect(0);
-    setSeconds(0);
-    setIsSolved(false);
-    setIsShareModalOpen(false);
     setIsModeModalOpen(false);
     setCopiedShare(false);
-  };
 
-  // Cargar reto diario determinista
-  const handleLoadDaily = useCallback(() => {
-    setIsDailyMode(true);
-    const nextLevel = generateCompleteLevel(dailyConfig.categories, dailyConfig.seed);
-    if (nextLevel) {
-      resetBoardState(nextLevel);
+    try {
+      const raw = localStorage.getItem(dailyStorageKey);
+      const saved = raw ? JSON.parse(raw) : null;
+      if (saved) {
+        setPlacements(saved.placements || {});
+        if (saved.completed) {
+          setSeconds(saved.seconds || 0);
+          setIsSolved(true);
+          return;
+        }
+        const elapsed = saved.startedAt
+          ? Math.max(saved.seconds || 0, Math.floor((Date.now() - saved.startedAt) / 1000))
+          : saved.seconds || 0;
+        setSeconds(elapsed);
+        setIsSolved(false);
+        return;
+      }
+    } catch (_e) {
+      // Fallback si no hay acceso a localStorage
     }
-  }, [dailyConfig]);
+
+    setPlacements({});
+    setSeconds(0);
+    setIsSolved(false);
+  }, [dailyConfig, dailyStorageKey]);
 
   // Generar un nuevo nivel aleatorio
   const handleNewRandomLevel = useCallback(() => {
-    setIsDailyMode(false);
     const nextLevel = generateCompleteLevel();
     if (nextLevel) {
-      resetBoardState(nextLevel);
+      setIsDailyMode(false);
+      setLevel(nextLevel);
+      setPlacements({});
+      setActiveSuspect(0);
+      setSeconds(0);
+      setIsSolved(false);
+      setIsShareModalOpen(false);
+      setIsModeModalOpen(false);
+      setCopiedShare(false);
     }
   }, []);
 
@@ -1308,6 +1407,7 @@ export default function App() {
   }, [level, placements]);
 
   const gameWon = isSolved || Boolean(validation?.allCluesValid);
+  const isDailyLocked = isDailyMode && gameWon;
 
   useEffect(() => {
     if (validation?.allCluesValid && !isSolved) {
@@ -1325,9 +1425,9 @@ export default function App() {
     return () => clearInterval(timer);
   }, [gameWon]);
 
-  // Clic en una celda de la cuadrícula 5x5
+  // Clic en una celda de la cuadrícula 5x5 (bloqueado si el reto ya se completó)
   const handleCellClick = (r, c) => {
-    if (!level) return;
+    if (!level || gameWon) return;
     if (r === level.vasePos.r && c === level.vasePos.c) return;
 
     const key = `${r},${c}`;
@@ -1361,7 +1461,7 @@ export default function App() {
     const modeLabel = isDailyMode
       ? `Caso diario (${dailyConfig.formattedDate})`
       : `Caso nº ${level?.caseNumber ?? ''}`;
-    
+
     return `🥪 ¿Quién ha robado mi sandwich?\n📂 ${modeLabel}\n⏱️ Tiempo: ${formatTime(seconds)}\n\n¡A ver si me superas! 👇\nhttps://www.sandwichcase.io`;
   }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, seconds]);
 
@@ -1586,9 +1686,9 @@ export default function App() {
                             ? '3px solid #171717'
                             : '1px solid rgba(23, 23, 23, 0.14)'
                         }}
-                        className={`relative w-full h-full flex flex-col items-center justify-center p-0 overflow-hidden focus:outline-none cursor-pointer ${
-                          hasConflict ? 'ring-3 ring-inset ring-rose-600 z-10' : ''
-                        }`}
+                        className={`relative w-full h-full flex flex-col items-center justify-center p-0 overflow-hidden focus:outline-none ${
+                          gameWon ? 'cursor-default' : 'cursor-pointer'
+                        } ${hasConflict ? 'ring-3 ring-inset ring-rose-600 z-10' : ''}`}
                       >
                         {/* Sandwich Robado */}
                         {isVase && (
@@ -1604,7 +1704,7 @@ export default function App() {
                           </div>
                         )}
 
-                        {/* Sospechoso colocado (clicar lo quita) */}
+                        {/* Sospechoso colocado (clicar lo quita si no está bloqueado) */}
                         {!isVase && placedSuspect && (
                           <div className="flex flex-col items-center justify-center leading-none pointer-events-none">
                             <img
@@ -1664,10 +1764,35 @@ export default function App() {
               })}
             </div>
           </div>
+
+          {/* BANNER DE BLOQUEO CON CUENTA ATRÁS CUANDO EL RETO DIARIO YA FUE RESUELTO */}
+          {isDailyLocked && (
+            <div
+              className={`mt-2 pt-2 border-t flex items-center justify-between gap-2 px-1 ${
+                isDark ? 'border-neutral-800' : 'border-neutral-200'
+              }`}
+            >
+              <div className="flex items-center gap-1.5 text-[11px]">
+                <Clock className={`w-3.5 h-3.5 ${subTextClass}`} />
+                <span className={subTextClass}>Siguiente caso en</span>
+                <span className="font-mono font-black tracking-wider">
+                  {countdown}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleNewRandomLevel}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-black flex items-center gap-1 transition cursor-pointer ${primaryActionBtnClass}`}
+              >
+                <Shuffle className="w-3 h-3" />
+                <span>Jugar aleatorio</span>
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* AVISO JUSTO ENCIMA DE LAS PÍLDORAS DE SOSPECHOSOS (SIN ENVOLTORIO DE PÍLDORA) */}
-        <div className="flex items-center justify-center py-0.5">
+        {/* FILA ENCIMA DE LAS PÍLDORAS: AVISO A LA IZQUIERDA + INTERROGANTE A LA DERECHA */}
+        <div className="flex items-center justify-between px-0.5 py-0.5">
           <span
             className={`text-[11px] font-black uppercase tracking-wider ${
               isDark ? 'text-neutral-300' : 'text-neutral-700'
@@ -1675,14 +1800,47 @@ export default function App() {
           >
             ¡El de la sala del crimen miente!
           </span>
+
+          <button
+            type="button"
+            onClick={() => setIsHelpModalOpen(true)}
+            title="Cómo se juega"
+            className={`flex items-center gap-1.5 text-[11px] font-bold transition cursor-pointer ${
+              isDark
+                ? 'text-neutral-400 hover:text-white'
+                : 'text-neutral-500 hover:text-neutral-900'
+            }`}
+          >
+            <span>Cómo se juega</span>
+            <span
+              className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] font-black leading-none ${
+                isDark
+                  ? 'border-neutral-700 bg-neutral-900 text-neutral-200'
+                  : 'border-neutral-300 bg-neutral-200/70 text-neutral-800'
+              }`}
+            >
+              ?
+            </span>
+          </button>
         </div>
 
-        {/* 3. PÍLDORAS HORIZONTALES SELECTORAS DE PERSONAS (SELECCIÓN BLANCA EN MODO OSCURO) */}
+        {/* 3. PÍLDORAS HORIZONTALES SELECTORAS DE PERSONAS (DOT NEUTRO/BLANCO/NEGRO O ROJO SI FALLA) */}
         <div className="w-full grid grid-cols-5 gap-1.5 h-12">
           {SUSPECTS.map((s) => {
             const isSelected = activeSuspect === s.id;
             const isPlaced = suspectPositions[s.id] !== undefined;
             const evalRes = validation.clueResults ? validation.clueResults[s.id] : null;
+
+            const dotColorClass =
+              evalRes && !evalRes.isConsistent
+                ? 'bg-rose-500'
+                : isSelected
+                ? isDark
+                  ? 'bg-neutral-900'
+                  : 'bg-white'
+                : isDark
+                ? 'bg-white'
+                : 'bg-neutral-900';
 
             return (
               <button
@@ -1705,9 +1863,7 @@ export default function App() {
               >
                 {isPlaced && (
                   <span
-                    className={`absolute top-1 right-1.5 w-2 h-2 rounded-full ${
-                      evalRes && !evalRes.isConsistent ? 'bg-rose-500' : 'bg-emerald-500'
-                    }`}
+                    className={`absolute top-1 right-1.5 w-2 h-2 rounded-full ${dotColorClass}`}
                   />
                 )}
                 <div className="flex items-center gap-1 leading-none">
@@ -1786,7 +1942,111 @@ export default function App() {
         </div>
       </div>
 
-      {/* 5. POPUP MODAL DE SELECCIÓN DE MODO (AL PULSAR EL ICONO DEL SANDWICH) */}
+      {/* 5. POPUP MODAL DE NORMAS / CÓMO SE JUEGA */}
+      {isHelpModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fadeIn"
+          onClick={() => setIsHelpModalOpen(false)}
+        >
+          <div
+            className={`w-full max-w-sm rounded-3xl border p-6 shadow-2xl flex flex-col gap-4 ${
+              isDark
+                ? 'bg-[#141414] border-neutral-800 text-neutral-100'
+                : 'bg-white border-neutral-200 text-neutral-900'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-black text-base ${
+                    isDark
+                      ? 'bg-neutral-800 border-neutral-700 text-white'
+                      : 'bg-neutral-100 border-neutral-200 text-neutral-900'
+                  }`}
+                >
+                  ?
+                </div>
+                <div>
+                  <h2 className="text-base font-black leading-tight">
+                    ¿Cómo se juega?
+                  </h2>
+                  <p className={`text-xs mt-0.5 ${subTextClass}`}>
+                    Reglas del expediente
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsHelpModalOpen(false)}
+                className={`p-1.5 rounded-xl border transition cursor-pointer ${
+                  isDark
+                    ? 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:text-white'
+                    : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
+                }`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3 text-xs leading-relaxed">
+              <div
+                className={`p-3 rounded-2xl border ${
+                  isDark
+                    ? 'bg-[#0a0a0a] border-neutral-800 text-neutral-300'
+                    : 'bg-neutral-50 border-neutral-200 text-neutral-700'
+                }`}
+              >
+                <span className="font-black block mb-0.5 text-current">
+                  1. Posición espacial
+                </span>
+                Coloca a los 5 sospechosos en el tablero: solo puede haber{' '}
+                <strong>uno por fila, uno por columna y uno por despacho de color</strong>.
+                Además, no pueden tocarse entre sí, ni siquiera en diagonal.
+              </div>
+
+              <div
+                className={`p-3 rounded-2xl border ${
+                  isDark
+                    ? 'bg-[#0a0a0a] border-neutral-800 text-neutral-300'
+                    : 'bg-neutral-50 border-neutral-200 text-neutral-700'
+                }`}
+              >
+                <span className="font-black block mb-0.5 text-current">
+                  2. El ladrón siempre miente
+                </span>
+                Los 4 inocentes dicen siempre la verdad. El sospechoso que esté en el{' '}
+                <strong>mismo despacho que el sándwich mordido (CRIMEN)</strong> es el
+                ladrón y su declaración es <strong>falsa</strong>.
+              </div>
+
+              <div
+                className={`p-3 rounded-2xl border ${
+                  isDark
+                    ? 'bg-[#0a0a0a] border-neutral-800 text-neutral-300'
+                    : 'bg-neutral-50 border-neutral-200 text-neutral-700'
+                }`}
+              >
+                <span className="font-black block mb-0.5 text-current">
+                  3. Puertas numeradas
+                </span>
+                Estar junto a una puerta significa ocupar cualquiera de las{' '}
+                <strong>dos casillas</strong> que conecta ese círculo numerado.
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsHelpModalOpen(false)}
+              className={`w-full py-2.5 px-4 rounded-xl font-black text-xs transition cursor-pointer ${primaryActionBtnClass}`}
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 6. POPUP MODAL DE SELECCIÓN DE MODO (AL PULSAR EL ICONO DEL SANDWICH) */}
       {isModeModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fadeIn"
@@ -1918,7 +2178,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 6. POPUP MODAL DE COMPARTIR */}
+      {/* 7. POPUP MODAL DE COMPARTIR */}
       {isShareModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fadeIn"
@@ -1973,6 +2233,24 @@ export default function App() {
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {/* Cuenta atrás en el modal si es el reto diario */}
+            {isDailyMode && (
+              <div
+                className={`px-3.5 py-2.5 rounded-2xl border flex items-center justify-between text-xs ${
+                  isDark
+                    ? 'bg-neutral-900/70 border-neutral-800'
+                    : 'bg-neutral-100 border-neutral-200'
+                }`}
+              >
+                <span className={`font-bold ${subTextClass}`}>
+                  Próximo reto diario en:
+                </span>
+                <span className="font-mono font-black text-sm tracking-wider">
+                  {countdown}
+                </span>
+              </div>
+            )}
 
             {/* Resumen estadístico y vista previa del mensaje */}
             <div
