@@ -5,7 +5,8 @@ import {
   Check,
   X,
   Copy,
-  Shuffle
+  Shuffle,
+  Calendar
 } from 'lucide-react';
 
 import auditorSvg from './assets/auditor.svg';
@@ -1144,10 +1145,11 @@ export default function App() {
   const [placements, setPlacements] = useState({});
   // Sospechoso activo en las píldoras horizontales (0..4 -> A..E)
   const [activeSuspect, setActiveSuspect] = useState(0);
-  // Cronómetro, estado de resolución y modal de compartir
+  // Cronómetro, estado de resolución y modales
   const [seconds, setSeconds] = useState(0);
   const [isSolved, setIsSolved] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isModeModalOpen, setIsModeModalOpen] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
 
   const resetBoardState = (nextLevel) => {
@@ -1157,6 +1159,7 @@ export default function App() {
     setSeconds(0);
     setIsSolved(false);
     setIsShareModalOpen(false);
+    setIsModeModalOpen(false);
     setCopiedShare(false);
   };
 
@@ -1182,16 +1185,13 @@ export default function App() {
   const difficultyInfo = useMemo(() => {
     if (!level) return null;
     const k = level.survivingGeos.length; // K oscila entre 2 y 6
-    const badgeClass = isDark
-      ? 'bg-neutral-800 text-neutral-200 border-neutral-700'
-      : 'bg-neutral-100 text-neutral-800 border-neutral-300';
     const barColor = isDark ? 'bg-white' : 'bg-neutral-900';
 
-    if (k <= 2) return { label: 'Fácil', bars: 1, badgeClass, barColor };
-    if (k === 3) return { label: 'Media', bars: 2, badgeClass, barColor };
-    if (k === 4) return { label: 'Difícil', bars: 3, badgeClass, barColor };
-    if (k === 5) return { label: 'Experto', bars: 4, badgeClass, barColor };
-    return { label: 'Maestro', bars: 5, badgeClass, barColor };
+    if (k <= 2) return { label: 'Fácil', bars: 1, barColor };
+    if (k === 3) return { label: 'Media', bars: 2, barColor };
+    if (k === 4) return { label: 'Difícil', bars: 3, barColor };
+    if (k === 5) return { label: 'Experto', bars: 4, barColor };
+    return { label: 'Maestro', bars: 5, barColor };
   }, [level, isDark]);
 
   // Mapa inverso: suspectId -> { r, c } si está colocado en el tablero
@@ -1404,108 +1404,41 @@ export default function App() {
       className={`min-h-dvh font-sans select-none flex flex-col items-center justify-start py-2 px-3 transition-colors duration-200 ${pageBgClass}`}
     >
       <div className="w-full max-w-[400px] flex flex-col gap-2">
-        {/* TÍTULO PRINCIPAL ARRIBA DEL TODO + OPCIÓN PARA NIVELES ALEATORIOS */}
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <img
-              src={sandwichSvg}
-              alt="Sandwich"
-              className="w-7 h-7 object-contain shrink-0"
-            />
+        {/* 1. CABECERA PRINCIPAL: ICONO DEL SANDWICH (ABRE POPUP DE MODO) + TÍTULO */}
+        <div className="flex items-center justify-between gap-2 py-0.5">
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              type="button"
+              onClick={() => setIsModeModalOpen(true)}
+              title="Cambiar entre reto diario y caso aleatorio"
+              className={`p-1 rounded-xl border transition cursor-pointer shrink-0 flex items-center justify-center ${
+                isDark
+                  ? 'bg-[#141414] border-neutral-800 hover:border-neutral-600'
+                  : 'bg-white border-neutral-200 hover:border-neutral-400 shadow-2xs'
+              }`}
+            >
+              <img
+                src={sandwichSvg}
+                alt="Seleccionar modo"
+                className="w-6 h-6 object-contain"
+              />
+            </button>
             <h1 className="text-sm sm:text-base font-black tracking-tight truncate">
               ¿Quién ha robado mi sandwich?
             </h1>
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
-            {!isDailyMode && (
-              <button
-                type="button"
-                onClick={handleLoadDaily}
-                title="Volver al reto diario"
-                className={`px-2.5 py-1 rounded-xl text-[11px] font-bold border transition cursor-pointer ${
-                  isDark
-                    ? 'bg-[#141414] hover:bg-neutral-800 text-neutral-300 border-neutral-800'
-                    : 'bg-white hover:bg-neutral-100 text-neutral-700 border-neutral-300 shadow-2xs'
-                }`}
-              >
-                Diario
-              </button>
-            )}
+          {gameWon && (
             <button
               type="button"
-              onClick={handleNewRandomLevel}
-              title="Generar un nivel aleatorio nuevo"
-              className={`px-2.5 py-1 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-xs transition cursor-pointer ${primaryActionBtnClass}`}
+              onClick={() => setIsShareModalOpen(true)}
+              className={`px-2.5 py-1 rounded-xl font-black text-[11px] flex items-center gap-1 transition cursor-pointer shrink-0 ${primaryActionBtnClass}`}
             >
-              <Shuffle className="w-3.5 h-3.5" />
-              <span>Aleatorio</span>
+              <Share2 className="w-3 h-3" />
+              <span>Compartir</span>
             </button>
-          </div>
+          )}
         </div>
-
-        {/* 1. APARTADO SUPERIOR: SOLO NIVEL DE DIFICULTAD Y TEMPORIZADOR */}
-        <header
-          className={`border rounded-2xl px-3.5 py-2 shadow-xs flex items-center justify-between gap-3 ${cardBgClass}`}
-        >
-          {/* Nivel de dificultad */}
-          <div className="flex items-center gap-2">
-            <span
-              className={`px-2 py-0.5 rounded-md font-black uppercase tracking-wider border text-[10px] ${difficultyInfo.badgeClass}`}
-            >
-              {difficultyInfo.label}
-            </span>
-            <div
-              className="flex items-center gap-1"
-              title={`Dificultad: ${difficultyInfo.label}`}
-            >
-              {[1, 2, 3, 4, 5].map((bar) => (
-                <span
-                  key={bar}
-                  className={`w-2.5 h-1.5 rounded-xs ${
-                    bar <= difficultyInfo.bars
-                      ? difficultyInfo.barColor
-                      : isDark
-                      ? 'bg-neutral-800'
-                      : 'bg-neutral-200'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Temporizador (+ botón Compartir si ya se resolvió) */}
-          <div className="flex items-center gap-2">
-            {gameWon && (
-              <button
-                type="button"
-                onClick={() => setIsShareModalOpen(true)}
-                className={`px-2.5 py-1 rounded-xl font-black text-[11px] flex items-center gap-1 transition cursor-pointer shadow-2xs ${primaryActionBtnClass}`}
-              >
-                <Share2 className="w-3 h-3" />
-                <span>Compartir</span>
-              </button>
-            )}
-            <div
-              className={`px-2.5 py-1 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 border ${
-                isDark
-                  ? 'bg-[#0a0a0a] border-neutral-800 text-neutral-100'
-                  : 'bg-neutral-100 border-neutral-200 text-neutral-900'
-              }`}
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  gameWon
-                    ? isDark
-                      ? 'bg-white'
-                      : 'bg-neutral-900'
-                    : 'bg-emerald-500 animate-pulse'
-                }`}
-              />
-              <span>{formatTime(seconds)}</span>
-            </div>
-          </div>
-        </header>
 
         {/* 2. TABLERO 5x5 CON COLORES PASTEL, CRUCES GRISES Y CARDINALES */}
         <div className={`border rounded-2xl p-2.5 shadow-xs ${cardBgClass}`}>
@@ -1675,17 +1608,60 @@ export default function App() {
           </div>
         </div>
 
-        {/* AVISO ANTES DEL SELECTOR DE PERSONAS: "¡El ladrón miente!" */}
-        <div className="flex items-center justify-center">
+        {/* LÍNEA UNIFICADA SIN PÍLDORA: DIFICULTAD + "¡EL LADRÓN MIENTE!" + TEMPORIZADOR */}
+        <div className="flex items-center justify-between px-1 py-0.5 text-[11px]">
+          {/* Dificultad */}
+          <div
+            className="flex items-center gap-1.5"
+            title={`Dificultad: ${difficultyInfo.label}`}
+          >
+            <span
+              className={`font-black uppercase tracking-wider ${
+                isDark ? 'text-neutral-300' : 'text-neutral-700'
+              }`}
+            >
+              {difficultyInfo.label}
+            </span>
+            <div className="flex items-center gap-0.5">
+              {[1, 2, 3, 4, 5].map((bar) => (
+                <span
+                  key={bar}
+                  className={`w-2 h-1.5 rounded-xs ${
+                    bar <= difficultyInfo.bars
+                      ? difficultyInfo.barColor
+                      : isDark
+                      ? 'bg-neutral-800'
+                      : 'bg-neutral-300'
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Aviso central sin envoltorio de píldora */}
           <span
-            className={`text-[11px] font-black uppercase tracking-wider px-3 py-0.5 rounded-full border ${
-              isDark
-                ? 'bg-neutral-900 text-neutral-300 border-neutral-800'
-                : 'bg-neutral-200/80 text-neutral-700 border-neutral-300'
+            className={`font-black uppercase tracking-wider ${
+              isDark ? 'text-neutral-300' : 'text-neutral-700'
             }`}
           >
             ¡El ladrón miente!
           </span>
+
+          {/* Temporizador */}
+          <div className="flex items-center gap-1.5 font-mono font-bold">
+            <span
+              className={`w-2 h-2 rounded-full ${
+                gameWon
+                  ? isDark
+                    ? 'bg-white'
+                    : 'bg-neutral-900'
+                  : 'bg-emerald-500 animate-pulse'
+              }`}
+            />
+            <span className={isDark ? 'text-neutral-200' : 'text-neutral-800'}>
+              {formatTime(seconds)}
+            </span>
+          </div>
         </div>
 
         {/* 3. PÍLDORAS HORIZONTALES SELECTORAS DE PERSONAS (SELECCIÓN BLANCA EN MODO OSCURO) */}
@@ -1797,7 +1773,139 @@ export default function App() {
         </div>
       </div>
 
-      {/* 5. POPUP MODAL DE COMPARTIR */}
+      {/* 5. POPUP MODAL DE SELECCIÓN DE MODO (AL PULSAR EL ICONO DEL SANDWICH) */}
+      {isModeModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fadeIn"
+          onClick={() => setIsModeModalOpen(false)}
+        >
+          <div
+            className={`w-full max-w-sm rounded-3xl border p-6 shadow-2xl flex flex-col gap-4 ${
+              isDark
+                ? 'bg-[#141414] border-neutral-800 text-neutral-100'
+                : 'bg-white border-neutral-200 text-neutral-900'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`w-11 h-11 rounded-2xl border flex items-center justify-center p-1.5 ${
+                    isDark
+                      ? 'bg-neutral-800 border-neutral-700'
+                      : 'bg-neutral-100 border-neutral-200'
+                  }`}
+                >
+                  <img
+                    src={sandwichSvg}
+                    alt="Sandwich"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div>
+                  <h2 className="text-base font-black leading-tight">
+                    Modo de juego
+                  </h2>
+                  <p className={`text-xs mt-0.5 ${subTextClass}`}>
+                    Elige entre el reto del día o un caso aleatorio
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModeModalOpen(false)}
+                className={`p-1.5 rounded-xl border transition cursor-pointer ${
+                  isDark
+                    ? 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:text-white'
+                    : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
+                }`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              {/* Opción 1: Reto Diario */}
+              <button
+                type="button"
+                onClick={handleLoadDaily}
+                className={`w-full p-3.5 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${
+                  isDailyMode
+                    ? isDark
+                      ? 'bg-white text-black border-white'
+                      : 'bg-neutral-900 text-white border-neutral-900'
+                    : isDark
+                    ? 'bg-[#0a0a0a] hover:bg-neutral-800/80 text-neutral-200 border-neutral-800'
+                    : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border-neutral-200'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-5 h-5 shrink-0" />
+                  <div>
+                    <div className="text-xs font-black">Reto Diario</div>
+                    <div
+                      className={`text-[11px] ${
+                        isDailyMode
+                          ? isDark
+                            ? 'text-neutral-700'
+                            : 'text-neutral-300'
+                          : subTextClass
+                      }`}
+                    >
+                      Caso del día ({dailyConfig.formattedDate})
+                    </div>
+                  </div>
+                </div>
+                {isDailyMode && (
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-500 text-white">
+                    Activo
+                  </span>
+                )}
+              </button>
+
+              {/* Opción 2: Caso Aleatorio */}
+              <button
+                type="button"
+                onClick={handleNewRandomLevel}
+                className={`w-full p-3.5 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${
+                  !isDailyMode
+                    ? isDark
+                      ? 'bg-white text-black border-white'
+                      : 'bg-neutral-900 text-white border-neutral-900'
+                    : isDark
+                    ? 'bg-[#0a0a0a] hover:bg-neutral-800/80 text-neutral-200 border-neutral-800'
+                    : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border-neutral-200'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Shuffle className="w-5 h-5 shrink-0" />
+                  <div>
+                    <div className="text-xs font-black">Caso Aleatorio</div>
+                    <div
+                      className={`text-[11px] ${
+                        !isDailyMode
+                          ? isDark
+                            ? 'text-neutral-700'
+                            : 'text-neutral-300'
+                          : subTextClass
+                      }`}
+                    >
+                      Generar un expediente nuevo al instante
+                    </div>
+                  </div>
+                </div>
+                {!isDailyMode && (
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-500 text-white">
+                    Activo
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. POPUP MODAL DE COMPARTIR */}
       {isShareModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fadeIn"
@@ -1915,8 +2023,8 @@ export default function App() {
           </div>
         </div>
       )}
- <Analytics />
-  
-</div>
-);
+
+      <Analytics />
+    </div>
+  );
 }
