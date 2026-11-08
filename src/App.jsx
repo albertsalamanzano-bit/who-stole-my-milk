@@ -1358,7 +1358,9 @@ export default function App() {
   };
 
   const shareText = useMemo(() => {
-    const modeLabel = isDailyMode ? dailyConfig.formattedDate : `Caso #${level?.caseNumber ?? ''}`;
+    const modeLabel = isDailyMode
+      ? `Caso diario (${dailyConfig.formattedDate})`
+      : `Caso nº ${level?.caseNumber ?? ''}`;
     
     return `🥪 *¿Quién ha robado mi sandwich?*\n📂 ${modeLabel}\n⏱️ Tiempo: *${formatTime(seconds)}*\n\n¡A ver si me superas! 👇\nhttps://www.sandwichcase.io`;
   }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, seconds]);
@@ -1404,14 +1406,14 @@ export default function App() {
       className={`min-h-dvh font-sans select-none flex flex-col items-center justify-start py-2 px-3 transition-colors duration-200 ${pageBgClass}`}
     >
       <div className="w-full max-w-[400px] flex flex-col gap-2">
-        {/* 1. CABECERA PRINCIPAL: ICONO DEL SANDWICH (ABRE POPUP DE MODO) + TÍTULO */}
+        {/* 1. CABECERA PRINCIPAL: ICONO + TÍTULO/SUBTÍTULO A LA IZQUIERDA, CRONO A LA DERECHA */}
         <div className="flex items-center justify-between gap-2 py-0.5">
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-2.5 min-w-0">
             <button
               type="button"
               onClick={() => setIsModeModalOpen(true)}
               title="Cambiar entre reto diario y caso aleatorio"
-              className={`p-1 rounded-xl border transition cursor-pointer shrink-0 flex items-center justify-center ${
+              className={`p-1.5 rounded-xl border transition cursor-pointer shrink-0 flex items-center justify-center ${
                 isDark
                   ? 'bg-[#141414] border-neutral-800 hover:border-neutral-600'
                   : 'bg-white border-neutral-200 hover:border-neutral-400 shadow-2xs'
@@ -1423,21 +1425,77 @@ export default function App() {
                 className="w-6 h-6 object-contain"
               />
             </button>
-            <h1 className="text-sm sm:text-base font-black tracking-tight truncate">
-              ¿Quién ha robado mi sandwich?
-            </h1>
+
+            <div className="flex flex-col min-w-0">
+              <h1 className="text-sm sm:text-base font-black tracking-tight truncate leading-tight">
+                ¿Quién ha robado mi sandwich?
+              </h1>
+
+              {/* Subtítulo con Caso Diario/Fecha o Caso nº XXX + Nivel de dificultad */}
+              <div className="flex items-center gap-1.5 text-[11px] mt-0.5 flex-wrap">
+                <span className={`font-bold ${subTextClass}`}>
+                  {isDailyMode
+                    ? `Caso diario · ${dailyConfig.formattedDate}`
+                    : `Caso nº ${level.caseNumber}`}
+                </span>
+                <span className={subTextClass}>•</span>
+                <div
+                  className="flex items-center gap-1"
+                  title={`Dificultad: ${difficultyInfo.label}`}
+                >
+                  <span
+                    className={`font-black uppercase tracking-wider text-[10px] ${
+                      isDark ? 'text-neutral-300' : 'text-neutral-700'
+                    }`}
+                  >
+                    {difficultyInfo.label}
+                  </span>
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map((bar) => (
+                      <span
+                        key={bar}
+                        className={`w-1.5 h-1 rounded-xs ${
+                          bar <= difficultyInfo.bars
+                            ? difficultyInfo.barColor
+                            : isDark
+                            ? 'bg-neutral-800'
+                            : 'bg-neutral-300'
+                        }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          {gameWon && (
-            <button
-              type="button"
-              onClick={() => setIsShareModalOpen(true)}
-              className={`px-2.5 py-1 rounded-xl font-black text-[11px] flex items-center gap-1 transition cursor-pointer shrink-0 ${primaryActionBtnClass}`}
-            >
-              <Share2 className="w-3 h-3" />
-              <span>Compartir</span>
-            </button>
-          )}
+          {/* Cronómetro arriba a la derecha (+ botón Compartir si ya se resolvió) */}
+          <div className="flex items-center gap-2 shrink-0">
+            {gameWon && (
+              <button
+                type="button"
+                onClick={() => setIsShareModalOpen(true)}
+                className={`px-2.5 py-1 rounded-xl font-black text-[11px] flex items-center gap-1 transition cursor-pointer ${primaryActionBtnClass}`}
+              >
+                <Share2 className="w-3 h-3" />
+                <span>Compartir</span>
+              </button>
+            )}
+            <div className="flex items-center gap-1.5 font-mono font-bold text-xs">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  gameWon
+                    ? isDark
+                      ? 'bg-white'
+                      : 'bg-neutral-900'
+                    : 'bg-emerald-500 animate-pulse'
+                }`}
+              />
+              <span className={isDark ? 'text-neutral-200' : 'text-neutral-800'}>
+                {formatTime(seconds)}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* 2. TABLERO 5x5 CON COLORES PASTEL, CRUCES GRISES Y CARDINALES */}
@@ -1608,60 +1666,15 @@ export default function App() {
           </div>
         </div>
 
-        {/* LÍNEA UNIFICADA SIN PÍLDORA: DIFICULTAD + "¡EL LADRÓN MIENTE!" + TEMPORIZADOR */}
-        <div className="flex items-center justify-between px-1 py-0.5 text-[11px]">
-          {/* Dificultad */}
-          <div
-            className="flex items-center gap-1.5"
-            title={`Dificultad: ${difficultyInfo.label}`}
-          >
-            <span
-              className={`font-black uppercase tracking-wider ${
-                isDark ? 'text-neutral-300' : 'text-neutral-700'
-              }`}
-            >
-              {difficultyInfo.label}
-            </span>
-            <div className="flex items-center gap-0.5">
-              {[1, 2, 3, 4, 5].map((bar) => (
-                <span
-                  key={bar}
-                  className={`w-2 h-1.5 rounded-xs ${
-                    bar <= difficultyInfo.bars
-                      ? difficultyInfo.barColor
-                      : isDark
-                      ? 'bg-neutral-800'
-                      : 'bg-neutral-300'
-                  }`}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* Aviso central sin envoltorio de píldora */}
+        {/* AVISO JUSTO ENCIMA DE LAS PÍLDORAS DE SOSPECHOSOS (SIN ENVOLTORIO DE PÍLDORA) */}
+        <div className="flex items-center justify-center py-0.5">
           <span
-            className={`font-black uppercase tracking-wider ${
+            className={`text-[11px] font-black uppercase tracking-wider ${
               isDark ? 'text-neutral-300' : 'text-neutral-700'
             }`}
           >
             ¡El ladrón miente!
           </span>
-
-          {/* Temporizador */}
-          <div className="flex items-center gap-1.5 font-mono font-bold">
-            <span
-              className={`w-2 h-2 rounded-full ${
-                gameWon
-                  ? isDark
-                    ? 'bg-white'
-                    : 'bg-neutral-900'
-                  : 'bg-emerald-500 animate-pulse'
-              }`}
-            />
-            <span className={isDark ? 'text-neutral-200' : 'text-neutral-800'}>
-              {formatTime(seconds)}
-            </span>
-          </div>
         </div>
 
         {/* 3. PÍLDORAS HORIZONTALES SELECTORAS DE PERSONAS (SELECCIÓN BLANCA EN MODO OSCURO) */}
@@ -1747,7 +1760,7 @@ export default function App() {
                   isDark ? 'text-white' : 'text-neutral-900'
                 }`}
               >
-                {currentSuspect.code} — {currentSuspect.name}
+                {currentSuspect.name}
               </span>
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
@@ -1852,7 +1865,7 @@ export default function App() {
                           : subTextClass
                       }`}
                     >
-                      Caso del día ({dailyConfig.formattedDate})
+                      Caso diario ({dailyConfig.formattedDate})
                     </div>
                   </div>
                 </div>
