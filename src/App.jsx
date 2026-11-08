@@ -78,9 +78,9 @@ const ROOMS = [
 ];
 
 const SUSPECTS = [
-  { id: 0, code: 'A', name: 'Analista', emoji: auditorSvg, diet: 'Hombre', isCarnivore: false },
+  { id: 0, code: 'A', name: 'Analista', emoji: consultorSvg, diet: 'Mujer', isCarnivore: true },
   { id: 1, code: 'B', name: 'Becaria', emoji: becarioSvg, diet: 'Mujer', isCarnivore: true },
-  { id: 2, code: 'C', name: 'Contable', emoji: consultorSvg, diet: 'Mujer', isCarnivore: true },
+  { id: 2, code: 'C', name: 'Contable', emoji: auditorSvg, diet: 'Hombre', isCarnivore: false },
   { id: 3, code: 'D', name: 'Director', emoji: directorSvg, diet: 'Hombre', isCarnivore: false },
   { id: 4, code: 'E', name: 'Experto', emoji: empleadoSvg, diet: 'Hombre', isCarnivore: false }
 ];
