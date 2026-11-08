@@ -7,7 +7,8 @@ import {
   Copy,
   Shuffle,
   Calendar,
-  Clock
+  Clock,
+  Menu
 } from 'lucide-react';
 
 import auditorSvg from './assets/auditor.svg';
@@ -1392,7 +1393,6 @@ export default function App() {
   }, [level, placements]);
 
   const gameWon = isSolved || Boolean(validation?.allCluesValid);
-  const isDailyLocked = isDailyMode && gameWon;
 
   useEffect(() => {
     if (validation?.allCluesValid && !isSolved) {
@@ -1491,29 +1491,30 @@ export default function App() {
       className={`min-h-dvh font-sans select-none flex flex-col items-center justify-start py-2 px-3 transition-colors duration-200 ${pageBgClass}`}
     >
       <div className="w-full max-w-[400px] flex flex-col gap-2">
-        {/* 1. CABECERA PRINCIPAL: ICONO + TÍTULO/SUBTÍTULO A LA IZQUIERDA, CRONO A LA DERECHA */}
+        {/* 1. CABECERA PRINCIPAL: MENÚ HAMBURGUESA + SANDWICH Y TÍTULO A LA IZQUIERDA, CRONO A LA DERECHA */}
         <div className="flex items-center justify-between gap-2 py-0.5">
           <div className="flex items-center gap-2.5 min-w-0">
             <button
               type="button"
               onClick={() => setIsModeModalOpen(true)}
               title="Cambiar entre reto diario y caso aleatorio"
-              className={`p-1.5 rounded-xl border transition cursor-pointer shrink-0 flex items-center justify-center ${
+              className={`p-2 rounded-xl border transition cursor-pointer shrink-0 flex items-center justify-center ${
                 isDark
-                  ? 'bg-[#141414] border-neutral-800 hover:border-neutral-600'
-                  : 'bg-white border-neutral-200 hover:border-neutral-400 shadow-2xs'
+                  ? 'bg-[#141414] border-neutral-800 hover:border-neutral-600 text-neutral-200'
+                  : 'bg-white border-neutral-200 hover:border-neutral-400 text-neutral-800 shadow-2xs'
               }`}
             >
-              <img
-                src={sandwichSvg}
-                alt="Seleccionar modo"
-                className="w-6 h-6 object-contain"
-              />
+              <Menu className="w-5 h-5" />
             </button>
 
             <div className="flex flex-col min-w-0">
-              <h1 className="text-sm sm:text-base font-black tracking-tight truncate leading-tight">
-                ¿Quién ha robado mi sandwich?
+              <h1 className="text-sm sm:text-base font-black tracking-tight leading-tight flex items-center gap-1.5 min-w-0">
+                <img
+                  src={sandwichSvg}
+                  alt="Sandwich"
+                  className="w-5 h-5 object-contain shrink-0"
+                />
+                <span className="truncate">¿Quién ha robado mi sandwich?</span>
               </h1>
 
               {/* Subtítulo con Caso Diario/Fecha o Caso nº XXX + Nivel de dificultad */}
@@ -1750,20 +1751,30 @@ export default function App() {
             </div>
           </div>
 
-          {/* BANNER DE BLOQUEO CON CUENTA ATRÁS CUANDO EL RETO DIARIO YA FUE RESUELTO */}
-          {isDailyLocked && (
+          {/* BANNER INFERIOR AL COMPLETAR EL NIVEL (TANTO EN DIARIO COMO EN ALEATORIO) */}
+          {gameWon && (
             <div
               className={`mt-2 pt-2 border-t flex items-center justify-between gap-2 px-1 ${
                 isDark ? 'border-neutral-800' : 'border-neutral-200'
               }`}
             >
-              <div className="flex items-center gap-1.5 text-[11px]">
-                <Clock className={`w-3.5 h-3.5 ${subTextClass}`} />
-                <span className={subTextClass}>Siguiente caso en</span>
-                <span className="font-mono font-black tracking-wider">
-                  {countdown}
-                </span>
-              </div>
+              {isDailyMode ? (
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <Clock className={`w-3.5 h-3.5 ${subTextClass}`} />
+                  <span className={subTextClass}>Siguiente caso en</span>
+                  <span className="font-mono font-black tracking-wider">
+                    {countdown}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className={`font-bold ${subTextClass}`}>
+                    ¡Caso nº {level.caseNumber} resuelto!
+                  </span>
+                </div>
+              )}
+
               <button
                 type="button"
                 onClick={handleNewRandomLevel}
@@ -2031,7 +2042,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 6. POPUP MODAL DE SELECCIÓN DE MODO (AL PULSAR EL ICONO DEL SANDWICH) */}
+      {/* 6. POPUP MODAL DE SELECCIÓN DE MODO (AL PULSAR EL ICONO DE MENÚ) */}
       {isModeModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fadeIn"
