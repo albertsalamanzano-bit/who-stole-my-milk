@@ -774,7 +774,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_west`,
     category: 'Fachada',
     weight: 16,
-    text: `Estaba arrimado a la fachada **Oeste** de la oficina.`,
+    text: `Me encontraba junto a la fachada **Oeste** de la oficina.`,
     evalFn: (st) => st.suspectCol[speakerId] === 0
   });
 
