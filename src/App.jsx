@@ -899,7 +899,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `touch_wall_of_room_${rm}`,
       category: 'Escenario',
       weight: 16,
-      text: `Estaba junto a la pared del despacho **despacho ${rmName}**.`,
+      text: `Estaba junto a la pared del **despacho ${rmName}**.`,
       evalFn: (st) => {
         const r = st.suspectRow[speakerId];
         const c = st.suspectCol[speakerId];
