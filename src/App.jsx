@@ -876,7 +876,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `adj_to_vase_orth`,
     category: 'Escenario',
     weight: 18,
-    text: `Estaba pared con pared con el mismísimo **sándwich (🥪)**.`,
+    text: `Tenía el mismísimo **sándwich (🥪)** directamente en uno de mis cuatro costados.`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) +
         Math.abs(st.suspectCol[speakerId] - vasePos.c) ===
