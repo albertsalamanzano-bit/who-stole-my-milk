@@ -1869,7 +1869,7 @@ export default function App() {
               {isDailyMode ? (
                 <div className="flex items-center gap-1.5 text-[11px]">
                   <Clock className={`w-3.5 h-3.5 ${subTextClass}`} />
-                  <span className={subTextClass}>Próximo tupper en</span>
+                  <span className={subTextClass}>Próximo crimen en</span>
                   <span className="font-mono font-black tracking-wider">
                     {countdown}
                   </span>
