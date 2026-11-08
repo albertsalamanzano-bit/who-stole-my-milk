@@ -635,7 +635,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_north`,
     category: 'Fachada',
     weight: 16,
-    text: `Me situé pegado a la fachada Norte de la oficina.`,
+    text: `Me situé tocando la fachada Norte de la oficina.`,
     evalFn: (st) => st.suspectRow[speakerId] === 0
   });
 
@@ -643,7 +643,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_south`,
     category: 'Fachada',
     weight: 16,
-    text: `Me situé pegado a la fachada Sur de la oficina.`,
+    text: `Me situé tocando la fachada Sur de la oficina.`,
     evalFn: (st) => st.suspectRow[speakerId] === 4
   });
 
@@ -651,7 +651,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_west`,
     category: 'Fachada',
     weight: 16,
-    text: `Estaba pegado a la fachada Oeste de la oficina.`,
+    text: `Estaba tocando fachada Oeste de la oficina.`,
     evalFn: (st) => st.suspectCol[speakerId] === 0
   });
 
@@ -659,7 +659,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_east`,
     category: 'Fachada',
     weight: 16,
-    text: `Estaba pegado a la fachada Este de la oficina.`,
+    text: `Estaba tocando la fachada Este de la oficina.`,
     evalFn: (st) => st.suspectCol[speakerId] === 4
   });
 
@@ -817,7 +817,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `thief_is_herbivore`,
     category: 'Paranoia',
     weight: 15,
-    text: `El ladrón que robó el sandwich es un hombre.`,
+    text: `El ladrón es un hombre.`,
     evalFn: (st) => !SUSPECTS[st.roomSuspect[vaseRoom]].isCarnivore
   });
 
