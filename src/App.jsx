@@ -793,7 +793,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `touch_wall_of_room_${rm}`,
       category: 'Escenario',
       weight: 16,
-      text: `Desde mi casilla tocaba por fuera el muro divisorio de la sala ${rmName}.`,
+      text: `Desde mi casilla tocaba por fuera el muro divisorio del despacho ${rmName}.`,
       evalFn: (st) => {
         const r = st.suspectRow[speakerId];
         const c = st.suspectCol[speakerId];
@@ -1783,7 +1783,7 @@ export default function App() {
               isDark ? 'text-neutral-300' : 'text-neutral-700'
             }`}
           >
-            ¡El de la sala del crimen miente!
+            ¡El culpable miente!
           </span>
 
           <button
