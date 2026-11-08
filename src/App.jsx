@@ -143,7 +143,7 @@ const SUSPECTS = [
   {
     id: 4,
     code: 'E',
-    name: 'Experto',
+    name: 'Enchufado',
     emoji: empleadoSvg,
     diet: 'Hombre',
     isCarnivore: false,
