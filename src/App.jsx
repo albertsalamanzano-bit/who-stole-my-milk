@@ -8,8 +8,7 @@ import {
   Shuffle,
   Calendar,
   Clock,
-  Menu,
-  Compass
+  Menu
 } from 'lucide-react';
 
 import auditorSvg from './assets/auditor.svg';
@@ -41,7 +40,7 @@ const BASE_GEOMETRIES = [
   [4, 2, 0, 3, 1]  // #14: 5-3-1-4-2
 ];
 
-// Colores arquitectónicos para los 5 Despachos (calibrados para fondo grafito y claro)
+// Colores pastel para los 5 Despachos
 const ROOMS = [
   {
     id: 0,
@@ -1448,7 +1447,7 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
 }
 
 // ============================================================================
-// 4. COMPONENTE PRINCIPAL DE LA APLICACIÓN (ESTÉTICA GRAFITO & BLUEPRINT 100dvh)
+// 4. COMPONENTE PRINCIPAL DE LA APLICACIÓN
 // ============================================================================
 
 export default function App() {
@@ -1472,6 +1471,14 @@ export default function App() {
       return () => mediaQuery.removeListener(handleChange);
     }
   }, []);
+
+  // Sincroniza el color de fondo de html/body para que la barra inferior de Safari coincida siempre con el tema
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const bg = isDark ? '#14161B' : '#F3F4F6';
+    document.documentElement.style.backgroundColor = bg;
+    document.body.style.backgroundColor = bg;
+  }, [isDark]);
 
   const dailyConfig = useMemo(() => getDailyConfig(), []);
   const dailyStorageKey = `sandwich_daily_state_${dailyConfig.seed}`;
@@ -1780,7 +1787,7 @@ export default function App() {
   const currentSuspect = SUSPECTS[activeSuspect];
   const currentClue = level.clues.find((c) => c.suspectId === activeSuspect);
 
-  // Paleta Grafito Oscuro (#14161B / #1E2026) vs Modo Claro limpio
+  // Paleta Grafito Oscuro (#14161B / #1E2026) vs Modo Claro
   const pageBgClass = isDark
     ? 'bg-[#14161B] text-neutral-100'
     : 'bg-[#F3F4F6] text-neutral-900';
@@ -1797,7 +1804,7 @@ export default function App() {
       className={`h-dvh max-h-dvh overflow-hidden font-sans select-none flex flex-col items-center justify-between px-3 pt-[max(0.35rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] transition-colors duration-200 ${pageBgClass}`}
     >
       <div className="w-full max-w-[400px] h-full flex flex-col justify-between gap-1.5 min-h-0">
-        {/* 1. CABECERA COMPACTA (AHORRA 40-60px VERTICALES) */}
+        {/* 1. CABECERA COMPACTA */}
         <header className="flex items-center justify-between gap-2 shrink-0 py-0.5">
           <div className="flex items-center gap-2 min-w-0">
             <button
@@ -1892,178 +1899,186 @@ export default function App() {
           </div>
         </header>
 
-        {/* 2. TABLERO 5x5 ESCALABLE DINÁMICAMENTE (SIN ETIQUETAS EXTERIORES QUE ROBEN ESPACIO) */}
+        {/* 2. TABLERO 5x5 CON NORTE, SUR, ESTE Y OESTE (TAMAÑO FIJO E INMÓVIL) */}
         <div
           className={`flex-1 min-h-0 w-full border rounded-2xl p-2 shadow-xs flex flex-col justify-between gap-1.5 ${cardBgClass}`}
         >
-          {/* Barra superior técnica del plano con brújula minimalista en la esquina derecha */}
-          <div className="flex items-center justify-between px-1 shrink-0">
-            <span
-              className={`text-[9px] font-mono font-bold uppercase tracking-widest ${subTextClass}`}
-            >
-              PLANTA OFICINA · 5×5
-            </span>
-            <div
-              className={`flex items-center gap-1 text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded border ${
-                isDark
-                  ? 'bg-[#14161B] border-[#2C303A] text-neutral-300'
-                  : 'bg-neutral-100 border-neutral-200 text-neutral-700'
-              }`}
-              title="Orientación del plano: Norte arriba, Sur abajo, Oeste izquierda, Este derecha"
-            >
-              <Compass className="w-3 h-3 text-sky-400 shrink-0" />
-              <span>N↑</span>
-              <span className="opacity-50">·</span>
-              <span className="opacity-75">O← →E</span>
-            </div>
-          </div>
-
-          {/* Contenedor elástico que ajusta la cuadrícula 1:1 al alto/ancho disponible en 100dvh */}
           <div
             className="flex-1 min-h-0 w-full flex items-center justify-center"
             style={{ containerType: 'size' }}
           >
             <div
-              className="relative aspect-square max-w-full max-h-full"
+              className="relative aspect-square max-w-full max-h-full pt-4 pb-4 px-4"
               style={{
                 width: 'min(100cqw, 100cqh)',
                 height: 'min(100cqw, 100cqh)'
               }}
             >
-              {/* Micro-indicadores cardinales integrados en el propio bisel del tablero (0px extra) */}
-              <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 z-30 px-1 rounded bg-[#181A20] text-[7px] font-mono font-black tracking-widest text-neutral-300 leading-none py-0.5 border border-neutral-700/80 pointer-events-none">
-                N
-              </span>
-              <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 z-30 px-1 rounded bg-[#181A20] text-[7px] font-mono font-black tracking-widest text-neutral-300 leading-none py-0.5 border border-neutral-700/80 pointer-events-none">
-                S
-              </span>
-              <span className="absolute top-1/2 -left-1.5 -translate-y-1/2 z-30 px-0.5 rounded bg-[#181A20] text-[7px] font-mono font-black text-neutral-300 leading-none py-0.5 border border-neutral-700/80 pointer-events-none">
-                O
-              </span>
-              <span className="absolute top-1/2 -right-1.5 -translate-y-1/2 z-30 px-0.5 rounded bg-[#181A20] text-[7px] font-mono font-black text-neutral-300 leading-none py-0.5 border border-neutral-700/80 pointer-events-none">
-                E
-              </span>
-
-              {/* CUADRÍCULA 5x5 CON TEXTURA BLUEPRINT Y MUROS GRAFITO */}
-              <div className="w-full h-full grid grid-cols-5 grid-rows-5 border-[3px] border-[#181A20] rounded-xl overflow-hidden bg-[#181A20] shadow-inner">
-                {Array.from({ length: 5 }).map((_, r) =>
-                  Array.from({ length: 5 }).map((__, c) => {
-                    const key = `${r},${c}`;
-                    const roomId = level.grid[r][c];
-                    const roomObj = ROOMS[roomId];
-                    const isVase = r === level.vasePos.r && c === level.vasePos.c;
-                    const placedSuspectId = placements[key];
-                    const placedSuspect =
-                      placedSuspectId !== undefined ? SUSPECTS[placedSuspectId] : null;
-                    const isInvalidated = invalidatedCells.has(key);
-                    const hasConflict = validation.conflicts.has(key);
-
-                    // Muros divisorios más limpios en grafito (#181A20)
-                    const topWall = r > 0 && level.grid[r - 1][c] !== roomId;
-                    const bottomWall = r < 4 && level.grid[r + 1][c] !== roomId;
-                    const leftWall = c > 0 && level.grid[r][c - 1] !== roomId;
-                    const rightWall = c < 4 && level.grid[r][c + 1] !== roomId;
-
-                    return (
-                      <button
-                        key={key}
-                        type="button"
-                        onClick={() => handleCellClick(r, c)}
-                        style={{
-                          backgroundColor: roomObj.bgHex,
-                          borderTop: topWall
-                            ? '2.5px solid #181A20'
-                            : '1px solid rgba(24, 26, 32, 0.11)',
-                          borderBottom: bottomWall
-                            ? '2.5px solid #181A20'
-                            : '1px solid rgba(24, 26, 32, 0.11)',
-                          borderLeft: leftWall
-                            ? '2.5px solid #181A20'
-                            : '1px solid rgba(24, 26, 32, 0.11)',
-                          borderRight: rightWall
-                            ? '2.5px solid #181A20'
-                            : '1px solid rgba(24, 26, 32, 0.11)'
-                        }}
-                        className={`blueprint-cell relative w-full h-full flex flex-col items-center justify-center p-0 overflow-hidden focus:outline-none transition-transform active:scale-[0.97] ${
-                          gameWon ? 'cursor-default' : 'cursor-pointer'
-                        } ${hasConflict ? 'ring-3 ring-inset ring-rose-600 z-10' : ''}`}
-                      >
-                        {/* Marcador del Crimen compacto para dejar ver el color y textura de la sala */}
-                        {isVase && (
-                          <div className="flex flex-col items-center justify-center leading-none pointer-events-none">
-                            <img
-                              src={sandwichSvg}
-                              alt="Sandwich robado"
-                              className="w-6 h-6 sm:w-7 sm:h-7 object-contain drop-shadow-2xs"
-                            />
-                            <span className="text-[6.5px] font-black uppercase tracking-wider bg-[#181A20]/90 text-amber-200 px-1 py-px rounded-xs -mt-0.5 shadow-2xs">
-                              CRIMEN
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Sospechoso colocado */}
-                        {!isVase && placedSuspect && (
-                          <div className="flex flex-col items-center justify-center leading-none pointer-events-none">
-                            <img
-                              src={placedSuspect.emoji}
-                              alt={placedSuspect.name}
-                              className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
-                            />
-                            <span
-                              className={`mt-0.5 px-1.5 py-px rounded text-[8.5px] font-black leading-tight ${
-                                hasConflict
-                                  ? 'bg-rose-600 text-white'
-                                  : placedSuspect.id === activeSuspect
-                                  ? 'bg-white text-neutral-950 ring-1 ring-[#181A20] shadow-2xs'
-                                  : 'bg-[#181A20] text-white'
-                              }`}
-                            >
-                              {placedSuspect.code}
-                            </span>
-                          </div>
-                        )}
-
-                        {/* Crucecita sutil de casilla descartada */}
-                        {!isVase && !placedSuspect && isInvalidated && (
-                          <span className="text-neutral-600/45 font-black text-base leading-none pointer-events-none">
-                            ✕
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })
-                )}
+              {/* NORTE */}
+              <div className="absolute top-0 inset-x-0 h-4 flex items-center justify-center pointer-events-none">
+                <span
+                  className={`text-[9px] font-black uppercase tracking-widest ${
+                    isDark ? 'text-neutral-400' : 'text-neutral-500'
+                  }`}
+                >
+                  NORTE
+                </span>
               </div>
 
-              {/* PUERTAS NUMERADAS (1, 2, 3, 4) */}
-              {level.doors.map((door) => {
-                const leftPct =
-                  door.orientation === 'vertical'
-                    ? (door.c1 + 1) * 20
-                    : (door.c1 + 0.5) * 20;
-                const topPct =
-                  door.orientation === 'horizontal'
-                    ? (door.r1 + 1) * 20
-                    : (door.r1 + 0.5) * 20;
+              {/* SUR */}
+              <div className="absolute bottom-0 inset-x-0 h-4 flex items-center justify-center pointer-events-none">
+                <span
+                  className={`text-[9px] font-black uppercase tracking-widest ${
+                    isDark ? 'text-neutral-400' : 'text-neutral-500'
+                  }`}
+                >
+                  SUR
+                </span>
+              </div>
 
-                return (
-                  <div
-                    key={door.number}
-                    style={{
-                      left: `${leftPct}%`,
-                      top: `${topPct}%`
-                    }}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 z-20 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#181A20] text-white border-2 border-white flex items-center justify-center font-black text-[10px] sm:text-[11px] shadow-md pointer-events-none"
-                  >
-                    {door.number}
-                  </div>
-                );
-              })}
+              {/* OESTE */}
+              <div className="absolute left-0 inset-y-0 w-4 flex items-center justify-center pointer-events-none">
+                <span
+                  className={`text-[9px] font-black uppercase tracking-widest [writing-mode:vertical-lr] rotate-180 ${
+                    isDark ? 'text-neutral-400' : 'text-neutral-500'
+                  }`}
+                >
+                  OESTE
+                </span>
+              </div>
+
+              {/* ESTE */}
+              <div className="absolute right-0 inset-y-0 w-4 flex items-center justify-center pointer-events-none">
+                <span
+                  className={`text-[9px] font-black uppercase tracking-widest [writing-mode:vertical-lr] ${
+                    isDark ? 'text-neutral-400' : 'text-neutral-500'
+                  }`}
+                >
+                  ESTE
+                </span>
+              </div>
+
+              {/* CUADRÍCULA 5x5 LIMPIA SIN TEXTURA BLUEPRINT */}
+              <div className="relative w-full h-full">
+                <div className="w-full h-full grid grid-cols-5 grid-rows-5 border-[3px] border-[#181A20] rounded-xl overflow-hidden bg-[#181A20] shadow-inner">
+                  {Array.from({ length: 5 }).map((_, r) =>
+                    Array.from({ length: 5 }).map((__, c) => {
+                      const key = `${r},${c}`;
+                      const roomId = level.grid[r][c];
+                      const roomObj = ROOMS[roomId];
+                      const isVase = r === level.vasePos.r && c === level.vasePos.c;
+                      const placedSuspectId = placements[key];
+                      const placedSuspect =
+                        placedSuspectId !== undefined ? SUSPECTS[placedSuspectId] : null;
+                      const isInvalidated = invalidatedCells.has(key);
+                      const hasConflict = validation.conflicts.has(key);
+
+                      const topWall = r > 0 && level.grid[r - 1][c] !== roomId;
+                      const bottomWall = r < 4 && level.grid[r + 1][c] !== roomId;
+                      const leftWall = c > 0 && level.grid[r][c - 1] !== roomId;
+                      const rightWall = c < 4 && level.grid[r][c + 1] !== roomId;
+
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => handleCellClick(r, c)}
+                          style={{
+                            backgroundColor: roomObj.bgHex,
+                            borderTop: topWall
+                              ? '2.5px solid #181A20'
+                              : '1px solid rgba(24, 26, 32, 0.12)',
+                            borderBottom: bottomWall
+                              ? '2.5px solid #181A20'
+                              : '1px solid rgba(24, 26, 32, 0.12)',
+                            borderLeft: leftWall
+                              ? '2.5px solid #181A20'
+                              : '1px solid rgba(24, 26, 32, 0.12)',
+                            borderRight: rightWall
+                              ? '2.5px solid #181A20'
+                              : '1px solid rgba(24, 26, 32, 0.12)'
+                          }}
+                          className={`relative w-full h-full flex flex-col items-center justify-center p-0 overflow-hidden focus:outline-none ${
+                            gameWon ? 'cursor-default' : 'cursor-pointer'
+                          } ${hasConflict ? 'ring-3 ring-inset ring-rose-600 z-10' : ''}`}
+                        >
+                          {/* Marcador del Crimen compacto */}
+                          {isVase && (
+                            <div className="flex flex-col items-center justify-center leading-none pointer-events-none">
+                              <img
+                                src={sandwichSvg}
+                                alt="Sandwich robado"
+                                className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
+                              />
+                              <span className="text-[6.5px] font-black uppercase tracking-wider bg-[#181A20] text-white px-1 py-px rounded-xs -mt-0.5">
+                                CRIMEN
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Sospechoso colocado */}
+                          {!isVase && placedSuspect && (
+                            <div className="flex flex-col items-center justify-center leading-none pointer-events-none">
+                              <img
+                                src={placedSuspect.emoji}
+                                alt={placedSuspect.name}
+                                className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
+                              />
+                              <span
+                                className={`mt-0.5 px-1.5 py-px rounded text-[8.5px] font-black leading-tight ${
+                                  hasConflict
+                                    ? 'bg-rose-600 text-white'
+                                    : placedSuspect.id === activeSuspect
+                                    ? 'bg-white text-neutral-950 ring-1 ring-[#181A20] shadow-2xs'
+                                    : 'bg-[#181A20] text-white'
+                                }`}
+                              >
+                                {placedSuspect.code}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Crucecita de casilla descartada */}
+                          {!isVase && !placedSuspect && isInvalidated && (
+                            <span className="text-neutral-500/55 font-black text-base leading-none pointer-events-none">
+                              ✕
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* PUERTAS NUMERADAS (1, 2, 3, 4) */}
+                {level.doors.map((door) => {
+                  const leftPct =
+                    door.orientation === 'vertical'
+                      ? (door.c1 + 1) * 20
+                      : (door.c1 + 0.5) * 20;
+                  const topPct =
+                    door.orientation === 'horizontal'
+                      ? (door.r1 + 1) * 20
+                      : (door.r1 + 0.5) * 20;
+
+                  return (
+                    <div
+                      key={door.number}
+                      style={{
+                        left: `${leftPct}%`,
+                        top: `${topPct}%`
+                      }}
+                      className="absolute -translate-x-1/2 -translate-y-1/2 z-20 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#181A20] text-white border-2 border-white flex items-center justify-center font-black text-[10px] sm:text-[11px] shadow-md pointer-events-none"
+                    >
+                      {door.number}
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
-          {/* BANNER INFERIOR COMPACTO AL COMPLETAR EL NIVEL */}
+          {/* BANNER INFERIOR AL COMPLETAR EL NIVEL */}
           {gameWon && (
             <div
               className={`pt-1.5 border-t flex items-center justify-between gap-2 px-1 shrink-0 ${
@@ -2099,14 +2114,14 @@ export default function App() {
           )}
         </div>
 
-        {/* 3. BARRA DE AVISO + BOTÓN PÍLDORA TÁCTIL (MÍNIMO 44x44px) PARA REGLAS DE RR.HH. */}
+        {/* 3. BARRA DE AVISO + BOTÓN PÍLDORA TÁCTIL (44x44px) PARA REGLAS DE RR.HH. */}
         <div className="flex items-center justify-between gap-2 px-0.5 shrink-0">
           <span
             className={`text-[11px] font-black uppercase tracking-wider leading-tight ${
               isDark ? 'text-neutral-300' : 'text-neutral-700'
             }`}
           >
-            ¡El ladrón miente!
+            ¡El ladrón tiene migas y miente!
           </span>
 
           <button
@@ -2200,11 +2215,11 @@ export default function App() {
           })}
         </div>
 
-        {/* 5. TARJETA DE DECLARACIÓN (SIEMPRE VISIBLE EN 100dvh CON FUENTE ORIGINAL OUTFIT) */}
+        {/* 5. TARJETA DE DECLARACIÓN CON ALTURA ESTRICTAMENTE FIJA (h-24) PARA QUE EL MAPA NO SE MUEVA */}
         <div
-          className={`w-full min-h-[82px] border rounded-2xl p-3 flex flex-col justify-between gap-1.5 shadow-xs shrink-0 overflow-hidden ${cardBgClass}`}
+          className={`w-full h-24 border rounded-2xl p-3 flex flex-col justify-between gap-1 shadow-xs shrink-0 overflow-hidden ${cardBgClass}`}
         >
-          <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center justify-between gap-2 shrink-0">
             <div className="flex items-center gap-2 min-w-0">
               <span
                 className={`w-6 h-6 rounded-lg border flex items-center justify-center overflow-hidden shrink-0 ${
@@ -2241,9 +2256,9 @@ export default function App() {
             </span>
           </div>
 
-          <div className="flex-1 flex items-center">
+          <div className="flex-1 min-h-0 flex items-center">
             <p
-              className={`font-sans text-[clamp(0.88rem,3.8vw,1rem)] font-normal leading-snug ${
+              className={`font-sans text-[clamp(0.85rem,3.7vw,0.98rem)] font-normal leading-snug line-clamp-2 ${
                 isDark ? 'text-neutral-200' : 'text-neutral-700'
               }`}
             >
