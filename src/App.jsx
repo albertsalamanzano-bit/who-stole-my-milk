@@ -8,7 +8,8 @@ import {
   Shuffle,
   Calendar,
   Clock,
-  Menu
+  Menu,
+  Compass
 } from 'lucide-react';
 
 import auditorSvg from './assets/auditor.svg';
@@ -40,40 +41,40 @@ const BASE_GEOMETRIES = [
   [4, 2, 0, 3, 1]  // #14: 5-3-1-4-2
 ];
 
-// Colores pastel para los 5 Despachos
+// Colores arquitectónicos para los 5 Despachos (calibrados para fondo grafito y claro)
 const ROOMS = [
   {
     id: 0,
     name: 'Azul',
-    bgHex: '#DBEAFE',
+    bgHex: '#D8E8FC',
     bgActive: '#BFDBFE',
     borderHex: '#2563EB'
   },
   {
     id: 1,
     name: 'Rojo',
-    bgHex: '#FEE2E2',
+    bgHex: '#FCDEDE',
     bgActive: '#FECACA',
     borderHex: '#DC2626'
   },
   {
     id: 2,
     name: 'Verde',
-    bgHex: '#D1FAE5',
+    bgHex: '#CCF5E2',
     bgActive: '#A7F3D0',
     borderHex: '#059669'
   },
   {
     id: 3,
     name: 'Amarillo',
-    bgHex: '#FEF9C3',
+    bgHex: '#FCF4BB',
     bgActive: '#FEF08A',
     borderHex: '#CA8A04'
   },
   {
     id: 4,
     name: 'Morado',
-    bgHex: '#EDE9FE',
+    bgHex: '#E8E2FC',
     bgActive: '#DDD6FE',
     borderHex: '#7C3AED'
   }
@@ -186,7 +187,6 @@ function renderFormattedClue(text, isDark) {
       const content = part.slice(2, -2);
       const lower = content.toLowerCase();
 
-      // Comprobar si la palabra clave menciona alguno de los 5 colores de despacho
       const matchedColor = Object.keys(ROOM_TEXT_STYLES).find((colorKey) =>
         lower.includes(colorKey)
       );
@@ -580,9 +580,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     cellTouchesRoomWall
   } = topo;
 
-  // ==========================================================================
   // 1. UMBRAL / PUERTAS
-  // ==========================================================================
   for (let dNum = 1; dNum <= 4; dNum++) {
     clues.push({
       id: `self_door_${dNum}`,
@@ -785,9 +783,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     }
   }
 
-  // ==========================================================================
   // 2. FACHADA / CARDINAL
-  // ==========================================================================
   clues.push({
     id: `facade_north`,
     category: 'Fachada',
@@ -901,9 +897,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     });
   }
 
-  // ==========================================================================
   // 3. CLAUSTROFOBIA / TAMAÑO
-  // ==========================================================================
   if (largestRooms.length === 1) {
     clues.push({
       id: `self_largest_room`,
@@ -972,9 +966,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     });
   }
 
-  // ==========================================================================
   // 4. CONTACTO CON ESCENARIO
-  // ==========================================================================
   clues.push({
     id: `adj_to_vase_orth`,
     category: 'Escenario',
@@ -1065,9 +1057,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     });
   }
 
-  // ==========================================================================
   // 5. PARANOIA CRUZADA
-  // ==========================================================================
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
     clues.push({
@@ -1167,9 +1157,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     }
   });
 
-  // ==========================================================================
   // 6. DESPACHO / DIETA
-  // ==========================================================================
   for (let rm = 0; rm < 5; rm++) {
     const rmName = ROOMS[rm].name.toLowerCase();
 
@@ -1239,7 +1227,6 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
   const startTime = performance.now();
   let mapAttempts = 0;
 
-  // Si no se pasan categorías (modo aleatorio), se eligen 3 categorías al azar
   const categoriesToUse =
     enabledCategories && enabledCategories.length > 0
       ? enabledCategories
@@ -1461,11 +1448,10 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
 }
 
 // ============================================================================
-// 4. COMPONENTE PRINCIPAL DE LA APLICACIÓN (ESTÉTICA MINIMALISTA TRADE REPUBLIC)
+// 4. COMPONENTE PRINCIPAL DE LA APLICACIÓN (ESTÉTICA GRAFITO & BLUEPRINT 100dvh)
 // ============================================================================
 
 export default function App() {
-  // Detección reactiva del tema del sistema operativo/navegador del usuario
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined' && window.matchMedia) {
       return window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -1490,7 +1476,6 @@ export default function App() {
   const dailyConfig = useMemo(() => getDailyConfig(), []);
   const dailyStorageKey = `sandwich_daily_state_${dailyConfig.seed}`;
 
-  // Lectura inicial del progreso diario en localStorage (estilo Wordle)
   const initialDailySaved = useMemo(() => {
     if (typeof window === 'undefined') return null;
     try {
@@ -1507,12 +1492,8 @@ export default function App() {
     generateCompleteLevel(dailyConfig.categories, dailyConfig.seed)
   );
 
-  // placements: diccionario "r,c" -> suspectId (0..4)
   const [placements, setPlacements] = useState(() => initialDailySaved?.placements || {});
-  // Sospechoso activo en las píldoras horizontales (0..4 -> A..E)
   const [activeSuspect, setActiveSuspect] = useState(0);
-
-  // Cronómetro persistente: guarda y recupera los segundos exactos jugados en el reto diario
   const [seconds, setSeconds] = useState(() => initialDailySaved?.seconds || 0);
 
   const [isSolved, setIsSolved] = useState(() => Boolean(initialDailySaved?.completed));
@@ -1521,7 +1502,6 @@ export default function App() {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
 
-  // Reloj de cuenta atrás hasta medianoche para el próximo reto diario
   const [countdown, setCountdown] = useState(() => getTimeUntilMidnight());
 
   useEffect(() => {
@@ -1531,14 +1511,12 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Guardar progreso del reto diario en localStorage (se pausa si pasas a modo aleatorio)
   useEffect(() => {
     if (!isDailyMode || typeof window === 'undefined') return;
     try {
       const existingRaw = localStorage.getItem(dailyStorageKey);
       const existing = existingRaw ? JSON.parse(existingRaw) : null;
 
-      // Si ya estaba completado en localStorage, no lo sobreescribimos
       if (existing?.completed && !isSolved) return;
 
       const payload = {
@@ -1552,7 +1530,6 @@ export default function App() {
     }
   }, [isDailyMode, isSolved, seconds, placements, dailyStorageKey]);
 
-  // Cargar reto diario determinista (restaurando el tiempo exacto en que se pausó)
   const handleLoadDaily = useCallback(() => {
     if (isDailyMode) {
       setIsModeModalOpen(false);
@@ -1578,7 +1555,7 @@ export default function App() {
         return;
       }
     } catch (_e) {
-      // Fallback si no hay acceso a localStorage
+      // Fallback
     }
 
     setPlacements({});
@@ -1586,7 +1563,6 @@ export default function App() {
     setIsSolved(false);
   }, [isDailyMode, dailyConfig, dailyStorageKey]);
 
-  // Generar un nuevo nivel aleatorio (con 3 categorías aleatorias)
   const handleNewRandomLevel = useCallback(() => {
     const nextLevel = generateCompleteLevel();
     if (nextLevel) {
@@ -1602,11 +1578,10 @@ export default function App() {
     }
   }, []);
 
-  // Medidor de dificultad minimalista monocromático
   const difficultyInfo = useMemo(() => {
     if (!level) return null;
-    const k = level.survivingGeos.length; // K oscila entre 2 y 6
-    const barColor = isDark ? 'bg-white' : 'bg-neutral-900';
+    const k = level.survivingGeos.length;
+    const barColor = isDark ? 'bg-neutral-100' : 'bg-neutral-900';
 
     if (k <= 2) return { label: 'Fácil', bars: 1, barColor };
     if (k === 3) return { label: 'Media', bars: 2, barColor };
@@ -1615,7 +1590,6 @@ export default function App() {
     return { label: 'Maestro', bars: 5, barColor };
   }, [level, isDark]);
 
-  // Mapa inverso: suspectId -> { r, c } si está colocado en el tablero
   const suspectPositions = useMemo(() => {
     const map = {};
     Object.entries(placements).forEach(([key, sId]) => {
@@ -1625,7 +1599,6 @@ export default function App() {
     return map;
   }, [placements]);
 
-  // Casillas invalidadas (marcadas con X gris automáticamente por los sospechosos colocados)
   const invalidatedCells = useMemo(() => {
     const set = new Set();
     if (!level) return set;
@@ -1656,7 +1629,6 @@ export default function App() {
     return set;
   }, [level, placements]);
 
-  // Validación en tiempo real de las reglas espaciales y declaraciones
   const validation = useMemo(() => {
     if (!level) return null;
     const conflicts = new Set();
@@ -1737,7 +1709,6 @@ export default function App() {
     }
   }, [validation, isSolved]);
 
-  // Cronómetro activo que se detiene automáticamente al finalizar el nivel
   useEffect(() => {
     if (gameWon) return;
     const timer = setInterval(() => {
@@ -1746,7 +1717,6 @@ export default function App() {
     return () => clearInterval(timer);
   }, [gameWon]);
 
-  // Clic en una celda de la cuadrícula 5x5 (bloqueado si el reto ya se completó)
   const handleCellClick = (r, c) => {
     if (!level || gameWon) return;
     if (r === level.vasePos.r && c === level.vasePos.c) return;
@@ -1798,7 +1768,7 @@ export default function App() {
         await navigator.share({ text: shareText });
         return;
       } catch (_err) {
-        // Fallback a copiar y abrir WhatsApp
+        // Fallback
       }
     }
     handleCopyShareText();
@@ -1810,63 +1780,62 @@ export default function App() {
   const currentSuspect = SUSPECTS[activeSuspect];
   const currentClue = level.clues.find((c) => c.suspectId === activeSuspect);
 
-  // Paleta gris neutro (estilo Trade Republic, sin subtonos azulados)
+  // Paleta Grafito Oscuro (#14161B / #1E2026) vs Modo Claro limpio
   const pageBgClass = isDark
-    ? 'bg-[#0a0a0a] text-neutral-100'
-    : 'bg-[#f7f7f7] text-neutral-900';
+    ? 'bg-[#14161B] text-neutral-100'
+    : 'bg-[#F3F4F6] text-neutral-900';
   const cardBgClass = isDark
-    ? 'bg-[#141414] border-neutral-800'
-    : 'bg-white border-neutral-200';
+    ? 'bg-[#1E2026] border-[#2C303A]'
+    : 'bg-white border-neutral-200/90';
   const subTextClass = isDark ? 'text-neutral-400' : 'text-neutral-500';
   const primaryActionBtnClass = isDark
-    ? 'bg-white hover:bg-neutral-200 text-black'
+    ? 'bg-white hover:bg-neutral-200 text-neutral-950'
     : 'bg-neutral-900 hover:bg-neutral-800 text-white';
 
   return (
     <div
-      className={`min-h-dvh font-sans select-none flex flex-col items-center justify-start py-2 px-3 transition-colors duration-200 ${pageBgClass}`}
+      className={`h-dvh max-h-dvh overflow-hidden font-sans select-none flex flex-col items-center justify-between px-3 pt-[max(0.35rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] transition-colors duration-200 ${pageBgClass}`}
     >
-      <div className="w-full max-w-[400px] flex flex-col gap-2">
-        {/* 1. CABECERA PRINCIPAL: MENÚ HAMBURGUESA + SANDWICH Y TÍTULO A LA IZQUIERDA, CRONO A LA DERECHA */}
-        <div className="flex items-center justify-between gap-2 py-0.5">
-          <div className="flex items-center gap-2.5 min-w-0">
+      <div className="w-full max-w-[400px] h-full flex flex-col justify-between gap-1.5 min-h-0">
+        {/* 1. CABECERA COMPACTA (AHORRA 40-60px VERTICALES) */}
+        <header className="flex items-center justify-between gap-2 shrink-0 py-0.5">
+          <div className="flex items-center gap-2 min-w-0">
             <button
               type="button"
               onClick={() => setIsModeModalOpen(true)}
               title="Cambiar entre reto diario y caso aleatorio"
-              className={`p-2 rounded-xl border transition cursor-pointer shrink-0 flex items-center justify-center ${
+              className={`w-9 h-9 rounded-xl border transition cursor-pointer shrink-0 flex items-center justify-center ${
                 isDark
-                  ? 'bg-[#141414] border-neutral-800 hover:border-neutral-600 text-neutral-200'
+                  ? 'bg-[#1E2026] border-[#2C303A] hover:border-neutral-600 text-neutral-200'
                   : 'bg-white border-neutral-200 hover:border-neutral-400 text-neutral-800 shadow-2xs'
               }`}
             >
-              <Menu className="w-5 h-5" />
+              <Menu className="w-4 h-4" />
             </button>
 
             <div className="flex flex-col min-w-0">
-              <h1 className="text-sm sm:text-base font-black tracking-tight leading-tight flex items-center gap-1.5 min-w-0">
+              <h1 className="text-[13px] sm:text-sm font-black tracking-tight leading-none flex items-center gap-1.5 min-w-0">
                 <img
                   src={sandwichSvg}
                   alt="Sandwich"
-                  className="w-5 h-5 object-contain shrink-0"
+                  className="w-4 h-4 object-contain shrink-0"
                 />
                 <span className="truncate">¿Quién ha robado mi sandwich?</span>
               </h1>
 
-              {/* Subtítulo con Caso Diario/Fecha o Caso nº XXX + Nivel de dificultad */}
-              <div className="flex items-center gap-1.5 text-[11px] mt-0.5 flex-wrap">
-                <span className={`font-bold ${subTextClass}`}>
+              <div className="flex items-center gap-1.5 text-[10px] mt-1 leading-none">
+                <span className={`font-bold truncate ${subTextClass}`}>
                   {isDailyMode
                     ? `Robo del día · ${dailyConfig.formattedDate}`
                     : `Expediente #${level.caseNumber}`}
                 </span>
                 <span className={subTextClass}>•</span>
                 <div
-                  className="flex items-center gap-1"
+                  className="flex items-center gap-1 shrink-0"
                   title={`Dificultad: ${difficultyInfo.label}`}
                 >
                   <span
-                    className={`font-black uppercase tracking-wider text-[10px] ${
+                    className={`font-black uppercase tracking-wider text-[9px] ${
                       isDark ? 'text-neutral-300' : 'text-neutral-700'
                     }`}
                   >
@@ -1876,11 +1845,11 @@ export default function App() {
                     {[1, 2, 3, 4, 5].map((bar) => (
                       <span
                         key={bar}
-                        className={`w-1.5 h-1 rounded-xs ${
+                        className={`w-1 h-1 rounded-full ${
                           bar <= difficultyInfo.bars
                             ? difficultyInfo.barColor
                             : isDark
-                            ? 'bg-neutral-800'
+                            ? 'bg-neutral-700'
                             : 'bg-neutral-300'
                         }`}
                       />
@@ -1891,21 +1860,26 @@ export default function App() {
             </div>
           </div>
 
-          {/* Cronómetro arriba a la derecha (+ botón Compartir si ya se resolvió) */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             {gameWon && (
               <button
                 type="button"
                 onClick={() => setIsShareModalOpen(true)}
-                className={`px-2.5 py-1 rounded-xl font-black text-[11px] flex items-center gap-1 transition cursor-pointer ${primaryActionBtnClass}`}
+                className={`px-2 py-1 rounded-lg font-black text-[10px] flex items-center gap-1 transition cursor-pointer ${primaryActionBtnClass}`}
               >
                 <Share2 className="w-3 h-3" />
                 <span>Compartir</span>
               </button>
             )}
-            <div className="flex items-center gap-1.5 font-mono font-bold text-xs">
+            <div
+              className={`flex items-center gap-1.5 font-mono font-bold text-xs px-2 py-1 rounded-lg border ${
+                isDark
+                  ? 'bg-[#1E2026] border-[#2C303A] text-neutral-200'
+                  : 'bg-white border-neutral-200 text-neutral-800'
+              }`}
+            >
               <span
-                className={`w-2 h-2 rounded-full ${
+                className={`w-1.5 h-1.5 rounded-full ${
                   gameWon
                     ? isDark
                       ? 'bg-white'
@@ -1913,63 +1887,65 @@ export default function App() {
                     : 'bg-emerald-500 animate-pulse'
                 }`}
               />
-              <span className={isDark ? 'text-neutral-200' : 'text-neutral-800'}>
-                {formatTime(seconds)}
-              </span>
+              <span>{formatTime(seconds)}</span>
             </div>
           </div>
-        </div>
+        </header>
 
-        {/* 2. TABLERO 5x5 CON COLORES PASTEL, CRUCES GRISES Y CARDINALES */}
-        <div className={`border rounded-2xl p-2.5 shadow-xs ${cardBgClass}`}>
-          <div className="relative w-full aspect-square pt-5 pb-5 px-5">
-            {/* NORTE */}
-            <div className="absolute top-0 inset-x-0 h-5 flex items-center justify-center pointer-events-none">
-              <span
-                className={`text-[10px] font-black uppercase tracking-widest ${
-                  isDark ? 'text-neutral-400' : 'text-neutral-500'
-                }`}
-              >
-                NORTE
-              </span>
+        {/* 2. TABLERO 5x5 ESCALABLE DINÁMICAMENTE (SIN ETIQUETAS EXTERIORES QUE ROBEN ESPACIO) */}
+        <div
+          className={`flex-1 min-h-0 w-full border rounded-2xl p-2 shadow-xs flex flex-col justify-between gap-1.5 ${cardBgClass}`}
+        >
+          {/* Barra superior técnica del plano con brújula minimalista en la esquina derecha */}
+          <div className="flex items-center justify-between px-1 shrink-0">
+            <span
+              className={`text-[9px] font-mono font-bold uppercase tracking-widest ${subTextClass}`}
+            >
+              PLANTA OFICINA · 5×5
+            </span>
+            <div
+              className={`flex items-center gap-1 text-[9px] font-mono font-bold tracking-wider px-1.5 py-0.5 rounded border ${
+                isDark
+                  ? 'bg-[#14161B] border-[#2C303A] text-neutral-300'
+                  : 'bg-neutral-100 border-neutral-200 text-neutral-700'
+              }`}
+              title="Orientación del plano: Norte arriba, Sur abajo, Oeste izquierda, Este derecha"
+            >
+              <Compass className="w-3 h-3 text-sky-400 shrink-0" />
+              <span>N↑</span>
+              <span className="opacity-50">·</span>
+              <span className="opacity-75">O← →E</span>
             </div>
+          </div>
 
-            {/* SUR */}
-            <div className="absolute bottom-0 inset-x-0 h-5 flex items-center justify-center pointer-events-none">
-              <span
-                className={`text-[10px] font-black uppercase tracking-widest ${
-                  isDark ? 'text-neutral-400' : 'text-neutral-500'
-                }`}
-              >
-                SUR
+          {/* Contenedor elástico que ajusta la cuadrícula 1:1 al alto/ancho disponible en 100dvh */}
+          <div
+            className="flex-1 min-h-0 w-full flex items-center justify-center"
+            style={{ containerType: 'size' }}
+          >
+            <div
+              className="relative aspect-square max-w-full max-h-full"
+              style={{
+                width: 'min(100cqw, 100cqh)',
+                height: 'min(100cqw, 100cqh)'
+              }}
+            >
+              {/* Micro-indicadores cardinales integrados en el propio bisel del tablero (0px extra) */}
+              <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 z-30 px-1 rounded bg-[#181A20] text-[7px] font-mono font-black tracking-widest text-neutral-300 leading-none py-0.5 border border-neutral-700/80 pointer-events-none">
+                N
               </span>
-            </div>
-
-            {/* OESTE */}
-            <div className="absolute left-0 inset-y-0 w-5 flex items-center justify-center pointer-events-none">
-              <span
-                className={`text-[10px] font-black uppercase tracking-widest [writing-mode:vertical-lr] rotate-180 ${
-                  isDark ? 'text-neutral-400' : 'text-neutral-500'
-                }`}
-              >
-                OESTE
+              <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 z-30 px-1 rounded bg-[#181A20] text-[7px] font-mono font-black tracking-widest text-neutral-300 leading-none py-0.5 border border-neutral-700/80 pointer-events-none">
+                S
               </span>
-            </div>
-
-            {/* ESTE */}
-            <div className="absolute right-0 inset-y-0 w-5 flex items-center justify-center pointer-events-none">
-              <span
-                className={`text-[10px] font-black uppercase tracking-widest [writing-mode:vertical-lr] ${
-                  isDark ? 'text-neutral-400' : 'text-neutral-500'
-                }`}
-              >
-                ESTE
+              <span className="absolute top-1/2 -left-1.5 -translate-y-1/2 z-30 px-0.5 rounded bg-[#181A20] text-[7px] font-mono font-black text-neutral-300 leading-none py-0.5 border border-neutral-700/80 pointer-events-none">
+                O
               </span>
-            </div>
+              <span className="absolute top-1/2 -right-1.5 -translate-y-1/2 z-30 px-0.5 rounded bg-[#181A20] text-[7px] font-mono font-black text-neutral-300 leading-none py-0.5 border border-neutral-700/80 pointer-events-none">
+                E
+              </span>
 
-            {/* CUADRÍCULA 5x5 */}
-            <div className="relative w-full h-full">
-              <div className="w-full h-full grid grid-cols-5 grid-rows-5 border-4 border-neutral-900 rounded-xl overflow-hidden bg-neutral-900 shadow-inner">
+              {/* CUADRÍCULA 5x5 CON TEXTURA BLUEPRINT Y MUROS GRAFITO */}
+              <div className="w-full h-full grid grid-cols-5 grid-rows-5 border-[3px] border-[#181A20] rounded-xl overflow-hidden bg-[#181A20] shadow-inner">
                 {Array.from({ length: 5 }).map((_, r) =>
                   Array.from({ length: 5 }).map((__, c) => {
                     const key = `${r},${c}`;
@@ -1982,7 +1958,7 @@ export default function App() {
                     const isInvalidated = invalidatedCells.has(key);
                     const hasConflict = validation.conflicts.has(key);
 
-                    // Muros divisorios entre Despachos
+                    // Muros divisorios más limpios en grafito (#181A20)
                     const topWall = r > 0 && level.grid[r - 1][c] !== roomId;
                     const bottomWall = r < 4 && level.grid[r + 1][c] !== roomId;
                     const leftWall = c > 0 && level.grid[r][c - 1] !== roomId;
@@ -1996,51 +1972,51 @@ export default function App() {
                         style={{
                           backgroundColor: roomObj.bgHex,
                           borderTop: topWall
-                            ? '3px solid #171717'
-                            : '1px solid rgba(23, 23, 23, 0.14)',
+                            ? '2.5px solid #181A20'
+                            : '1px solid rgba(24, 26, 32, 0.11)',
                           borderBottom: bottomWall
-                            ? '3px solid #171717'
-                            : '1px solid rgba(23, 23, 23, 0.14)',
+                            ? '2.5px solid #181A20'
+                            : '1px solid rgba(24, 26, 32, 0.11)',
                           borderLeft: leftWall
-                            ? '3px solid #171717'
-                            : '1px solid rgba(23, 23, 23, 0.14)',
+                            ? '2.5px solid #181A20'
+                            : '1px solid rgba(24, 26, 32, 0.11)',
                           borderRight: rightWall
-                            ? '3px solid #171717'
-                            : '1px solid rgba(23, 23, 23, 0.14)'
+                            ? '2.5px solid #181A20'
+                            : '1px solid rgba(24, 26, 32, 0.11)'
                         }}
-                        className={`relative w-full h-full flex flex-col items-center justify-center p-0 overflow-hidden focus:outline-none ${
+                        className={`blueprint-cell relative w-full h-full flex flex-col items-center justify-center p-0 overflow-hidden focus:outline-none transition-transform active:scale-[0.97] ${
                           gameWon ? 'cursor-default' : 'cursor-pointer'
                         } ${hasConflict ? 'ring-3 ring-inset ring-rose-600 z-10' : ''}`}
                       >
-                        {/* Sandwich Robado */}
+                        {/* Marcador del Crimen compacto para dejar ver el color y textura de la sala */}
                         {isVase && (
                           <div className="flex flex-col items-center justify-center leading-none pointer-events-none">
                             <img
                               src={sandwichSvg}
                               alt="Sandwich robado"
-                              className="w-8 h-8 object-contain"
+                              className="w-6 h-6 sm:w-7 sm:h-7 object-contain drop-shadow-2xs"
                             />
-                            <span className="text-[8px] font-black uppercase bg-neutral-900 text-white px-1 rounded mt-0.5">
+                            <span className="text-[6.5px] font-black uppercase tracking-wider bg-[#181A20]/90 text-amber-200 px-1 py-px rounded-xs -mt-0.5 shadow-2xs">
                               CRIMEN
                             </span>
                           </div>
                         )}
 
-                        {/* Sospechoso colocado (clicar lo quita si no está bloqueado) */}
+                        {/* Sospechoso colocado */}
                         {!isVase && placedSuspect && (
                           <div className="flex flex-col items-center justify-center leading-none pointer-events-none">
                             <img
                               src={placedSuspect.emoji}
                               alt={placedSuspect.name}
-                              className="w-7 h-7 object-contain"
+                              className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
                             />
                             <span
-                              className={`mt-0.5 px-1.5 py-0.2 rounded text-[9px] font-black leading-tight ${
+                              className={`mt-0.5 px-1.5 py-px rounded text-[8.5px] font-black leading-tight ${
                                 hasConflict
                                   ? 'bg-rose-600 text-white'
                                   : placedSuspect.id === activeSuspect
-                                  ? 'bg-white text-black ring-1 ring-neutral-900 shadow-2xs'
-                                  : 'bg-neutral-900 text-white'
+                                  ? 'bg-white text-neutral-950 ring-1 ring-[#181A20] shadow-2xs'
+                                  : 'bg-[#181A20] text-white'
                               }`}
                             >
                               {placedSuspect.code}
@@ -2048,9 +2024,9 @@ export default function App() {
                           </div>
                         )}
 
-                        {/* Crucecita gris (✕) automática de casilla bloqueada */}
+                        {/* Crucecita sutil de casilla descartada */}
                         {!isVase && !placedSuspect && isInvalidated && (
-                          <span className="text-neutral-400 font-black text-lg leading-none pointer-events-none">
+                          <span className="text-neutral-600/45 font-black text-base leading-none pointer-events-none">
                             ✕
                           </span>
                         )}
@@ -2078,7 +2054,7 @@ export default function App() {
                       left: `${leftPct}%`,
                       top: `${topPct}%`
                     }}
-                    className="absolute -translate-x-1/2 -translate-y-1/2 z-20 w-6 h-6 rounded-full bg-neutral-950 text-white border-2 border-white flex items-center justify-center font-black text-[11px] shadow-md pointer-events-none"
+                    className="absolute -translate-x-1/2 -translate-y-1/2 z-20 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#181A20] text-white border-2 border-white flex items-center justify-center font-black text-[10px] sm:text-[11px] shadow-md pointer-events-none"
                   >
                     {door.number}
                   </div>
@@ -2087,17 +2063,17 @@ export default function App() {
             </div>
           </div>
 
-          {/* BANNER INFERIOR AL COMPLETAR EL NIVEL (TANTO EN DIARIO COMO EN ALEATORIO) */}
+          {/* BANNER INFERIOR COMPACTO AL COMPLETAR EL NIVEL */}
           {gameWon && (
             <div
-              className={`mt-2 pt-2 border-t flex items-center justify-between gap-2 px-1 ${
-                isDark ? 'border-neutral-800' : 'border-neutral-200'
+              className={`pt-1.5 border-t flex items-center justify-between gap-2 px-1 shrink-0 ${
+                isDark ? 'border-[#2C303A]' : 'border-neutral-200'
               }`}
             >
               {isDailyMode ? (
                 <div className="flex items-center gap-1.5 text-[11px]">
                   <Clock className={`w-3.5 h-3.5 ${subTextClass}`} />
-                  <span className={subTextClass}>Próximo crimen en</span>
+                  <span className={subTextClass}>Próximo en</span>
                   <span className="font-mono font-black tracking-wider">
                     {countdown}
                   </span>
@@ -2106,7 +2082,7 @@ export default function App() {
                 <div className="flex items-center gap-1.5 text-[11px]">
                   <Check className="w-3.5 h-3.5 text-emerald-500" />
                   <span className={`font-bold ${subTextClass}`}>
-                    ¡Expediente #{level.caseNumber} archivado!
+                    ¡Caso #{level.caseNumber} resuelto!
                   </span>
                 </div>
               )}
@@ -2123,32 +2099,32 @@ export default function App() {
           )}
         </div>
 
-        {/* FILA ENCIMA DE LAS PÍLDORAS: AVISO A LA IZQUIERDA + INTERROGANTE A LA DERECHA */}
-        <div className="flex items-center justify-between px-0.5 py-0.5">
+        {/* 3. BARRA DE AVISO + BOTÓN PÍLDORA TÁCTIL (MÍNIMO 44x44px) PARA REGLAS DE RR.HH. */}
+        <div className="flex items-center justify-between gap-2 px-0.5 shrink-0">
           <span
-            className={`text-[11px] font-black uppercase tracking-wider ${
+            className={`text-[11px] font-black uppercase tracking-wider leading-tight ${
               isDark ? 'text-neutral-300' : 'text-neutral-700'
             }`}
           >
-            ¡El ladrón tiene migas y miente!
+            ¡El ladrón miente!
           </span>
 
           <button
             type="button"
             onClick={() => setIsHelpModalOpen(true)}
             title="Cómo se juega"
-            className={`flex items-center gap-1.5 text-[11px] font-bold transition cursor-pointer ${
+            className={`min-h-[44px] min-w-[44px] px-3.5 py-2 rounded-full border flex items-center justify-center gap-2 text-xs font-bold transition cursor-pointer shrink-0 active:scale-95 ${
               isDark
-                ? 'text-neutral-400 hover:text-white'
-                : 'text-neutral-500 hover:text-neutral-900'
+                ? 'bg-[#1E2026] border-[#2C303A] text-neutral-200 hover:border-neutral-500 hover:text-white'
+                : 'bg-white border-neutral-300 text-neutral-800 hover:bg-neutral-100 shadow-2xs'
             }`}
           >
             <span>Reglas de RR.HH.</span>
             <span
-              className={`w-4 h-4 rounded-full border flex items-center justify-center text-[10px] font-black leading-none ${
+              className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black leading-none ${
                 isDark
-                  ? 'border-neutral-700 bg-neutral-900 text-neutral-200'
-                  : 'border-neutral-300 bg-neutral-200/70 text-neutral-800'
+                  ? 'bg-neutral-700 text-white'
+                  : 'bg-neutral-900 text-white'
               }`}
             >
               ?
@@ -2156,8 +2132,8 @@ export default function App() {
           </button>
         </div>
 
-        {/* 3. PÍLDORAS HORIZONTALES SELECTORAS DE PERSONAS (DOT NEUTRO/BLANCO/NEGRO O ROJO SI FALLA) */}
-        <div className="w-full grid grid-cols-5 gap-1.5 h-12">
+        {/* 4. PÍLDORAS SELECTORAS DE SOSPECHOSOS */}
+        <div className="w-full grid grid-cols-5 gap-1.5 h-12 shrink-0">
           {SUSPECTS.map((s) => {
             const isSelected = activeSuspect === s.id;
             const isPlaced = suspectPositions[s.id] !== undefined;
@@ -2182,14 +2158,14 @@ export default function App() {
                 className={`relative h-full rounded-xl font-black transition-all flex flex-col items-center justify-center border cursor-pointer ${
                   isSelected
                     ? isDark
-                      ? 'bg-white text-black border-white shadow-sm'
+                      ? 'bg-white text-neutral-950 border-white shadow-sm'
                       : 'bg-neutral-900 text-white border-neutral-900 shadow-sm'
                     : isPlaced
                     ? isDark
-                      ? 'bg-neutral-800/90 text-white border-neutral-600'
-                      : 'bg-neutral-100 text-neutral-900 border-neutral-400'
+                      ? 'bg-[#282B34] text-white border-neutral-600'
+                      : 'bg-neutral-200/80 text-neutral-900 border-neutral-400'
                     : isDark
-                    ? 'bg-[#141414] text-neutral-400 border-neutral-800 hover:bg-neutral-800/60'
+                    ? 'bg-[#1E2026] text-neutral-400 border-[#2C303A] hover:bg-[#262932]'
                     : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
                 }`}
               >
@@ -2224,23 +2200,23 @@ export default function App() {
           })}
         </div>
 
-        {/* 4. DECLARACIÓN DEL SOSPECHOSO SELECCIONADO (CON FUENTE ZILLA SLAB Y TAMAÑO ADAPTATIVO) */}
+        {/* 5. TARJETA DE DECLARACIÓN (SIEMPRE VISIBLE EN 100dvh CON FUENTE ORIGINAL OUTFIT) */}
         <div
-          className={`w-full min-h-24 border rounded-2xl p-3.5 flex flex-col justify-between gap-2 shadow-xs overflow-hidden ${cardBgClass}`}
+          className={`w-full min-h-[82px] border rounded-2xl p-3 flex flex-col justify-between gap-1.5 shadow-xs shrink-0 overflow-hidden ${cardBgClass}`}
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
               <span
-                className={`w-7 h-7 rounded-lg border flex items-center justify-center overflow-hidden shrink-0 ${
+                className={`w-6 h-6 rounded-lg border flex items-center justify-center overflow-hidden shrink-0 ${
                   isDark
-                    ? 'bg-neutral-800 border-neutral-700'
+                    ? 'bg-[#14161B] border-[#2C303A]'
                     : 'bg-neutral-100 border-neutral-200'
                 }`}
               >
                 <img
                   src={currentSuspect.emoji}
                   alt={currentSuspect.name}
-                  className="w-6 h-6 object-contain"
+                  className="w-5 h-5 object-contain"
                 />
               </span>
               <span
@@ -2253,7 +2229,7 @@ export default function App() {
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
                   isDark
-                    ? 'bg-neutral-800 text-neutral-300 border-neutral-700'
+                    ? 'bg-[#14161B] text-neutral-300 border-[#2C303A]'
                     : 'bg-neutral-100 text-neutral-700 border-neutral-300'
                 }`}
               >
@@ -2267,7 +2243,7 @@ export default function App() {
 
           <div className="flex-1 flex items-center">
             <p
-              className={`font-slab text-[clamp(0.95rem,4.2vw,1.125rem)] font-normal leading-snug ${
+              className={`font-sans text-[clamp(0.88rem,3.8vw,1rem)] font-normal leading-snug ${
                 isDark ? 'text-neutral-200' : 'text-neutral-700'
               }`}
             >
@@ -2277,7 +2253,7 @@ export default function App() {
         </div>
       </div>
 
-      {/* 5. POPUP MODAL DE NORMAS / CÓMO SE JUEGA */}
+      {/* 6. POPUP MODAL DE NORMAS / CÓMO SE JUEGA */}
       {isHelpModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fadeIn"
@@ -2286,7 +2262,7 @@ export default function App() {
           <div
             className={`w-full max-w-sm rounded-3xl border p-6 shadow-2xl flex flex-col gap-4 ${
               isDark
-                ? 'bg-[#141414] border-neutral-800 text-neutral-100'
+                ? 'bg-[#1E2026] border-[#2C303A] text-neutral-100'
                 : 'bg-white border-neutral-200 text-neutral-900'
             }`}
             onClick={(e) => e.stopPropagation()}
@@ -2296,7 +2272,7 @@ export default function App() {
                 <div
                   className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-black text-base ${
                     isDark
-                      ? 'bg-neutral-800 border-neutral-700 text-white'
+                      ? 'bg-[#14161B] border-[#2C303A] text-white'
                       : 'bg-neutral-100 border-neutral-200 text-neutral-900'
                   }`}
                 >
@@ -2314,9 +2290,9 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsHelpModalOpen(false)}
-                className={`p-1.5 rounded-xl border transition cursor-pointer ${
+                className={`p-2 rounded-xl border transition cursor-pointer ${
                   isDark
-                    ? 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:text-white'
+                    ? 'bg-[#14161B] border-[#2C303A] text-neutral-400 hover:text-white'
                     : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
                 }`}
               >
@@ -2328,7 +2304,7 @@ export default function App() {
               <div
                 className={`p-3 rounded-2xl border ${
                   isDark
-                    ? 'bg-[#0a0a0a] border-neutral-800 text-neutral-300'
+                    ? 'bg-[#14161B] border-[#2C303A] text-neutral-300'
                     : 'bg-neutral-50 border-neutral-200 text-neutral-700'
                 }`}
               >
@@ -2343,7 +2319,7 @@ export default function App() {
               <div
                 className={`p-3 rounded-2xl border ${
                   isDark
-                    ? 'bg-[#0a0a0a] border-neutral-800 text-neutral-300'
+                    ? 'bg-[#14161B] border-[#2C303A] text-neutral-300'
                     : 'bg-neutral-50 border-neutral-200 text-neutral-700'
                 }`}
               >
@@ -2358,7 +2334,7 @@ export default function App() {
               <div
                 className={`p-3 rounded-2xl border ${
                   isDark
-                    ? 'bg-[#0a0a0a] border-neutral-800 text-neutral-300'
+                    ? 'bg-[#14161B] border-[#2C303A] text-neutral-300'
                     : 'bg-neutral-50 border-neutral-200 text-neutral-700'
                 }`}
               >
@@ -2381,7 +2357,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 6. POPUP MODAL DE SELECCIÓN DE MODO (AL PULSAR EL ICONO DE MENÚ) */}
+      {/* 7. POPUP MODAL DE SELECCIÓN DE MODO */}
       {isModeModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fadeIn"
@@ -2390,7 +2366,7 @@ export default function App() {
           <div
             className={`w-full max-w-sm rounded-3xl border p-6 shadow-2xl flex flex-col gap-4 ${
               isDark
-                ? 'bg-[#141414] border-neutral-800 text-neutral-100'
+                ? 'bg-[#1E2026] border-[#2C303A] text-neutral-100'
                 : 'bg-white border-neutral-200 text-neutral-900'
             }`}
             onClick={(e) => e.stopPropagation()}
@@ -2400,7 +2376,7 @@ export default function App() {
                 <div
                   className={`w-11 h-11 rounded-2xl border flex items-center justify-center p-1.5 ${
                     isDark
-                      ? 'bg-neutral-800 border-neutral-700'
+                      ? 'bg-[#14161B] border-[#2C303A]'
                       : 'bg-neutral-100 border-neutral-200'
                   }`}
                 >
@@ -2422,9 +2398,9 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsModeModalOpen(false)}
-                className={`p-1.5 rounded-xl border transition cursor-pointer ${
+                className={`p-2 rounded-xl border transition cursor-pointer ${
                   isDark
-                    ? 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:text-white'
+                    ? 'bg-[#14161B] border-[#2C303A] text-neutral-400 hover:text-white'
                     : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
                 }`}
               >
@@ -2433,7 +2409,6 @@ export default function App() {
             </div>
 
             <div className="flex flex-col gap-2.5">
-              {/* Opción 1: Reto Diario */}
               <button
                 type="button"
                 onClick={handleLoadDaily}
@@ -2443,7 +2418,7 @@ export default function App() {
                       ? 'bg-white text-black border-white'
                       : 'bg-neutral-900 text-white border-neutral-900'
                     : isDark
-                    ? 'bg-[#0a0a0a] hover:bg-neutral-800/80 text-neutral-200 border-neutral-800'
+                    ? 'bg-[#14161B] hover:bg-neutral-800/80 text-neutral-200 border-[#2C303A]'
                     : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border-neutral-200'
                 }`}
               >
@@ -2471,7 +2446,6 @@ export default function App() {
                 )}
               </button>
 
-              {/* Opción 2: Caso Aleatorio */}
               <button
                 type="button"
                 onClick={handleNewRandomLevel}
@@ -2481,7 +2455,7 @@ export default function App() {
                       ? 'bg-white text-black border-white'
                       : 'bg-neutral-900 text-white border-neutral-900'
                     : isDark
-                    ? 'bg-[#0a0a0a] hover:bg-neutral-800/80 text-neutral-200 border-neutral-800'
+                    ? 'bg-[#14161B] hover:bg-neutral-800/80 text-neutral-200 border-[#2C303A]'
                     : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border-neutral-200'
                 }`}
               >
@@ -2513,7 +2487,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 7. POPUP MODAL DE COMPARTIR */}
+      {/* 8. POPUP MODAL DE COMPARTIR */}
       {isShareModalOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fadeIn"
@@ -2522,7 +2496,7 @@ export default function App() {
           <div
             className={`w-full max-w-sm rounded-3xl border p-6 shadow-2xl flex flex-col gap-4 ${
               isDark
-                ? 'bg-[#141414] border-neutral-800 text-neutral-100'
+                ? 'bg-[#1E2026] border-[#2C303A] text-neutral-100'
                 : 'bg-white border-neutral-200 text-neutral-900'
             }`}
             onClick={(e) => e.stopPropagation()}
@@ -2532,7 +2506,7 @@ export default function App() {
                 <div
                   className={`w-11 h-11 rounded-2xl border flex items-center justify-center p-1.5 ${
                     isDark
-                      ? 'bg-neutral-800 border-neutral-700'
+                      ? 'bg-[#14161B] border-[#2C303A]'
                       : 'bg-neutral-100 border-neutral-200'
                   }`}
                 >
@@ -2546,9 +2520,7 @@ export default function App() {
                   <h2 className="text-base font-black leading-tight">
                     ¡Pillas a {SUSPECTS[level.thiefId].name} masticando!
                   </h2>
-                  <p
-                    className={`font-slab text-[clamp(0.85rem,3.6vw,0.95rem)] mt-0.5 italic ${subTextClass}`}
-                  >
+                  <p className={`font-sans text-xs mt-0.5 italic ${subTextClass}`}>
                     {SUSPECTS[level.thiefId].confession}
                   </p>
                 </div>
@@ -2556,9 +2528,9 @@ export default function App() {
               <button
                 type="button"
                 onClick={() => setIsShareModalOpen(false)}
-                className={`p-1.5 rounded-xl border transition cursor-pointer shrink-0 ${
+                className={`p-2 rounded-xl border transition cursor-pointer shrink-0 ${
                   isDark
-                    ? 'bg-neutral-800 border-neutral-700 text-neutral-400 hover:text-white'
+                    ? 'bg-[#14161B] border-[#2C303A] text-neutral-400 hover:text-white'
                     : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
                 }`}
               >
@@ -2566,12 +2538,11 @@ export default function App() {
               </button>
             </div>
 
-            {/* Cuenta atrás en el modal si es el reto diario */}
             {isDailyMode && (
               <div
                 className={`px-3.5 py-2.5 rounded-2xl border flex items-center justify-between text-xs ${
                   isDark
-                    ? 'bg-neutral-900/70 border-neutral-800'
+                    ? 'bg-[#14161B] border-[#2C303A]'
                     : 'bg-neutral-100 border-neutral-200'
                 }`}
               >
@@ -2584,18 +2555,16 @@ export default function App() {
               </div>
             )}
 
-            {/* Resumen estadístico y vista previa del mensaje */}
             <div
               className={`rounded-2xl p-3.5 border text-xs font-mono whitespace-pre-line leading-relaxed ${
                 isDark
-                  ? 'bg-[#0a0a0a] border-neutral-800 text-neutral-300'
+                  ? 'bg-[#14161B] border-[#2C303A] text-neutral-300'
                   : 'bg-neutral-50 border-neutral-200 text-neutral-700'
               }`}
             >
               {shareText}
             </div>
 
-            {/* Botones de acción en el popup */}
             <div className="flex flex-col gap-2">
               <button
                 type="button"
@@ -2612,7 +2581,7 @@ export default function App() {
                   onClick={handleCopyShareText}
                   className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border transition cursor-pointer ${
                     isDark
-                      ? 'bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border-neutral-700'
+                      ? 'bg-[#282B34] hover:bg-neutral-700 text-neutral-200 border-neutral-700'
                       : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border-neutral-300'
                   }`}
                 >
@@ -2634,7 +2603,7 @@ export default function App() {
                   onClick={handleNewRandomLevel}
                   className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border transition cursor-pointer ${
                     isDark
-                      ? 'bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border-neutral-700'
+                      ? 'bg-[#282B34] hover:bg-neutral-700 text-neutral-200 border-neutral-700'
                       : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border-neutral-300'
                   }`}
                 >
