@@ -580,7 +580,9 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     cellTouchesRoomWall
   } = topo;
 
-  // 1. Umbral / Puertas
+  // ==========================================================================
+  // 1. UMBRAL / PUERTAS
+  // ==========================================================================
   for (let dNum = 1; dNum <= 4; dNum++) {
     clues.push({
       id: `self_door_${dNum}`,
@@ -654,6 +656,39 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     weight: 14,
     text: `Estaba junto a una **puerta impar (1 o 3)**.`,
     evalFn: (st) => st.doorOccupant[1] === speakerId || st.doorOccupant[3] === speakerId
+  });
+
+  clues.push({
+    id: `self_no_door`,
+    category: 'Umbral',
+    weight: 13,
+    text: `Yo pasé de cotillear: **no estaba en ninguna puerta** numerada.`,
+    evalFn: (st) => st.suspectDoors[speakerId].length === 0
+  });
+
+  clues.push({
+    id: `even_doors_empty`,
+    category: 'Umbral',
+    weight: 15,
+    text: `Las **puertas pares (2 y 4)** estaban completamente **desiertas**.`,
+    evalFn: (st) => st.doorOccupant[2] === -1 && st.doorOccupant[4] === -1
+  });
+
+  clues.push({
+    id: `odd_doors_empty`,
+    category: 'Umbral',
+    weight: 15,
+    text: `No había **nadie** vigilando las **puertas impares (1 y 3)**.`,
+    evalFn: (st) => st.doorOccupant[1] === -1 && st.doorOccupant[3] === -1
+  });
+
+  clues.push({
+    id: `two_doors_occupied`,
+    category: 'Umbral',
+    weight: 14,
+    text: `En total había exactamente **2 puertas numeradas** con gente vigilando.`,
+    evalFn: (st) =>
+      [1, 2, 3, 4].filter((d) => st.doorOccupant[d] !== -1).length === 2
   });
 
   clues.push({
@@ -750,7 +785,9 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     }
   }
 
-  // 2. Fachada / Cardinal
+  // ==========================================================================
+  // 2. FACHADA / CARDINAL
+  // ==========================================================================
   clues.push({
     id: `facade_north`,
     category: 'Fachada',
@@ -805,6 +842,34 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       st.suspectCol[speakerId] < 4
   });
 
+  clues.push({
+    id: `south_half_rows`,
+    category: 'Fachada',
+    weight: 14,
+    text: `Estaba sentado en las **2 últimas filas del Sur**.`,
+    evalFn: (st) => st.suspectRow[speakerId] >= 3
+  });
+
+  clues.push({
+    id: `central_axes`,
+    category: 'Fachada',
+    weight: 15,
+    text: `Mi mesa estaba en el **pasillo central** (**fila o columna del medio**).`,
+    evalFn: (st) => st.suspectRow[speakerId] === 2 || st.suspectCol[speakerId] === 2
+  });
+
+  clues.push({
+    id: `main_diagonals`,
+    category: 'Fachada',
+    weight: 15,
+    text: `Estaba situado en una de las **dos diagonales principales** del plano.`,
+    evalFn: (st) => {
+      const r = st.suspectRow[speakerId];
+      const c = st.suspectCol[speakerId];
+      return r === c || r + c === 4;
+    }
+  });
+
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
     clues.push({
@@ -822,9 +887,23 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       text: `Mi sitio estaba más al **Oeste** que el de **${SUSPECTS[otherId].name}**.`,
       evalFn: (st) => st.suspectCol[speakerId] < st.suspectCol[otherId]
     });
+
+    clues.push({
+      id: `other_on_border_${otherId}`,
+      category: 'Fachada',
+      weight: 14,
+      text: `Vi a **${SUSPECTS[otherId].name}** pegado a una **fachada exterior** de la oficina.`,
+      evalFn: (st) => {
+        const r = st.suspectRow[otherId];
+        const c = st.suspectCol[otherId];
+        return r === 0 || r === 4 || c === 0 || c === 4;
+      }
+    });
   }
 
-  // 3. Claustrofobia / Tamaño
+  // ==========================================================================
+  // 3. CLAUSTROFOBIA / TAMAÑO
+  // ==========================================================================
   if (largestRooms.length === 1) {
     clues.push({
       id: `self_largest_room`,
@@ -856,6 +935,22 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     });
   }
 
+  clues.push({
+    id: `self_room_even_size`,
+    category: 'Claustrofobia',
+    weight: 13,
+    text: `Mi despacho tiene un **número par de casillas**.`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] % 2 === 0
+  });
+
+  clues.push({
+    id: `self_room_odd_size`,
+    category: 'Claustrofobia',
+    weight: 13,
+    text: `Mi despacho tiene un **número impar de casillas**.`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] % 2 !== 0
+  });
+
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
     clues.push({
@@ -866,9 +961,20 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       evalFn: (st) =>
         roomSizes[st.suspectRoom[speakerId]] > roomSizes[st.suspectRoom[otherId]]
     });
+
+    clues.push({
+      id: `same_room_size_as_${otherId}`,
+      category: 'Claustrofobia',
+      weight: 15,
+      text: `Mi despacho mide **exactamente las mismas casillas** que el de **${SUSPECTS[otherId].name}**.`,
+      evalFn: (st) =>
+        roomSizes[st.suspectRoom[speakerId]] === roomSizes[st.suspectRoom[otherId]]
+    });
   }
 
-  // 4. Contacto con Escenario (sandwich 🥪)
+  // ==========================================================================
+  // 4. CONTACTO CON ESCENARIO
+  // ==========================================================================
   clues.push({
     id: `adj_to_vase_orth`,
     category: 'Escenario',
@@ -884,10 +990,64 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `adj_to_vase_king`,
     category: 'Escenario',
     weight: 17,
-    text: `Podía oler el **sándwich (🥪)** desde mi sitio, estaba a un paso`,
+    text: `Podía oler el **sándwich (🥪)** desde mi sitio, estaba a un paso.`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) <= 1 &&
       Math.abs(st.suspectCol[speakerId] - vasePos.c) <= 1
+  });
+
+  clues.push({
+    id: `same_line_as_vase`,
+    category: 'Escenario',
+    weight: 16,
+    text: `Desde mi silla veía el **sándwich (🥪)** en mi **misma fila o columna**.`,
+    evalFn: (st) =>
+      st.suspectRow[speakerId] === vasePos.r || st.suspectCol[speakerId] === vasePos.c
+  });
+
+  clues.push({
+    id: `no_line_as_vase`,
+    category: 'Escenario',
+    weight: 13,
+    text: `El **sándwich (🥪)** no estaba **ni en mi fila ni en mi columna**.`,
+    evalFn: (st) =>
+      st.suspectRow[speakerId] !== vasePos.r && st.suspectCol[speakerId] !== vasePos.c
+  });
+
+  clues.push({
+    id: `knight_to_vase`,
+    category: 'Escenario',
+    weight: 17,
+    text: `Mi silla estaba a un **salto de caballo (en L)** del **sándwich (🥪)**.`,
+    evalFn: (st) => {
+      const dr = Math.abs(st.suspectRow[speakerId] - vasePos.r);
+      const dc = Math.abs(st.suspectCol[speakerId] - vasePos.c);
+      return (dr === 2 && dc === 1) || (dr === 1 && dc === 2);
+    }
+  });
+
+  clues.push({
+    id: `touch_many_rooms`,
+    category: 'Escenario',
+    weight: 15,
+    text: `Desde mi casilla tocaba los tabiques de **al menos 2 despachos ajenos**.`,
+    evalFn: (st) => {
+      const r = st.suspectRow[speakerId];
+      const c = st.suspectCol[speakerId];
+      return cellTouchesRoomWall[r][c].size >= 2;
+    }
+  });
+
+  clues.push({
+    id: `deep_inside_room`,
+    category: 'Escenario',
+    weight: 16,
+    text: `En mi casilla estaba aislado: **no tocaba el tabique** de ningún otro despacho.`,
+    evalFn: (st) => {
+      const r = st.suspectRow[speakerId];
+      const c = st.suspectCol[speakerId];
+      return cellTouchesRoomWall[r][c].size === 0;
+    }
   });
 
   for (let rm = 0; rm < 5; rm++) {
@@ -905,7 +1065,9 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     });
   }
 
-  // 5. Paranoia Cruzada
+  // ==========================================================================
+  // 5. PARANOIA CRUZADA
+  // ==========================================================================
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
     clues.push({
@@ -950,6 +1112,14 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   clues.push({
+    id: `thief_on_south_half`,
+    category: 'Paranoia',
+    weight: 16,
+    text: `El **ladrón** se esconde en las **2 últimas filas del Sur**.`,
+    evalFn: (st) => st.suspectRow[st.roomSuspect[vaseRoom]] >= 3
+  });
+
+  clues.push({
     id: `thief_at_some_door`,
     category: 'Paranoia',
     weight: 16,
@@ -960,7 +1130,46 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     }
   });
 
-  // 6. Despacho / Dieta
+  clues.push({
+    id: `thief_at_no_door`,
+    category: 'Paranoia',
+    weight: 15,
+    text: `El **ladrón** evitó ponerse junto a las **puertas numeradas**.`,
+    evalFn: (st) => {
+      const thiefInS = st.roomSuspect[vaseRoom];
+      return st.suspectDoors[thiefInS].length === 0;
+    }
+  });
+
+  clues.push({
+    id: `thief_on_perimeter`,
+    category: 'Paranoia',
+    weight: 15,
+    text: `El **ladrón** estaba sentado junto a una **fachada exterior** del edificio.`,
+    evalFn: (st) => {
+      const thief = st.roomSuspect[vaseRoom];
+      const r = st.suspectRow[thief];
+      const c = st.suspectCol[thief];
+      return r === 0 || r === 4 || c === 0 || c === 4;
+    }
+  });
+
+  clues.push({
+    id: `thief_in_interior`,
+    category: 'Paranoia',
+    weight: 16,
+    text: `El **ladrón** actuó desde el **interior de la planta**, lejos de las fachadas.`,
+    evalFn: (st) => {
+      const thief = st.roomSuspect[vaseRoom];
+      const r = st.suspectRow[thief];
+      const c = st.suspectCol[thief];
+      return r > 0 && r < 4 && c > 0 && c < 4;
+    }
+  });
+
+  // ==========================================================================
+  // 6. DESPACHO / DIETA
+  // ==========================================================================
   for (let rm = 0; rm < 5; rm++) {
     const rmName = ROOMS[rm].name.toLowerCase();
 
@@ -999,6 +1208,28 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       });
     }
   }
+
+  clues.push({
+    id: `women_adj_rows`,
+    category: 'Despacho',
+    weight: 13,
+    text: `Las **dos mujeres** de la oficina estábamos en **filas vecinas**.`,
+    evalFn: (st) => {
+      const women = SUSPECTS.filter((s) => s.isCarnivore).map((s) => s.id);
+      return Math.abs(st.suspectRow[women[0]] - st.suspectRow[women[1]]) === 1;
+    }
+  });
+
+  clues.push({
+    id: `women_adj_cols`,
+    category: 'Despacho',
+    weight: 13,
+    text: `Las **dos mujeres** ocupábamos **columnas vecinas**.`,
+    evalFn: (st) => {
+      const women = SUSPECTS.filter((s) => s.isCarnivore).map((s) => s.id);
+      return Math.abs(st.suspectCol[women[0]] - st.suspectCol[women[1]]) === 1;
+    }
+  });
 
   return clues;
 }
