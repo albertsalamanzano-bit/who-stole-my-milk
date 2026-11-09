@@ -19,6 +19,24 @@ import empleadoSvg from './assets/empleado.svg';
 import sandwichSvg from './assets/sandwich.svg';
 import { Analytics } from '@vercel/analytics/react';
 
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+export const supabase = supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+// Filtro sencillo para moderar el texto libre
+const BAD_WORDS = ['puto', 'puta', 'mierda', 'gilipollas', 'cabron', 'cabrón', 'pene', 'polla', 'coño', 'hijoputa'];
+
+function sanitizeText(str) {
+  let clean = str.trim().replace(/\s+/g, ' ');
+  BAD_WORDS.forEach((word) => {
+    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+    clean = clean.replace(regex, '🥪');
+  });
+  return clean;
+}
+
 // ============================================================================
 // 1. CONSTANTES MATEMÁTICAS Y CONFIGURACIÓN DEL SISTEMA
 // ============================================================================
