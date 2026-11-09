@@ -79,27 +79,27 @@ const ROOMS = [
   }
 ];
 
-// Estilos adaptativos (Modo Claro / Modo Oscuro) para mencionar los despachos en las pistas
+// Estilos de texto solo en color (sin píldora), adaptados a Modo Claro y Modo Oscuro
 const ROOM_TEXT_STYLES = {
   azul: {
-    light: 'bg-blue-100/90 text-blue-900 border-blue-300/80',
-    dark: 'bg-blue-500/15 text-blue-300 border-blue-500/30'
+    light: 'text-blue-600',
+    dark: 'text-blue-400'
   },
   rojo: {
-    light: 'bg-red-100/90 text-red-900 border-red-300/80',
-    dark: 'bg-red-500/15 text-red-300 border-red-500/30'
+    light: 'text-red-600',
+    dark: 'text-red-400'
   },
   verde: {
-    light: 'bg-emerald-100/90 text-emerald-900 border-emerald-300/80',
-    dark: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+    light: 'text-emerald-600',
+    dark: 'text-emerald-400'
   },
   amarillo: {
-    light: 'bg-amber-100/90 text-amber-950 border-amber-300/90',
-    dark: 'bg-yellow-500/15 text-yellow-200 border-yellow-500/30'
+    light: 'text-amber-600',
+    dark: 'text-yellow-300'
   },
   morado: {
-    light: 'bg-purple-100/90 text-purple-900 border-purple-300/80',
-    dark: 'bg-purple-500/15 text-purple-300 border-purple-500/30'
+    light: 'text-purple-600',
+    dark: 'text-purple-400'
   }
 };
 
@@ -176,7 +176,7 @@ const generatePermutations = (arr) => {
 
 const PERMUTATIONS_120 = generatePermutations([0, 1, 2, 3, 4]);
 
-// Función auxiliar para resaltar palabras clave (**...**) con contraste suave y colorear despachos
+// Función auxiliar para resaltar palabras clave (**...**) y colorear despachos sin píldora
 function renderFormattedClue(text, isDark) {
   if (!text) return null;
   const parts = text.split(/(\*\*.*?\*\*)/g);
@@ -195,19 +195,16 @@ function renderFormattedClue(text, isDark) {
         const styleObj = ROOM_TEXT_STYLES[matchedColor];
         const colorClasses = isDark ? styleObj.dark : styleObj.light;
         return (
-          <span
-            key={idx}
-            className={`inline-block font-semibold px-1.5 py-0.2 rounded-md border leading-baseline ${colorClasses}`}
-          >
+          <strong key={idx} className={`font-bold ${colorClasses}`}>
             {content}
-          </span>
+          </strong>
         );
       }
 
       return (
         <strong
           key={idx}
-          className={`font-semibold ${isDark ? 'text-white' : 'text-neutral-950'}`}
+          className={`font-bold ${isDark ? 'text-white' : 'text-neutral-950'}`}
         >
           {content}
         </strong>
@@ -1996,9 +1993,9 @@ export default function App() {
           })}
         </div>
 
-        {/* 4. DECLARACIÓN DEL SOSPECHOSO SELECCIONADO COMPACTA */}
+        {/* 4. DECLARACIÓN DEL SOSPECHOSO SELECCIONADO (CON FUENTE ZILLA SLAB Y TAMAÑO ADAPTATIVO) */}
         <div
-          className={`w-full min-h-24 border rounded-2xl p-3 flex flex-col justify-between gap-1.5 shadow-xs overflow-hidden ${cardBgClass}`}
+          className={`w-full min-h-24 border rounded-2xl p-3.5 flex flex-col justify-between gap-2 shadow-xs overflow-hidden ${cardBgClass}`}
         >
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -2039,7 +2036,7 @@ export default function App() {
 
           <div className="flex-1 flex items-center">
             <p
-              className={`text-xs sm:text-sm font-normal leading-relaxed line-clamp-3 ${
+              className={`font-slab text-[clamp(0.95rem,4.2vw,1.125rem)] font-normal leading-snug ${
                 isDark ? 'text-neutral-200' : 'text-neutral-700'
               }`}
             >
@@ -2318,7 +2315,9 @@ export default function App() {
                   <h2 className="text-base font-black leading-tight">
                     ¡Pillas a {SUSPECTS[level.thiefId].name} masticando!
                   </h2>
-                  <p className={`text-xs mt-0.5 italic ${subTextClass}`}>
+                  <p
+                    className={`font-slab text-[clamp(0.85rem,3.6vw,0.95rem)] mt-0.5 italic ${subTextClass}`}
+                  >
                     {SUSPECTS[level.thiefId].confession}
                   </p>
                 </div>
