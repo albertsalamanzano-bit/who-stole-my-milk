@@ -1,9 +1,15 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Añadido viewport-fit=cover para iOS y bloqueo de zoom para comportamiento de App nativa -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    
+    <!-- Opcional: Cambia el color de la barra superior en móviles para que coincida con el fondo oscuro -->
+    <meta name="theme-color" content="#14161B" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F3F4F6" media="(prefers-color-scheme: light)" />
+
     <title>Who Stole My Sandwich?</title>
   </head>
   <body>
