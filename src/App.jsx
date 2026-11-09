@@ -568,6 +568,7 @@ function analyzeMapTopology(grid, vasePos, doors) {
 function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, doors, topo) {
   const clues = [];
   const speaker = SUSPECTS[speakerId];
+  const isFem = speaker.isCarnivore; // true = Mujer (Analista, Becaria), false = Hombre
   const {
     roomSizes,
     maxSize,
@@ -601,7 +602,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `someone_door_${dNum}`,
       category: 'Umbral',
       weight: 11,
-      text: `Vi a **alguien** cotilleando junto a la **puerta ${dNum}**.`,
+      text: `Había **alguien** cotilleando junto a la **puerta ${dNum}**.`,
       evalFn: (st) => st.doorOccupant[dNum] !== -1
     });
 
@@ -609,7 +610,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `carnivore_door_${dNum}`,
       category: 'Umbral',
       weight: 14,
-      text: `Había **una mujer** merodeando junto a la **puerta ${dNum}**.`,
+      text: `Había **una mujer** junto a la **puerta ${dNum}**.`,
       evalFn: (st) => {
         const occ = st.doorOccupant[dNum];
         return occ !== -1 && SUSPECTS[occ].isCarnivore;
@@ -620,7 +621,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `herbivore_door_${dNum}`,
       category: 'Umbral',
       weight: 13,
-      text: `Vi a **un hombre** plantado junto a la **puerta ${dNum}**.`,
+      text: `Había **un hombre** plantado junto a la **puerta ${dNum}**.`,
       evalFn: (st) => {
         const occ = st.doorOccupant[dNum];
         return occ !== -1 && !SUSPECTS[occ].isCarnivore;
@@ -629,11 +630,12 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
     for (let otherId = 0; otherId < 5; otherId++) {
       if (otherId === speakerId) continue;
+      const otherIsFem = SUSPECTS[otherId].isCarnivore;
       clues.push({
         id: `other_${otherId}_door_${dNum}`,
         category: 'Umbral',
         weight: 15,
-        text: `Pillé a **${SUSPECTS[otherId].name}** pegado a la **puerta ${dNum}**.`,
+        text: `Pillé a **${SUSPECTS[otherId].name}** ${otherIsFem ? 'pegada' : 'pegado'} a la **puerta ${dNum}**.`,
         evalFn: (st) => st.doorOccupant[dNum] === otherId
       });
     }
@@ -744,7 +746,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     }
   }
 
-  if (speaker.isCarnivore) {
+  if (isFem) {
     const otherCarnivore = SUSPECTS.find((s) => s.isCarnivore && s.id !== speakerId);
     if (otherCarnivore) {
       const otherCarnivoreId = otherCarnivore.id;
@@ -787,7 +789,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `facade_north`,
     category: 'Fachada',
     weight: 16,
-    text: `Estaba pegado al ventanal **Norte** de la oficina.`,
+    text: `Estaba ${isFem ? 'pegada' : 'pegado'} al ventanal **Norte** de la oficina.`,
     evalFn: (st) => st.suspectRow[speakerId] === 0
   });
 
@@ -841,7 +843,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `south_half_rows`,
     category: 'Fachada',
     weight: 14,
-    text: `Estaba sentado en las **2 últimas filas del Sur**.`,
+    text: `Estaba ${isFem ? 'sentada' : 'sentado'} en las **2 últimas filas del Sur**.`,
     evalFn: (st) => st.suspectRow[speakerId] >= 3
   });
 
@@ -857,7 +859,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `main_diagonals`,
     category: 'Fachada',
     weight: 15,
-    text: `Estaba situado en una de las **dos diagonales principales** del plano.`,
+    text: `Estaba ${isFem ? 'situada' : 'situado'} en una de las **dos diagonales principales** del plano.`,
     evalFn: (st) => {
       const r = st.suspectRow[speakerId];
       const c = st.suspectCol[speakerId];
@@ -867,11 +869,13 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
+    const otherIsFem = SUSPECTS[otherId].isCarnivore;
+
     clues.push({
       id: `more_north_than_${otherId}`,
       category: 'Fachada',
       weight: 14,
-      text: `Yo estaba situado más al **Norte** que **${SUSPECTS[otherId].name}**.`,
+      text: `Yo estaba ${isFem ? 'situada' : 'situado'} más al **Norte** que **${SUSPECTS[otherId].name}**.`,
       evalFn: (st) => st.suspectRow[speakerId] < st.suspectRow[otherId]
     });
 
@@ -887,7 +891,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `other_on_border_${otherId}`,
       category: 'Fachada',
       weight: 14,
-      text: `Vi a **${SUSPECTS[otherId].name}** pegado a una **fachada exterior** de la oficina.`,
+      text: `Vi a **${SUSPECTS[otherId].name}** ${otherIsFem ? 'pegada' : 'pegado'} a una **fachada exterior** de la oficina.`,
       evalFn: (st) => {
         const r = st.suspectRow[otherId];
         const c = st.suspectCol[otherId];
@@ -1033,7 +1037,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `deep_inside_room`,
     category: 'Escenario',
     weight: 16,
-    text: `En mi casilla estaba aislado: **no tocaba el tabique** de ningún otro despacho.`,
+    text: `En mi casilla estaba ${isFem ? 'aislada' : 'aislado'}: **no tocaba el tabique** de ningún otro despacho.`,
     evalFn: (st) => {
       const r = st.suspectRow[speakerId];
       const c = st.suspectCol[speakerId];
@@ -1134,7 +1138,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `thief_on_perimeter`,
     category: 'Paranoia',
     weight: 15,
-    text: `El **ladrón** estaba sentado junto a una **fachada exterior** del edificio.`,
+    text: `El **ladrón** estaba junto a una **fachada exterior** del edificio.`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       const r = st.suspectRow[thief];
@@ -1172,7 +1176,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `carnivore_in_room_${rm}`,
       category: 'Despacho',
       weight: 11,
-      text: `Vi a **una mujer** metida en el **despacho ${rmName}**.`,
+      text: `El **despacho ${rmName}** lo ocupaba **una mujer**.`,
       evalFn: (st) => SUSPECTS[st.roomSuspect[rm]].isCarnivore
     });
 
@@ -1180,7 +1184,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       id: `herbivore_in_room_${rm}`,
       category: 'Despacho',
       weight: 9,
-      text: `Vi a **un hombre** ocupando el **despacho ${rmName}**.`,
+      text: `El **despacho ${rmName}** lo ocupaba **un hombre**.`,
       evalFn: (st) => !SUSPECTS[st.roomSuspect[rm]].isCarnivore
     });
 
@@ -1200,7 +1204,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `women_adj_rows`,
     category: 'Despacho',
     weight: 13,
-    text: speaker.isCarnivore
+    text: isFem
       ? `Las **dos mujeres** de la oficina estábamos en **filas vecinas**.`
       : `Las **dos mujeres** de la oficina estaban en **filas vecinas**.`,
     evalFn: (st) => {
@@ -1213,7 +1217,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `women_adj_cols`,
     category: 'Despacho',
     weight: 13,
-    text: speaker.isCarnivore
+    text: isFem
       ? `Las **dos mujeres** ocupábamos **columnas vecinas**.`
       : `Las **dos mujeres** ocupaban **columnas vecinas**.`,
     evalFn: (st) => {
@@ -1224,7 +1228,6 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
   return clues;
 }
-
 function generateCompleteLevel(enabledCategories = null, seed = null) {
   const rng = seed !== null ? createPrng(seed) : Math.random;
   const startTime = performance.now();
