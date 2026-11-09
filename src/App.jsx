@@ -1200,7 +1200,9 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `women_adj_rows`,
     category: 'Despacho',
     weight: 13,
-    text: `Las **dos mujeres** de la oficina estábamos en **filas vecinas**.`,
+    text: speaker.isCarnivore
+      ? `Las **dos mujeres** de la oficina estábamos en **filas vecinas**.`
+      : `Las **dos mujeres** de la oficina estaban en **filas vecinas**.`,
     evalFn: (st) => {
       const women = SUSPECTS.filter((s) => s.isCarnivore).map((s) => s.id);
       return Math.abs(st.suspectRow[women[0]] - st.suspectRow[women[1]]) === 1;
@@ -1211,7 +1213,9 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `women_adj_cols`,
     category: 'Despacho',
     weight: 13,
-    text: `Las **dos mujeres** ocupábamos **columnas vecinas**.`,
+    text: speaker.isCarnivore
+      ? `Las **dos mujeres** ocupábamos **columnas vecinas**.`
+      : `Las **dos mujeres** ocupaban **columnas vecinas**.`,
     evalFn: (st) => {
       const women = SUSPECTS.filter((s) => s.isCarnivore).map((s) => s.id);
       return Math.abs(st.suspectCol[women[0]] - st.suspectCol[women[1]]) === 1;
