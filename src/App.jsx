@@ -99,35 +99,35 @@ const ROOMS = [
     id: 0,
     name: 'Azul',
     bgHex: '#D8E8FC',
-    bgActive: '#BFDBFE',
+    bgActive: '#B8D6FA',
     borderHex: '#2563EB'
   },
   {
     id: 1,
     name: 'Rojo',
     bgHex: '#FCDEDE',
-    bgActive: '#FECACA',
+    bgActive: '#F9BCTC',
     borderHex: '#DC2626'
   },
   {
     id: 2,
     name: 'Verde',
     bgHex: '#CCF5E2',
-    bgActive: '#A7F3D0',
+    bgActive: '#9EE8C8',
     borderHex: '#059669'
   },
   {
     id: 3,
     name: 'Amarillo',
     bgHex: '#FCF4BB',
-    bgActive: '#FEF08A',
+    bgActive: '#F9E678',
     borderHex: '#CA8A04'
   },
   {
     id: 4,
     name: 'Morado',
     bgHex: '#E8E2FC',
-    bgActive: '#DDD6FE',
+    bgActive: '#D2C5FA',
     borderHex: '#7C3AED'
   }
 ];
@@ -2029,7 +2029,7 @@ export default function App() {
       ? 'https://www.sandwichcase.io'
       : `https://www.sandwichcase.io/?caso=${level?.seed ?? ''}`;
 
-    return `¡Alguien ha robado mi sándwich en la oficina!\n📂 ${modeLabel}\n🥪 Culpable cazado en ${formatTime(seconds)}\n\n¿Lo resuelves más rápido que yo? 👇\n${shareUrl}`;
+    return `¡Alguien ha robado mi sándwich en la oficina!\n📂 ${modeLabel}\n🕵️‍♂️ Culpable cazado en ${formatTime(seconds)}\n\n¿Lo resuelves más rápido que yo? 👇\n${shareUrl}`;
   }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, level?.seed, seconds]);
 
   const handleCopyShareText = () => {
@@ -2075,10 +2075,68 @@ export default function App() {
     return nameMatch ? nameMatch.id : null;
   }, [leaderboard, submittedEntryId, playerName, leaderboardDay, scoreSubmitted, seconds]);
 
+  const currentSuspect = SUSPECTS[activeSuspect];
+  const currentClue = level?.clues.find((c) => c.suspectId === activeSuspect);
+
+  // Pistas interactivas en el mapa: detecta despachos, puertas o fachadas mencionadas en la coartada activa
+  const activeClueHighlights = useMemo(() => {
+    const rooms = new Set();
+    const doors = new Set();
+    const doorCells = new Set();
+    const facades = new Set();
+
+    if (!currentClue?.text || !level) {
+      return { rooms, doors, doorCells, facades };
+    }
+
+    const lower = currentClue.text.toLowerCase();
+
+    // 1. Despachos por color (ej. "despacho azul")
+    ROOMS.forEach((room) => {
+      const roomNameLower = room.name.toLowerCase();
+      if (lower.includes(`despacho ${roomNameLower}`)) {
+        rooms.add(room.id);
+      }
+    });
+
+    // 2. Puertas específicas (1, 2, 3, 4) o pares / impares
+    for (let dNum = 1; dNum <= 4; dNum++) {
+      const regex = new RegExp(`\\bpuerta\\s+${dNum}\\b`, 'i');
+      if (regex.test(lower)) {
+        doors.add(dNum);
+      }
+    }
+
+    if (lower.includes('puerta par') || lower.includes('puertas pares')) {
+      doors.add(2);
+      doors.add(4);
+    }
+
+    if (lower.includes('puerta impar') || lower.includes('puertas impares')) {
+      doors.add(1);
+      doors.add(3);
+    }
+
+    if (doors.size > 0 && level.doors) {
+      level.doors.forEach((d) => {
+        if (doors.has(d.number)) {
+          doorCells.add(`${d.r1},${d.c1}`);
+          doorCells.add(`${d.r2},${d.c2}`);
+        }
+      });
+    }
+
+    // 3. Fachadas cardinales
+    if (/\bnorte\b/i.test(lower)) facades.add('north');
+    if (/\bsur\b/i.test(lower)) facades.add('south');
+    if (/\beste\b/i.test(lower)) facades.add('east');
+    if (/\boeste\b/i.test(lower)) facades.add('west');
+
+    return { rooms, doors, doorCells, facades };
+  }, [currentClue, level]);
+
   if (!level) return null;
 
-  const currentSuspect = SUSPECTS[activeSuspect];
-  const currentClue = level.clues.find((c) => c.suspectId === activeSuspect);
   const hasPlacements = Object.keys(placements).length > 0;
 
   // Paleta Grafito Oscuro (#14161B / #1E2026) vs Modo Claro
@@ -2176,7 +2234,7 @@ export default function App() {
           </div>
         </header>
 
-        {/* 2. TABLERO 5x5 CON FACHADA NORTE, SUR, ESTE Y OESTE */}
+        {/* 2. TABLERO 5x5 CON FACHADAS E ILUMINACIÓN INTERACTIVA DE PISTAS */}
         <div
           className={`flex-1 min-h-0 w-full border rounded-2xl p-2 shadow-xs flex flex-col justify-between gap-1.5 ${cardBgClass}`}
         >
@@ -2194,8 +2252,14 @@ export default function App() {
               {/* FACHADA NORTE */}
               <div className="absolute top-0 inset-x-0 h-4 flex items-center justify-center pointer-events-none">
                 <span
-                  className={`text-[9px] font-black uppercase tracking-widest ${
-                    isDark ? 'text-neutral-400' : 'text-neutral-500'
+                  className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-200 ${
+                    activeClueHighlights.facades.has('north')
+                      ? isDark
+                        ? 'text-white'
+                        : 'text-neutral-950'
+                      : isDark
+                      ? 'text-neutral-400'
+                      : 'text-neutral-500'
                   }`}
                 >
                   FACHADA NORTE
@@ -2205,8 +2269,14 @@ export default function App() {
               {/* FACHADA SUR */}
               <div className="absolute bottom-0 inset-x-0 h-4 flex items-center justify-center pointer-events-none">
                 <span
-                  className={`text-[9px] font-black uppercase tracking-widest ${
-                    isDark ? 'text-neutral-400' : 'text-neutral-500'
+                  className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-200 ${
+                    activeClueHighlights.facades.has('south')
+                      ? isDark
+                        ? 'text-white'
+                        : 'text-neutral-950'
+                      : isDark
+                      ? 'text-neutral-400'
+                      : 'text-neutral-500'
                   }`}
                 >
                   FACHADA SUR
@@ -2216,8 +2286,14 @@ export default function App() {
               {/* FACHADA OESTE */}
               <div className="absolute left-0 inset-y-0 w-4 flex items-center justify-center pointer-events-none">
                 <span
-                  className={`text-[9px] font-black uppercase tracking-widest [writing-mode:vertical-lr] rotate-180 ${
-                    isDark ? 'text-neutral-400' : 'text-neutral-500'
+                  className={`text-[9px] font-black uppercase tracking-widest [writing-mode:vertical-lr] rotate-180 transition-colors duration-200 ${
+                    activeClueHighlights.facades.has('west')
+                      ? isDark
+                        ? 'text-white'
+                        : 'text-neutral-950'
+                      : isDark
+                      ? 'text-neutral-400'
+                      : 'text-neutral-500'
                   }`}
                 >
                   FACHADA OESTE
@@ -2227,8 +2303,14 @@ export default function App() {
               {/* FACHADA ESTE */}
               <div className="absolute right-0 inset-y-0 w-4 flex items-center justify-center pointer-events-none">
                 <span
-                  className={`text-[9px] font-black uppercase tracking-widest [writing-mode:vertical-lr] ${
-                    isDark ? 'text-neutral-400' : 'text-neutral-500'
+                  className={`text-[9px] font-black uppercase tracking-widest [writing-mode:vertical-lr] transition-colors duration-200 ${
+                    activeClueHighlights.facades.has('east')
+                      ? isDark
+                        ? 'text-white'
+                        : 'text-neutral-950'
+                      : isDark
+                      ? 'text-neutral-400'
+                      : 'text-neutral-500'
                   }`}
                 >
                   FACHADA ESTE
@@ -2250,10 +2332,18 @@ export default function App() {
                       const isInvalidated = invalidatedCells.has(key);
                       const hasConflict = validation.conflicts.has(key);
 
+                      const isRoomHighlighted = activeClueHighlights.rooms.has(roomId);
+                      const isDoorCellHighlighted = activeClueHighlights.doorCells.has(key);
+
                       const topWall = r > 0 && level.grid[r - 1][c] !== roomId;
                       const bottomWall = r < 4 && level.grid[r + 1][c] !== roomId;
                       const leftWall = c > 0 && level.grid[r][c - 1] !== roomId;
                       const rightWall = c < 4 && level.grid[r][c + 1] !== roomId;
+
+                      const isRoomOuterTop = r === 0 || topWall;
+                      const isRoomOuterBottom = r === 4 || bottomWall;
+                      const isRoomOuterLeft = c === 0 || leftWall;
+                      const isRoomOuterRight = c === 4 || rightWall;
 
                       return (
                         <button
@@ -2261,7 +2351,9 @@ export default function App() {
                           type="button"
                           onClick={() => handleCellClick(r, c)}
                           style={{
-                            backgroundColor: roomObj.bgHex,
+                            backgroundColor: isRoomHighlighted
+                              ? roomObj.bgActive
+                              : roomObj.bgHex,
                             borderTop: topWall
                               ? '2.5px solid #181A20'
                               : '1px solid rgba(24, 26, 32, 0.12)',
@@ -2275,13 +2367,46 @@ export default function App() {
                               ? '2.5px solid #181A20'
                               : '1px solid rgba(24, 26, 32, 0.12)'
                           }}
-                          className={`relative w-full h-full flex flex-col items-center justify-center p-0 overflow-hidden focus:outline-none ${
+                          className={`relative w-full h-full flex flex-col items-center justify-center p-0 overflow-hidden transition-colors duration-200 focus:outline-none ${
                             gameWon ? 'cursor-default' : 'cursor-pointer'
                           } ${hasConflict ? 'ring-3 ring-inset ring-rose-600 z-10' : ''}`}
                         >
+                          {/* Brillo sutil cuando la coartada menciona este despacho */}
+                          {isRoomHighlighted && (
+                            <div
+                              style={{
+                                borderTop: isRoomOuterTop
+                                  ? `2px solid ${roomObj.borderHex}`
+                                  : 'none',
+                                borderBottom: isRoomOuterBottom
+                                  ? `2px solid ${roomObj.borderHex}`
+                                  : 'none',
+                                borderLeft: isRoomOuterLeft
+                                  ? `2px solid ${roomObj.borderHex}`
+                                  : 'none',
+                                borderRight: isRoomOuterRight
+                                  ? `2px solid ${roomObj.borderHex}`
+                                  : 'none',
+                                boxShadow: `inset 0 0 12px ${roomObj.borderHex}2E`
+                              }}
+                              className="absolute inset-0 pointer-events-none animate-pulse bg-white/25"
+                            />
+                          )}
+
+                          {/* Resaltado sutil en las dos casillas que conecta una puerta mencionada */}
+                          {isDoorCellHighlighted && (
+                            <div
+                              style={{
+                                boxShadow:
+                                  'inset 0 0 0 2px rgba(24, 26, 32, 0.35), inset 0 0 10px rgba(255, 255, 255, 0.55)'
+                              }}
+                              className="absolute inset-0 pointer-events-none animate-pulse bg-white/30"
+                            />
+                          )}
+
                           {/* Marcador del Crimen compacto */}
                           {isVase && (
-                            <div className="flex flex-col items-center justify-center leading-none pointer-events-none">
+                            <div className="relative z-10 flex flex-col items-center justify-center leading-none pointer-events-none">
                               <img
                                 src={sandwichSvg}
                                 alt="Sándwich robado"
@@ -2295,7 +2420,7 @@ export default function App() {
 
                           {/* Sospechoso colocado */}
                           {!isVase && placedSuspect && (
-                            <div className="flex flex-col items-center justify-center leading-none pointer-events-none">
+                            <div className="relative z-10 flex flex-col items-center justify-center leading-none pointer-events-none">
                               <img
                                 src={placedSuspect.emoji}
                                 alt={placedSuspect.name}
@@ -2317,7 +2442,7 @@ export default function App() {
 
                           {/* Crucecita de casilla descartada */}
                           {!isVase && !placedSuspect && isInvalidated && (
-                            <span className="text-neutral-500/55 font-black text-base leading-none pointer-events-none">
+                            <span className="relative z-10 text-neutral-500/55 font-black text-base leading-none pointer-events-none">
                               ✕
                             </span>
                           )}
@@ -2327,7 +2452,7 @@ export default function App() {
                   )}
                 </div>
 
-                {/* PUERTAS NUMERADAS (1, 2, 3, 4) */}
+                {/* PUERTAS NUMERADAS (1, 2, 3, 4) CON BRILLO INTERACTIVO */}
                 {level.doors.map((door) => {
                   const leftPct =
                     door.orientation === 'vertical'
@@ -2338,6 +2463,8 @@ export default function App() {
                       ? (door.r1 + 1) * 20
                       : (door.r1 + 0.5) * 20;
 
+                  const isDoorHighlighted = activeClueHighlights.doors.has(door.number);
+
                   return (
                     <div
                       key={door.number}
@@ -2345,9 +2472,16 @@ export default function App() {
                         left: `${leftPct}%`,
                         top: `${topPct}%`
                       }}
-                      className="absolute -translate-x-1/2 -translate-y-1/2 z-20 w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-[#181A20] text-white border-2 border-white flex items-center justify-center font-black text-[10px] sm:text-[11px] shadow-md pointer-events-none"
+                      className={`absolute -translate-x-1/2 -translate-y-1/2 z-20 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center font-black text-[10px] sm:text-[11px] pointer-events-none transition-all duration-200 ${
+                        isDoorHighlighted
+                          ? 'bg-white text-[#181A20] border-2 border-[#181A20] scale-115 shadow-lg ring-4 ring-[#181A20]/25'
+                          : 'bg-[#181A20] text-white border-2 border-white shadow-md'
+                      }`}
                     >
-                      {door.number}
+                      {isDoorHighlighted && (
+                        <span className="absolute -inset-1 rounded-full border-2 border-white/90 animate-ping pointer-events-none" />
+                      )}
+                      <span className="relative z-10">{door.number}</span>
                     </div>
                   );
                 })}
@@ -2450,7 +2584,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* 4. PÍLDORAS SELECTORAS DE SOSPECHOSOS (CON DOT DE ESTADO COLOCADO) */}
+        {/* 4. PÍLDORAS SELECTORAS DE SOSPECHOSOS (CON DOT GRIS NEUTRO SUTIL EN COLOCADOS) */}
         <div className="w-full grid grid-cols-5 gap-1.5 h-12 shrink-0">
           {SUSPECTS.map((s) => {
             const isSelected = activeSuspect === s.id;
@@ -2484,17 +2618,16 @@ export default function App() {
               ? 'border border-[#2C303A]'
               : 'border border-neutral-200';
 
-            const dotClass = isInconsistent
-              ? 'bg-rose-500'
-              : isPlaced
-              ? 'bg-emerald-500'
-              : isSelected
-              ? isDark
-                ? 'bg-neutral-400/70'
-                : 'bg-neutral-500/80'
-              : isDark
-              ? 'bg-neutral-700'
-              : 'bg-neutral-300';
+            // Dot gris neutro sutil: visible únicamente cuando el sospechoso está colocado
+            const dotClass = isPlaced
+              ? isSelected
+                ? isDark
+                  ? 'bg-neutral-400 opacity-100'
+                  : 'bg-neutral-400 opacity-100'
+                : isDark
+                ? 'bg-neutral-400 opacity-100'
+                : 'bg-neutral-500 opacity-100'
+              : 'opacity-0';
 
             return (
               <button
@@ -2503,10 +2636,10 @@ export default function App() {
                 onClick={() => setActiveSuspect(s.id)}
                 className={`relative h-full rounded-xl font-black transition-all flex flex-col items-center justify-center cursor-pointer ${baseBgAndText} ${borderClass}`}
               >
-                {/* Dot indicador de colocado */}
+                {/* Dot gris neutro sutil para indicar si está colocado */}
                 <span
                   title={isPlaced ? 'Colocado en la mesa' : 'Sin colocar'}
-                  className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full transition-colors ${dotClass}`}
+                  className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full transition-opacity duration-150 ${dotClass}`}
                 />
 
                 <div className="flex items-center gap-1 leading-none">
