@@ -10,7 +10,8 @@ import {
   Clock,
   Menu,
   Trophy,
-  Send
+  Send,
+  History
 } from 'lucide-react';
 import { createClient } from '@supabase/supabase-js';
 
@@ -1529,6 +1530,12 @@ export default function App() {
   }, [isDark]);
 
   const dailyConfig = useMemo(() => getDailyConfig(), []);
+  const yesterdayConfig = useMemo(() => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return getDailyConfig(yesterday);
+  }, []);
+
   const dailyStorageKey = `sandwich_daily_state_${dailyConfig.seed}`;
 
   const initialDailySaved = useMemo(() => {
@@ -1557,8 +1564,9 @@ export default function App() {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
 
-  // --- ESTADOS DE LA LEADERBOARD DIARIA ---
+  // --- ESTADOS DE LA LEADERBOARD DIARIA (HOY Y AYER) ---
   const [modalTab, setModalTab] = useState('share'); // 'share' | 'leaderboard'
+  const [leaderboardDay, setLeaderboardDay] = useState('today'); // 'today' | 'yesterday'
   const [leaderboard, setLeaderboard] = useState([]);
   const [isLoadingBoard, setIsLoadingBoard] = useState(false);
   const [playerName, setPlayerName] = useState(() => {
@@ -1601,13 +1609,16 @@ export default function App() {
     }
   }, [isDailyMode, isSolved, seconds, placements, scoreSubmitted, dailyStorageKey]);
 
+  const targetBoardSeed =
+    leaderboardDay === 'today' ? dailyConfig.seed : yesterdayConfig.seed;
+
   const fetchLeaderboard = useCallback(async () => {
     if (!supabase) return;
     setIsLoadingBoard(true);
     const { data, error } = await supabase
       .from('daily_leaderboard')
       .select('id, player_name, comment, seconds, created_at')
-      .eq('seed', dailyConfig.seed)
+      .eq('seed', targetBoardSeed)
       .order('seconds', { ascending: true })
       .limit(50);
 
@@ -1615,13 +1626,13 @@ export default function App() {
       setLeaderboard(data);
     }
     setIsLoadingBoard(false);
-  }, [dailyConfig.seed]);
+  }, [targetBoardSeed]);
 
   useEffect(() => {
-    if (isShareModalOpen && isDailyMode) {
+    if (isShareModalOpen && isDailyMode && isSolved) {
       fetchLeaderboard();
     }
-  }, [isShareModalOpen, isDailyMode, fetchLeaderboard]);
+  }, [isShareModalOpen, isDailyMode, isSolved, fetchLeaderboard]);
 
   const handleSubmitScore = async (e) => {
     e.preventDefault();
@@ -1661,6 +1672,7 @@ export default function App() {
       // Ignorar
     }
     setScoreSubmitted(true);
+    setLeaderboardDay('today');
     fetchLeaderboard();
   };
 
@@ -1843,6 +1855,7 @@ export default function App() {
     if (validation?.allCluesValid && !isSolved) {
       setIsSolved(true);
       setModalTab('share');
+      setLeaderboardDay('today');
       setIsShareModalOpen(true);
     }
   }, [validation, isSolved]);
@@ -1999,10 +2012,12 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {isDailyMode && (
+            {/* El botón del Ranking solo aparece si se ha resuelto el reto diario */}
+            {isDailyMode && gameWon && (
               <button
                 type="button"
                 onClick={() => {
+                  setLeaderboardDay('today');
                   setModalTab('leaderboard');
                   setIsShareModalOpen(true);
                 }}
@@ -2655,8 +2670,8 @@ export default function App() {
         </div>
       )}
 
-      {/* 8. POPUP MODAL DE COMPARTIR Y LEADERBOARD DIARIA */}
-      {isShareModalOpen && (
+      {/* 8. POPUP MODAL DE COMPARTIR Y LEADERBOARD DIARIA (SOLO ACCESIBLE AL RESOLVER) */}
+      {isShareModalOpen && gameWon && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fadeIn"
           onClick={() => setIsShareModalOpen(false)}
@@ -2669,53 +2684,31 @@ export default function App() {
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Cabecera del Modal (Sin spoilers si aún no ha ganado) */}
+            {/* Cabecera del Modal */}
             <div className="flex items-start justify-between gap-2 shrink-0">
-              {gameWon ? (
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className={`w-11 h-11 rounded-2xl border flex items-center justify-center p-1.5 shrink-0 ${
-                      isDark
-                        ? 'bg-[#14161B] border-[#2C303A]'
-                        : 'bg-neutral-100 border-neutral-200'
-                    }`}
-                  >
-                    <img
-                      src={SUSPECTS[level.thiefId].emoji}
-                      alt={SUSPECTS[level.thiefId].name}
-                      className="w-full h-full object-contain"
-                    />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-black leading-tight">
-                      ¡Pillas a {SUSPECTS[level.thiefId].name} masticando!
-                    </h2>
-                    <p className={`font-sans text-xs mt-0.5 italic ${subTextClass}`}>
-                      {SUSPECTS[level.thiefId].confession}
-                    </p>
-                  </div>
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`w-11 h-11 rounded-2xl border flex items-center justify-center p-1.5 shrink-0 ${
+                    isDark
+                      ? 'bg-[#14161B] border-[#2C303A]'
+                      : 'bg-neutral-100 border-neutral-200'
+                  }`}
+                >
+                  <img
+                    src={SUSPECTS[level.thiefId].emoji}
+                    alt={SUSPECTS[level.thiefId].name}
+                    className="w-full h-full object-contain"
+                  />
                 </div>
-              ) : (
-                <div className="flex items-center gap-2.5">
-                  <div
-                    className={`w-11 h-11 rounded-2xl border flex items-center justify-center p-2 shrink-0 ${
-                      isDark
-                        ? 'bg-[#14161B] border-[#2C303A] text-amber-400'
-                        : 'bg-neutral-100 border-neutral-200 text-amber-500'
-                    }`}
-                  >
-                    <Trophy className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-black leading-tight">
-                      Nevera de la Oficina
-                    </h2>
-                    <p className={`text-xs mt-0.5 ${subTextClass}`}>
-                      Ranking y notas del {dailyConfig.formattedDate}
-                    </p>
-                  </div>
+                <div>
+                  <h2 className="text-base font-black leading-tight">
+                    ¡Pillas a {SUSPECTS[level.thiefId].name} masticando!
+                  </h2>
+                  <p className={`font-sans text-xs mt-0.5 italic ${subTextClass}`}>
+                    {SUSPECTS[level.thiefId].confession}
+                  </p>
                 </div>
-              )}
+              </div>
 
               <button
                 type="button"
@@ -2730,8 +2723,8 @@ export default function App() {
               </button>
             </div>
 
-            {/* Selector de Pestañas (Si es modo diario y ya ganó) */}
-            {isDailyMode && gameWon && (
+            {/* Selector de Pestañas (Solo en Modo Diario una vez resuelto) */}
+            {isDailyMode && (
               <div
                 className={`grid grid-cols-2 p-1 rounded-xl border shrink-0 ${
                   isDark
@@ -2764,13 +2757,13 @@ export default function App() {
                   }`}
                 >
                   <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Nevera ({leaderboard.length})</span>
+                  <span>Nevera</span>
                 </button>
               </div>
             )}
 
             {/* PESTAÑA 1: COMPARTIR INFORME */}
-            {gameWon && (!isDailyMode || modalTab === 'share') && (
+            {(!isDailyMode || modalTab === 'share') && (
               <>
                 {isDailyMode && (
                   <div
@@ -2800,14 +2793,21 @@ export default function App() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  {isDailyMode && !scoreSubmitted && (
+                  {isDailyMode && (
                     <button
                       type="button"
-                      onClick={() => setModalTab('leaderboard')}
+                      onClick={() => {
+                        setLeaderboardDay('today');
+                        setModalTab('leaderboard');
+                      }}
                       className="w-full py-2.5 px-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-neutral-950 transition cursor-pointer"
                     >
                       <Trophy className="w-4 h-4" />
-                      <span>Dejar nota en el Ranking del Día</span>
+                      <span>
+                        {scoreSubmitted
+                          ? 'Ver Ranking de la Nevera'
+                          : 'Dejar nota en el Ranking del Día'}
+                      </span>
                     </button>
                   )}
 
@@ -2860,96 +2860,121 @@ export default function App() {
               </>
             )}
 
-            {/* PESTAÑA 2: LEADERBOARD + POST-ITS DE LA NEVERA */}
-            {isDailyMode && (!gameWon || modalTab === 'leaderboard') && (
-              <div className="flex flex-col gap-3 min-h-0 flex-1 overflow-hidden">
-                {!gameWon ? (
-                  <div
-                    className={`px-3 py-2.5 rounded-xl border text-[11px] font-bold text-center shrink-0 ${
+            {/* PESTAÑA 2: LEADERBOARD + BOTÓN RANKING DE AYER */}
+            {isDailyMode && modalTab === 'leaderboard' && (
+              <div className="flex flex-col gap-2.5 min-h-0 flex-1 overflow-hidden">
+                {/* Barra superior para alternar entre el Ranking de Hoy y el de Ayer */}
+                <div className="flex items-center justify-between gap-2 shrink-0">
+                  <span className={`text-[11px] font-bold ${subTextClass}`}>
+                    {leaderboardDay === 'today'
+                      ? `Hoy · ${dailyConfig.formattedDate}`
+                      : `Ayer · ${yesterdayConfig.formattedDate}`}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setLeaderboardDay((prev) =>
+                        prev === 'today' ? 'yesterday' : 'today'
+                      )
+                    }
+                    className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer ${
                       isDark
-                        ? 'bg-[#14161B] border-[#2C303A] text-neutral-300'
-                        : 'bg-neutral-100 border-neutral-200 text-neutral-700'
+                        ? 'bg-[#14161B] border-[#2C303A] hover:border-neutral-600 text-neutral-200'
+                        : 'bg-neutral-100 border-neutral-200 hover:bg-neutral-200 text-neutral-800'
                     }`}
                   >
-                    🕵️‍♂️ ¡Resuelve el robo de hoy para colgar tu tiempo y tu nota en la nevera!
-                  </div>
-                ) : !scoreSubmitted ? (
-                  <form
-                    onSubmit={handleSubmitScore}
-                    className={`p-3 rounded-2xl border flex flex-col gap-2 shrink-0 ${
-                      isDark
-                        ? 'bg-[#14161B] border-[#2C303A]'
-                        : 'bg-neutral-50 border-neutral-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-[11px]">
-                      <span className="font-black">
-                        Cuelga tu post-it en la nevera
-                      </span>
-                      <span className="font-mono font-bold text-emerald-500">
-                        Tiempo: {formatTime(seconds)}
-                      </span>
-                    </div>
+                    <History className="w-3.5 h-3.5 text-amber-400" />
+                    <span>
+                      {leaderboardDay === 'today'
+                        ? 'Ver ranking de ayer'
+                        : 'Volver al ranking de hoy'}
+                    </span>
+                  </button>
+                </div>
 
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        required
-                        maxLength={18}
-                        placeholder="Tu alias"
-                        value={playerName}
-                        onChange={(e) => setPlayerName(e.target.value)}
-                        className={`w-2/5 px-2.5 py-1.5 rounded-xl border text-xs font-bold focus:outline-none ${
+                {/* Formulario (solo visible en el ranking de HOY si aún no ha enviado nota) */}
+                {leaderboardDay === 'today' && (
+                  <>
+                    {!scoreSubmitted ? (
+                      <form
+                        onSubmit={handleSubmitScore}
+                        className={`p-3 rounded-2xl border flex flex-col gap-2 shrink-0 ${
                           isDark
-                            ? 'bg-[#1E2026] border-[#2C303A] text-white placeholder:text-neutral-500'
-                            : 'bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400'
+                            ? 'bg-[#14161B] border-[#2C303A]'
+                            : 'bg-neutral-50 border-neutral-200'
                         }`}
-                      />
-                      <input
-                        type="text"
-                        maxLength={70}
-                        placeholder="Nota en la nevera (opcional)..."
-                        value={playerComment}
-                        onChange={(e) => setPlayerComment(e.target.value)}
-                        className={`w-3/5 px-2.5 py-1.5 rounded-xl border text-xs focus:outline-none ${
-                          isDark
-                            ? 'bg-[#1E2026] border-[#2C303A] text-white placeholder:text-neutral-500'
-                            : 'bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400'
-                        }`}
-                      />
-                    </div>
+                      >
+                        <div className="flex items-center justify-between text-[11px]">
+                          <span className="font-black">
+                            Cuelga tu post-it en la nevera
+                          </span>
+                          <span className="font-mono font-bold text-emerald-500">
+                            Tiempo: {formatTime(seconds)}
+                          </span>
+                        </div>
 
-                    {submitError && (
-                      <span className="text-[10px] text-rose-500 font-bold">
-                        {submitError}
-                      </span>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            required
+                            maxLength={18}
+                            placeholder="Tu alias"
+                            value={playerName}
+                            onChange={(e) => setPlayerName(e.target.value)}
+                            className={`w-2/5 px-2.5 py-1.5 rounded-xl border text-xs font-bold focus:outline-none ${
+                              isDark
+                                ? 'bg-[#1E2026] border-[#2C303A] text-white placeholder:text-neutral-500'
+                                : 'bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400'
+                            }`}
+                          />
+                          <input
+                            type="text"
+                            maxLength={70}
+                            placeholder="Nota en la nevera (opcional)..."
+                            value={playerComment}
+                            onChange={(e) => setPlayerComment(e.target.value)}
+                            className={`w-3/5 px-2.5 py-1.5 rounded-xl border text-xs focus:outline-none ${
+                              isDark
+                                ? 'bg-[#1E2026] border-[#2C303A] text-white placeholder:text-neutral-500'
+                                : 'bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400'
+                            }`}
+                          />
+                        </div>
+
+                        {submitError && (
+                          <span className="text-[10px] text-rose-500 font-bold">
+                            {submitError}
+                          </span>
+                        )}
+
+                        <button
+                          type="submit"
+                          disabled={isSubmittingScore}
+                          className={`w-full py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${primaryActionBtnClass}`}
+                        >
+                          <Send className="w-3.5 h-3.5" />
+                          <span>
+                            {isSubmittingScore ? 'Colgando nota...' : 'Publicar en el ranking'}
+                          </span>
+                        </button>
+                      </form>
+                    ) : (
+                      <div
+                        className={`px-3 py-2 rounded-xl border text-[11px] font-bold flex items-center gap-2 shrink-0 ${
+                          isDark
+                            ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300'
+                            : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                        }`}
+                      >
+                        <Check className="w-4 h-4 shrink-0" />
+                        <span>¡Tu nota ya está pegada en la nevera de hoy!</span>
+                      </div>
                     )}
-
-                    <button
-                      type="submit"
-                      disabled={isSubmittingScore}
-                      className={`w-full py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${primaryActionBtnClass}`}
-                    >
-                      <Send className="w-3.5 h-3.5" />
-                      <span>
-                        {isSubmittingScore ? 'Colgando nota...' : 'Publicar en el ranking'}
-                      </span>
-                    </button>
-                  </form>
-                ) : (
-                  <div
-                    className={`px-3 py-2 rounded-xl border text-[11px] font-bold flex items-center gap-2 shrink-0 ${
-                      isDark
-                        ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300'
-                        : 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                    }`}
-                  >
-                    <Check className="w-4 h-4 shrink-0" />
-                    <span>¡Tu nota ya está pegada en la nevera de hoy!</span>
-                  </div>
+                  </>
                 )}
 
-                {/* Lista con scroll de los mejores detectives del día */}
+                {/* Lista con scroll de los mejores detectives */}
                 <div className="flex-1 min-h-0 overflow-y-auto pr-1 flex flex-col gap-1.5">
                   {!supabase ? (
                     <div className={`py-6 text-center text-xs ${subTextClass}`}>
@@ -2961,7 +2986,9 @@ export default function App() {
                     </div>
                   ) : leaderboard.length === 0 ? (
                     <div className={`py-8 text-center text-xs ${subTextClass}`}>
-                      Nadie ha dejado una nota hoy. ¡Sé el primero en inaugurar la nevera!
+                      {leaderboardDay === 'today'
+                        ? 'Nadie ha dejado una nota hoy. ¡Sé el primero en inaugurar la nevera!'
+                        : 'Ayer no quedaron notas registradas en la nevera.'}
                     </div>
                   ) : (
                     leaderboard.map((entry, idx) => (
