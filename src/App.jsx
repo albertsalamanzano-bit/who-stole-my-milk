@@ -24,7 +24,7 @@ import sandwichSvg from './assets/sandwich.svg';
 import { Analytics } from '@vercel/analytics/react';
 
 // ============================================================================
-// 0. CONFIGURACIÓN DE SUPABASE (LEADERBOARD DIARIA)
+// 0. CONFIGURACIÓN DE SUPABASE (RANKING DIARIO)
 // ============================================================================
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -1539,14 +1539,6 @@ export default function App() {
     }
   }, []);
 
-  // Sincroniza el color de fondo de html/body para que la barra inferior de Safari coincida siempre con el tema
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    const bg = isDark ? '#14161B' : '#F3F4F6';
-    document.documentElement.style.backgroundColor = bg;
-    document.body.style.backgroundColor = bg;
-  }, [isDark]);
-
   const dailyConfig = useMemo(() => getDailyConfig(), []);
   const yesterdayConfig = useMemo(() => {
     const yesterday = new Date();
@@ -1582,7 +1574,7 @@ export default function App() {
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
   const [copiedShare, setCopiedShare] = useState(false);
 
-  // --- ESTADOS DE LA LEADERBOARD DIARIA (HOY Y AYER) ---
+  // --- ESTADOS DEL RANKING DIARIO (HOY Y AYER) ---
   const [modalTab, setModalTab] = useState('share'); // 'share' | 'leaderboard'
   const [leaderboardDay, setLeaderboardDay] = useState('today'); // 'today' | 'yesterday'
   const [leaderboard, setLeaderboard] = useState([]);
@@ -1591,7 +1583,6 @@ export default function App() {
     if (typeof window === 'undefined') return '';
     return localStorage.getItem('sandwich_detective_name') || '';
   });
-  const [playerComment, setPlayerComment] = useState('');
   const [isSubmittingScore, setIsSubmittingScore] = useState(false);
   const [scoreSubmitted, setScoreSubmitted] = useState(() =>
     Boolean(initialDailySaved?.scoreSubmitted)
@@ -1599,6 +1590,27 @@ export default function App() {
   const [submitError, setSubmitError] = useState('');
 
   const [countdown, setCountdown] = useState(() => getTimeUntilMidnight());
+
+  const isAnyModalOpen = isHelpModalOpen || isModeModalOpen || isShareModalOpen;
+
+  // Sincroniza el color de fondo de html/body y theme-color (incluyendo sombra de popups en barras del navegador)
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const baseBg = isDark ? '#14161B' : '#F3F4F6';
+    const modalBg = isDark ? '#050608' : '#3D3F45';
+    const activeColor = isAnyModalOpen ? modalBg : baseBg;
+
+    document.documentElement.style.backgroundColor = activeColor;
+    document.body.style.backgroundColor = activeColor;
+
+    let metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (!metaTheme) {
+      metaTheme = document.createElement('meta');
+      metaTheme.name = 'theme-color';
+      document.head.appendChild(metaTheme);
+    }
+    metaTheme.setAttribute('content', activeColor);
+  }, [isDark, isAnyModalOpen]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -1635,7 +1647,7 @@ export default function App() {
     setIsLoadingBoard(true);
     const { data, error } = await supabase
       .from('daily_leaderboard')
-      .select('id, player_name, comment, seconds, created_at')
+      .select('id, player_name, seconds, created_at')
       .eq('seed', targetBoardSeed)
       .order('seconds', { ascending: true })
       .limit(50);
@@ -1657,10 +1669,9 @@ export default function App() {
     if (!supabase || scoreSubmitted || isSubmittingScore) return;
 
     const cleanName = sanitizeText(playerName);
-    const cleanComment = sanitizeText(playerComment);
 
     if (cleanName.length < 2) {
-      setSubmitError('Pon un alias de al menos 2 letras.');
+      setSubmitError('Pon un apodo de al menos 2 letras.');
       return;
     }
 
@@ -1671,7 +1682,7 @@ export default function App() {
       {
         seed: dailyConfig.seed,
         player_name: cleanName.slice(0, 18),
-        comment: cleanComment.slice(0, 70),
+        comment: '',
         seconds: Math.max(3, seconds),
         thief_id: level.thiefId
       }
@@ -1680,7 +1691,7 @@ export default function App() {
     setIsSubmittingScore(false);
 
     if (error) {
-      setSubmitError('No se pudo colgar el post-it. Revisa tu conexión.');
+      setSubmitError('No se pudo guardar en el ranking. Revisa tu conexión.');
       return;
     }
 
@@ -1856,6 +1867,10 @@ export default function App() {
   }, [level, placements]);
 
   const gameWon = isSolved || Boolean(validation?.allCluesValid);
+  const hasClueMismatch =
+    validation?.placedCount === 5 &&
+    validation?.conflicts.size === 0 &&
+    !validation?.allCluesValid;
 
   useEffect(() => {
     if (validation?.allCluesValid && !isSolved) {
@@ -1954,8 +1969,8 @@ export default function App() {
       className={`h-dvh max-h-dvh overflow-hidden font-sans select-none flex flex-col items-center justify-between px-3 pt-[max(0.35rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] transition-colors duration-200 ${pageBgClass}`}
     >
       <div className="w-full max-w-[400px] h-full flex flex-col justify-between gap-1.5 min-h-0">
-        {/* 1. CABECERA LIMPIA CON TÍTULO CENTRADO */}
-        <header className="grid grid-cols-[auto_1fr_auto] items-center gap-2 shrink-0 py-0.5">
+        {/* 1. CABECERA CON TÍTULO ADAPTABLE Y CENTRADO */}
+        <header className="grid grid-cols-[auto_1fr_auto] items-center gap-1.5 shrink-0 py-0.5">
           <button
             type="button"
             onClick={() => setIsModeModalOpen(true)}
@@ -1969,7 +1984,7 @@ export default function App() {
             <Menu className="w-4 h-4" />
           </button>
 
-          <h1 className="text-[13px] sm:text-sm font-black tracking-tight leading-none flex items-center justify-center gap-1.5 min-w-0 text-center">
+          <h1 className="font-sans text-[clamp(0.72rem,3.6vw,0.95rem)] font-black tracking-tight leading-tight flex items-center justify-center gap-1 min-w-0 text-center px-0.5">
             <img
               src={sandwichSvg}
               alt="Sándwich"
@@ -1979,7 +1994,7 @@ export default function App() {
           </h1>
 
           <div className="flex items-center justify-end gap-1.5 shrink-0">
-            {/* El botón del Ranking solo aparece si se ha resuelto el reto diario */}
+            {/* Botón del Ranking: Fondo amarillo y trofeo blanco */}
             {isDailyMode && gameWon && (
               <button
                 type="button"
@@ -1988,14 +2003,10 @@ export default function App() {
                   setModalTab('leaderboard');
                   setIsShareModalOpen(true);
                 }}
-                title="Ver Ranking de la Nevera"
-                className={`p-1.5 rounded-lg border transition cursor-pointer flex items-center justify-center ${
-                  isDark
-                    ? 'bg-[#1E2026] border-[#2C303A] hover:border-neutral-600 text-amber-400'
-                    : 'bg-white border-neutral-200 hover:border-neutral-400 text-amber-500'
-                }`}
+                title="Ver Ranking"
+                className="p-1.5 rounded-lg border border-amber-400 bg-amber-400 hover:bg-amber-500 text-white transition cursor-pointer flex items-center justify-center shadow-2xs"
               >
-                <Trophy className="w-3.5 h-3.5" />
+                <Trophy className="w-3.5 h-3.5 text-white" />
               </button>
             )}
 
@@ -2034,7 +2045,7 @@ export default function App() {
           </div>
         </header>
 
-        {/* 2. TABLERO 5x5 CON NORTE, SUR, ESTE Y OESTE (TAMAÑO FIJO E INMÓVIL) */}
+        {/* 2. TABLERO 5x5 CON FACHADA NORTE, SUR, ESTE Y OESTE */}
         <div
           className={`flex-1 min-h-0 w-full border rounded-2xl p-2 shadow-xs flex flex-col justify-between gap-1.5 ${cardBgClass}`}
         >
@@ -2049,51 +2060,51 @@ export default function App() {
                 height: 'min(100cqw, 100cqh)'
               }}
             >
-              {/* NORTE */}
+              {/* FACHADA NORTE */}
               <div className="absolute top-0 inset-x-0 h-4 flex items-center justify-center pointer-events-none">
                 <span
                   className={`text-[9px] font-black uppercase tracking-widest ${
                     isDark ? 'text-neutral-400' : 'text-neutral-500'
                   }`}
                 >
-                  NORTE
+                  FACHADA NORTE
                 </span>
               </div>
 
-              {/* SUR */}
+              {/* FACHADA SUR */}
               <div className="absolute bottom-0 inset-x-0 h-4 flex items-center justify-center pointer-events-none">
                 <span
                   className={`text-[9px] font-black uppercase tracking-widest ${
                     isDark ? 'text-neutral-400' : 'text-neutral-500'
                   }`}
                 >
-                  SUR
+                  FACHADA SUR
                 </span>
               </div>
 
-              {/* OESTE */}
+              {/* FACHADA OESTE */}
               <div className="absolute left-0 inset-y-0 w-4 flex items-center justify-center pointer-events-none">
                 <span
                   className={`text-[9px] font-black uppercase tracking-widest [writing-mode:vertical-lr] rotate-180 ${
                     isDark ? 'text-neutral-400' : 'text-neutral-500'
                   }`}
                 >
-                  OESTE
+                  FACHADA OESTE
                 </span>
               </div>
 
-              {/* ESTE */}
+              {/* FACHADA ESTE */}
               <div className="absolute right-0 inset-y-0 w-4 flex items-center justify-center pointer-events-none">
                 <span
                   className={`text-[9px] font-black uppercase tracking-widest [writing-mode:vertical-lr] ${
                     isDark ? 'text-neutral-400' : 'text-neutral-500'
                   }`}
                 >
-                  ESTE
+                  FACHADA ESTE
                 </span>
               </div>
 
-              {/* CUADRÍCULA 5x5 LIMPIA SIN TEXTURA BLUEPRINT */}
+              {/* CUADRÍCULA 5x5 LIMPIA */}
               <div className="relative w-full h-full">
                 <div className="w-full h-full grid grid-cols-5 grid-rows-5 border-[3px] border-[#181A20] rounded-xl overflow-hidden bg-[#181A20] shadow-inner">
                   {Array.from({ length: 5 }).map((_, r) =>
@@ -2249,7 +2260,7 @@ export default function App() {
           )}
         </div>
 
-        {/* 3. BARRA DE REGLA CLARA (EL DEL DESPACHO DEL CRIMEN MIENTE) + BOTÓN REGLAS */}
+        {/* 3. BARRA DE REGLA / AVISO EN ROJO SI ALGUNA COARTADA NO CUADRA */}
         <div className="flex items-center justify-between gap-2 px-0.5 shrink-0">
           <div className="flex items-center gap-1.5 min-w-0">
             <img
@@ -2257,21 +2268,27 @@ export default function App() {
               alt="Sándwich"
               className="w-4 h-4 object-contain shrink-0"
             />
-            <span
-              className={`text-[11px] font-bold leading-tight ${
-                isDark ? 'text-neutral-300' : 'text-neutral-700'
-              }`}
-            >
-              Quien está en el despacho del{' '}
-              <strong
-                className={`font-black ${
-                  isDark ? 'text-white' : 'text-neutral-950'
+            {hasClueMismatch ? (
+              <span className="text-[11px] font-black leading-tight text-rose-500">
+                ¡Alguna coartada no cuadra!
+              </span>
+            ) : (
+              <span
+                className={`text-[11px] font-bold leading-tight ${
+                  isDark ? 'text-neutral-300' : 'text-neutral-700'
                 }`}
               >
-                CRIMEN
-              </strong>{' '}
-              miente
-            </span>
+                Quien está en el despacho del{' '}
+                <strong
+                  className={`font-black ${
+                    isDark ? 'text-white' : 'text-neutral-950'
+                  }`}
+                >
+                  CRIMEN
+                </strong>{' '}
+                miente
+              </span>
+            )}
           </div>
 
           <button
@@ -2297,48 +2314,47 @@ export default function App() {
           </button>
         </div>
 
-        {/* 4. PÍLDORAS SELECTORAS DE SOSPECHOSOS */}
+        {/* 4. PÍLDORAS SELECTORAS DE SOSPECHOSOS (SIN DOTS, CON BORDE ROJO SI FALLA LA COARTADA) */}
         <div className="w-full grid grid-cols-5 gap-1.5 h-12 shrink-0">
           {SUSPECTS.map((s) => {
             const isSelected = activeSuspect === s.id;
             const isPlaced = suspectPositions[s.id] !== undefined;
             const evalRes = validation.clueResults ? validation.clueResults[s.id] : null;
+            const isInconsistent = Boolean(evalRes && !evalRes.isConsistent);
 
-            const dotColorClass =
-              evalRes && !evalRes.isConsistent
-                ? 'bg-rose-500'
-                : isSelected
-                ? isDark
-                  ? 'bg-neutral-900'
-                  : 'bg-white'
-                : isDark
-                ? 'bg-white'
-                : 'bg-neutral-900';
+            const baseBgAndText = isSelected
+              ? isDark
+                ? 'bg-white text-neutral-950 shadow-sm'
+                : 'bg-neutral-900 text-white shadow-sm'
+              : isPlaced
+              ? isDark
+                ? 'bg-[#282B34] text-white'
+                : 'bg-neutral-200/80 text-neutral-900'
+              : isDark
+              ? 'bg-[#1E2026] text-neutral-400 hover:bg-[#262932]'
+              : 'bg-white text-neutral-700 hover:bg-neutral-50';
+
+            const borderClass = isInconsistent
+              ? 'border-2 border-rose-500 ring-1 ring-rose-500/40'
+              : isSelected
+              ? isDark
+                ? 'border border-white'
+                : 'border border-neutral-900'
+              : isPlaced
+              ? isDark
+                ? 'border border-neutral-600'
+                : 'border border-neutral-400'
+              : isDark
+              ? 'border border-[#2C303A]'
+              : 'border border-neutral-200';
 
             return (
               <button
                 key={s.id}
                 type="button"
                 onClick={() => setActiveSuspect(s.id)}
-                className={`relative h-full rounded-xl font-black transition-all flex flex-col items-center justify-center border cursor-pointer ${
-                  isSelected
-                    ? isDark
-                      ? 'bg-white text-neutral-950 border-white shadow-sm'
-                      : 'bg-neutral-900 text-white border-neutral-900 shadow-sm'
-                    : isPlaced
-                    ? isDark
-                      ? 'bg-[#282B34] text-white border-neutral-600'
-                      : 'bg-neutral-200/80 text-neutral-900 border-neutral-400'
-                    : isDark
-                    ? 'bg-[#1E2026] text-neutral-400 border-[#2C303A] hover:bg-[#262932]'
-                    : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
-                }`}
+                className={`relative h-full rounded-xl font-black transition-all flex flex-col items-center justify-center cursor-pointer ${baseBgAndText} ${borderClass}`}
               >
-                {isPlaced && (
-                  <span
-                    className={`absolute top-1 right-1.5 w-2 h-2 rounded-full ${dotColorClass}`}
-                  />
-                )}
                 <div className="flex items-center gap-1 leading-none">
                   <span className="text-sm font-black">{s.code}</span>
                   <img
@@ -2365,7 +2381,7 @@ export default function App() {
           })}
         </div>
 
-        {/* 5. TARJETA DE DECLARACIÓN CON ALTURA ESTRICTAMENTE FIJA (h-24) PARA QUE EL MAPA NO SE MUEVA */}
+        {/* 5. TARJETA DE DECLARACIÓN CON ALTURA ESTRICTAMENTE FIJA (h-24) */}
         <div
           className={`w-full h-24 border rounded-2xl p-3 flex flex-col justify-between gap-1 shadow-xs shrink-0 overflow-hidden ${cardBgClass}`}
         >
@@ -2421,11 +2437,14 @@ export default function App() {
       {/* 6. POPUP MODAL DE NORMAS / CÓMO SE JUEGA */}
       {isHelpModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
           onClick={() => setIsHelpModalOpen(false)}
         >
+          {/* Sombra extendida para cubrir bajo las barras del navegador */}
+          <div className="fixed -inset-20 bg-black/75 backdrop-blur-xs pointer-events-none" />
+
           <div
-            className={`w-full max-w-sm rounded-3xl border p-6 shadow-2xl flex flex-col gap-4 ${
+            className={`relative z-10 w-full max-w-sm rounded-3xl border p-6 shadow-2xl flex flex-col gap-4 ${
               isDark
                 ? 'bg-[#1E2026] border-[#2C303A] text-neutral-100'
                 : 'bg-white border-neutral-200 text-neutral-900'
@@ -2525,11 +2544,14 @@ export default function App() {
       {/* 7. POPUP MODAL DE SELECCIÓN DE MODO */}
       {isModeModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
           onClick={() => setIsModeModalOpen(false)}
         >
+          {/* Sombra extendida para cubrir bajo las barras del navegador */}
+          <div className="fixed -inset-20 bg-black/75 backdrop-blur-xs pointer-events-none" />
+
           <div
-            className={`w-full max-w-sm rounded-3xl border p-6 shadow-2xl flex flex-col gap-4 ${
+            className={`relative z-10 w-full max-w-sm rounded-3xl border p-6 shadow-2xl flex flex-col gap-4 ${
               isDark
                 ? 'bg-[#1E2026] border-[#2C303A] text-neutral-100'
                 : 'bg-white border-neutral-200 text-neutral-900'
@@ -2652,14 +2674,17 @@ export default function App() {
         </div>
       )}
 
-      {/* 8. POPUP MODAL DE COMPARTIR Y LEADERBOARD DIARIA (SOLO ACCESIBLE AL RESOLVER) */}
+      {/* 8. POPUP MODAL DE COMPARTIR Y RANKING DIARIO */}
       {isShareModalOpen && gameWon && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
           onClick={() => setIsShareModalOpen(false)}
         >
+          {/* Sombra extendida para cubrir bajo las barras del navegador */}
+          <div className="fixed -inset-20 bg-black/75 backdrop-blur-xs pointer-events-none" />
+
           <div
-            className={`w-full max-w-sm max-h-[88dvh] rounded-3xl border p-5 shadow-2xl flex flex-col gap-3.5 overflow-hidden ${
+            className={`relative z-10 w-full max-w-sm max-h-[88dvh] rounded-3xl border p-5 shadow-2xl flex flex-col gap-3.5 overflow-hidden ${
               isDark
                 ? 'bg-[#1E2026] border-[#2C303A] text-neutral-100'
                 : 'bg-white border-neutral-200 text-neutral-900'
@@ -2738,8 +2763,10 @@ export default function App() {
                       : subTextClass
                   }`}
                 >
-                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Nevera</span>
+                  <span className="w-4 h-4 rounded bg-amber-400 flex items-center justify-center shrink-0">
+                    <Trophy className="w-2.5 h-2.5 text-white" />
+                  </span>
+                  <span>Ranking</span>
                 </button>
               </div>
             )}
@@ -2756,7 +2783,7 @@ export default function App() {
                     }`}
                   >
                     <span className={`font-bold ${subTextClass}`}>
-                      Próximo robo en la nevera:
+                      Próximo robo diario:
                     </span>
                     <span className="font-mono font-black text-sm tracking-wider">
                       {countdown}
@@ -2783,24 +2810,6 @@ export default function App() {
                 </div>
 
                 <div className="flex flex-col gap-2">
-                  {isDailyMode && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLeaderboardDay('today');
-                        setModalTab('leaderboard');
-                      }}
-                      className="w-full py-2.5 px-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 text-neutral-950 transition cursor-pointer"
-                    >
-                      <Trophy className="w-4 h-4" />
-                      <span>
-                        {scoreSubmitted
-                          ? 'Ver Ranking de la Nevera'
-                          : 'Dejar nota en el Ranking del Día'}
-                      </span>
-                    </button>
-                  )}
-
                   <button
                     type="button"
                     onClick={handleNativeOrWhatsAppShare}
@@ -2850,7 +2859,7 @@ export default function App() {
               </>
             )}
 
-            {/* PESTAÑA 2: LEADERBOARD + BOTÓN RANKING DE AYER */}
+            {/* PESTAÑA 2: RANKING (SOLO APODO + BOTÓN RANKING DE AYER) */}
             {isDailyMode && modalTab === 'leaderboard' && (
               <div className="flex flex-col gap-2.5 min-h-0 flex-1 overflow-hidden">
                 {/* Barra superior para alternar entre el Ranking de Hoy y el de Ayer */}
@@ -2883,7 +2892,7 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* Formulario (solo visible en el ranking de HOY si aún no ha enviado nota) */}
+                {/* Formulario (solo apodo, visible en el ranking de HOY si aún no se ha registrado) */}
                 {leaderboardDay === 'today' && (
                   <>
                     {!scoreSubmitted ? (
@@ -2897,10 +2906,10 @@ export default function App() {
                       >
                         <div className="flex items-center justify-between text-[11px]">
                           <span className="font-black">
-                            Cuelga tu post-it en la nevera
+                            Registra tu tiempo en el ranking
                           </span>
                           <span className="font-mono font-bold text-emerald-500">
-                            Tiempo: {formatTime(seconds)}
+                            {formatTime(seconds)}
                           </span>
                         </div>
 
@@ -2909,27 +2918,25 @@ export default function App() {
                             type="text"
                             required
                             maxLength={18}
-                            placeholder="Tu alias"
+                            placeholder="Tu apodo"
                             value={playerName}
                             onChange={(e) => setPlayerName(e.target.value)}
-                            className={`w-2/5 px-2.5 py-1.5 rounded-xl border text-xs font-bold focus:outline-none ${
+                            className={`flex-1 px-3 py-2 rounded-xl border text-xs font-bold focus:outline-none ${
                               isDark
                                 ? 'bg-[#1E2026] border-[#2C303A] text-white placeholder:text-neutral-500'
                                 : 'bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400'
                             }`}
                           />
-                          <input
-                            type="text"
-                            maxLength={70}
-                            placeholder="Nota en la nevera (opcional)..."
-                            value={playerComment}
-                            onChange={(e) => setPlayerComment(e.target.value)}
-                            className={`w-3/5 px-2.5 py-1.5 rounded-xl border text-xs focus:outline-none ${
-                              isDark
-                                ? 'bg-[#1E2026] border-[#2C303A] text-white placeholder:text-neutral-500'
-                                : 'bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400'
-                            }`}
-                          />
+                          <button
+                            type="submit"
+                            disabled={isSubmittingScore}
+                            className={`px-4 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0 ${primaryActionBtnClass}`}
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                            <span>
+                              {isSubmittingScore ? '...' : 'Guardar'}
+                            </span>
+                          </button>
                         </div>
 
                         {submitError && (
@@ -2937,17 +2944,6 @@ export default function App() {
                             {submitError}
                           </span>
                         )}
-
-                        <button
-                          type="submit"
-                          disabled={isSubmittingScore}
-                          className={`w-full py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition cursor-pointer ${primaryActionBtnClass}`}
-                        >
-                          <Send className="w-3.5 h-3.5" />
-                          <span>
-                            {isSubmittingScore ? 'Colgando nota...' : 'Publicar en el ranking'}
-                          </span>
-                        </button>
                       </form>
                     ) : (
                       <div
@@ -2958,7 +2954,7 @@ export default function App() {
                         }`}
                       >
                         <Check className="w-4 h-4 shrink-0" />
-                        <span>¡Tu nota ya está pegada en la nevera de hoy!</span>
+                        <span>¡Tu tiempo ya está registrado en el ranking de hoy!</span>
                       </div>
                     )}
                   </>
@@ -2972,57 +2968,47 @@ export default function App() {
                     </div>
                   ) : isLoadingBoard ? (
                     <div className={`py-8 text-center text-xs ${subTextClass}`}>
-                      Revisando cámaras de seguridad...
+                      Cargando ranking...
                     </div>
                   ) : leaderboard.length === 0 ? (
                     <div className={`py-8 text-center text-xs ${subTextClass}`}>
                       {leaderboardDay === 'today'
-                        ? 'Nadie ha dejado una nota hoy. ¡Sé el primero en inaugurar la nevera!'
-                        : 'Ayer no quedaron notas registradas en la nevera.'}
+                        ? 'Nadie se ha apuntado hoy todavía. ¡Sé el primero!'
+                        : 'Ayer no quedaron tiempos registrados en el ranking.'}
                     </div>
                   ) : (
                     leaderboard.map((entry, idx) => (
                       <div
                         key={entry.id}
-                        className={`p-2.5 rounded-xl border flex flex-col gap-1 ${
+                        className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 ${
                           isDark
                             ? 'bg-[#14161B] border-[#2C303A]'
                             : 'bg-neutral-50 border-neutral-200'
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span
-                              className={`w-5 h-5 rounded-md text-[10px] font-black flex items-center justify-center shrink-0 ${
-                                idx === 0
-                                  ? 'bg-amber-400 text-neutral-950'
-                                  : idx === 1
-                                  ? 'bg-neutral-300 text-neutral-950'
-                                  : idx === 2
-                                  ? 'bg-amber-700 text-white'
-                                  : isDark
-                                  ? 'bg-[#282B34] text-neutral-400'
-                                  : 'bg-neutral-200 text-neutral-600'
-                              }`}
-                            >
-                              {idx + 1}
-                            </span>
-                            <span className="font-black text-xs truncate">
-                              {entry.player_name}
-                            </span>
-                          </div>
-                          <span className="font-mono font-black text-xs shrink-0">
-                            {formatTime(entry.seconds)}
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span
+                            className={`w-5 h-5 rounded-md text-[10px] font-black flex items-center justify-center shrink-0 ${
+                              idx === 0
+                                ? 'bg-amber-400 text-neutral-950'
+                                : idx === 1
+                                ? 'bg-neutral-300 text-neutral-950'
+                                : idx === 2
+                                ? 'bg-amber-700 text-white'
+                                : isDark
+                                ? 'bg-[#282B34] text-neutral-400'
+                                : 'bg-neutral-200 text-neutral-600'
+                            }`}
+                          >
+                            {idx + 1}
+                          </span>
+                          <span className="font-black text-xs truncate">
+                            {entry.player_name}
                           </span>
                         </div>
-
-                        {entry.comment && (
-                          <p
-                            className={`text-[11px] italic pl-7 leading-snug break-words ${subTextClass}`}
-                          >
-                            «{entry.comment}»
-                          </p>
-                        )}
+                        <span className="font-mono font-black text-xs shrink-0">
+                          {formatTime(entry.seconds)}
+                        </span>
                       </div>
                     ))
                   )}
