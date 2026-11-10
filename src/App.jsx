@@ -120,27 +120,27 @@ const ROOMS = [
   }
 ];
 
-// Estilos de texto solo en color (sin píldora), adaptados a Modo Claro y Modo Oscuro
+// Estilos de texto fieles a los tonos pastel de cada sala, adaptados a Modo Claro y Modo Oscuro
 const ROOM_TEXT_STYLES = {
   azul: {
-    light: 'text-blue-600',
-    dark: 'text-blue-400'
+    light: 'text-[#3B76C4]',
+    dark: 'text-[#B8D8FA]'
   },
   rojo: {
-    light: 'text-red-600',
-    dark: 'text-red-400'
+    light: 'text-[#D64C4C]',
+    dark: 'text-[#F9B4B4]'
   },
   verde: {
-    light: 'text-emerald-600',
-    dark: 'text-emerald-400'
+    light: 'text-[#1E9E68]',
+    dark: 'text-[#9CECC8]'
   },
   amarillo: {
-    light: 'text-amber-600',
-    dark: 'text-yellow-300'
+    light: 'text-[#B89214]',
+    dark: 'text-[#F7EA92]'
   },
   morado: {
-    light: 'text-purple-600',
-    dark: 'text-purple-400'
+    light: 'text-[#7652D9]',
+    dark: 'text-[#D5C7FA]'
   }
 };
 
@@ -297,15 +297,15 @@ const shuffle = (array, rng = Math.random) => {
 
 const COMPLEMENTARY_TRIO_PAIRS = [
   [['Umbral', 'Fachada', 'Claustrofobia'], ['Escenario', 'Paranoia', 'Despacho']],
-  [['Umbral', 'Fachada', 'Escenario'],      ['Claustrofobia', 'Paranoia', 'Despacho']],
-  [['Umbral', 'Fachada', 'Paranoia'],       ['Claustrofobia', 'Escenario', 'Despacho']],
-  [['Umbral', 'Fachada', 'Despacho'],       ['Claustrofobia', 'Escenario', 'Paranoia']],
+  [['Umbral', 'Fachada', 'Escenario'],       ['Claustrofobia', 'Paranoia', 'Despacho']],
+  [['Umbral', 'Fachada', 'Paranoia'],        ['Claustrofobia', 'Escenario', 'Despacho']],
+  [['Umbral', 'Fachada', 'Despacho'],        ['Claustrofobia', 'Escenario', 'Paranoia']],
   [['Umbral', 'Claustrofobia', 'Escenario'],['Fachada', 'Paranoia', 'Despacho']],
   [['Umbral', 'Claustrofobia', 'Paranoia'],['Fachada', 'Escenario', 'Despacho']],
   [['Umbral', 'Claustrofobia', 'Despacho'],['Fachada', 'Escenario', 'Paranoia']],
-  [['Umbral', 'Escenario', 'Paranoia'],     ['Fachada', 'Claustrofobia', 'Despacho']],
-  [['Umbral', 'Escenario', 'Despacho'],     ['Fachada', 'Claustrofobia', 'Paranoia']],
-  [['Umbral', 'Paranoia', 'Despacho'],      ['Fachada', 'Claustrofobia', 'Escenario']]
+  [['Umbral', 'Escenario', 'Paranoia'],      ['Fachada', 'Claustrofobia', 'Despacho']],
+  [['Umbral', 'Escenario', 'Despacho'],      ['Fachada', 'Claustrofobia', 'Paranoia']],
+  [['Umbral', 'Paranoia', 'Despacho'],       ['Fachada', 'Claustrofobia', 'Escenario']]
 ];
 
 function getDailyConfig(date = new Date()) {
@@ -2039,7 +2039,7 @@ export default function App() {
           </h1>
 
           <div className="flex items-center justify-end gap-1.5 shrink-0">
-            {/* Botón del Ranking: Fondo amarillo y trofeo blanco */}
+            {/* Botón del Ranking: Pastilla amarilla y trofeo con fill blanco */}
             {isDailyMode && gameWon && (
               <button
                 type="button"
@@ -2051,7 +2051,7 @@ export default function App() {
                 title="Ver Ranking"
                 className="p-1.5 rounded-lg border border-amber-400 bg-amber-400 hover:bg-amber-500 text-white transition cursor-pointer flex items-center justify-center shadow-2xs"
               >
-                <Trophy className="w-3.5 h-3.5 text-white" />
+                <Trophy className="w-3.5 h-3.5 text-white fill-white" />
               </button>
             )}
 
@@ -2305,7 +2305,7 @@ export default function App() {
           )}
         </div>
 
-        {/* 3. BARRA DE REGLA / AVISO EN ROJO SI ALGUNA COARTADA NO CUADRA */}
+        {/* 3. BARRA DE REGLA / AVISO EN ROJO / CASO RESUELTO EN VERDE */}
         <div className="flex items-center justify-between gap-2 px-0.5 shrink-0">
           <div className="flex items-center gap-1.5 min-w-0">
             <img
@@ -2316,6 +2316,14 @@ export default function App() {
             {hasClueMismatch ? (
               <span className="text-[11px] font-black leading-tight text-rose-500">
                 ¡Alguna coartada no cuadra!
+              </span>
+            ) : gameWon ? (
+              <span
+                className={`text-[11px] font-black leading-tight ${
+                  isDark ? 'text-emerald-400' : 'text-emerald-600'
+                }`}
+              >
+                Caso resuelto
               </span>
             ) : (
               <span
@@ -2806,7 +2814,7 @@ export default function App() {
                   }`}
                 >
                   <span className="w-4 h-4 rounded bg-amber-400 flex items-center justify-center shrink-0">
-                    <Trophy className="w-2.5 h-2.5 text-white" />
+                    <Trophy className="w-2.5 h-2.5 text-white fill-white" />
                   </span>
                   <span>Ranking</span>
                 </button>
@@ -2934,72 +2942,57 @@ export default function App() {
                   </button>
                 </div>
 
-                {/* Formulario (solo apodo, visible en el ranking de HOY si aún no se ha registrado) */}
-                {leaderboardDay === 'today' && (
-                  <>
-                    {!scoreSubmitted ? (
-                      <form
-                        onSubmit={handleSubmitScore}
-                        className={`p-3 rounded-2xl border flex flex-col gap-2 shrink-0 ${
-                          isDark
-                            ? 'bg-[#14161B] border-[#2C303A]'
-                            : 'bg-neutral-50 border-neutral-200'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between text-[11px]">
-                          <span className="font-black">
-                            Registra tu tiempo en el ranking
-                          </span>
-                          <span className="font-mono font-bold text-emerald-500">
-                            {formatTime(seconds)}
-                          </span>
-                        </div>
+                {/* Formulario (solo visible en el ranking de HOY si aún no se ha enviado) */}
+                {leaderboardDay === 'today' && !scoreSubmitted && (
+                  <form
+                    onSubmit={handleSubmitScore}
+                    className={`p-3 rounded-2xl border flex flex-col gap-2 shrink-0 ${
+                      isDark
+                        ? 'bg-[#14161B] border-[#2C303A]'
+                        : 'bg-neutral-50 border-neutral-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-black">
+                        Registra tu tiempo en el ranking
+                      </span>
+                      <span className="font-mono font-bold text-emerald-500">
+                        {formatTime(seconds)}
+                      </span>
+                    </div>
 
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            required
-                            maxLength={18}
-                            placeholder="Tu apodo"
-                            value={playerName}
-                            onChange={(e) => setPlayerName(e.target.value)}
-                            className={`flex-1 px-3 py-2 rounded-xl border text-xs font-bold focus:outline-none ${
-                              isDark
-                                ? 'bg-[#1E2026] border-[#2C303A] text-white placeholder:text-neutral-500'
-                                : 'bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400'
-                            }`}
-                          />
-                          <button
-                            type="submit"
-                            disabled={isSubmittingScore}
-                            className={`px-4 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0 ${primaryActionBtnClass}`}
-                          >
-                            <Send className="w-3.5 h-3.5" />
-                            <span>
-                              {isSubmittingScore ? '...' : 'Guardar'}
-                            </span>
-                          </button>
-                        </div>
-
-                        {submitError && (
-                          <span className="text-[10px] text-rose-500 font-bold">
-                            {submitError}
-                          </span>
-                        )}
-                      </form>
-                    ) : (
-                      <div
-                        className={`px-3 py-2 rounded-xl border text-[11px] font-bold flex items-center gap-2 shrink-0 ${
+                    <div className="flex items-center gap-2 min-w-0">
+                      <input
+                        type="text"
+                        required
+                        maxLength={18}
+                        placeholder="Tu apodo"
+                        value={playerName}
+                        onChange={(e) => setPlayerName(e.target.value)}
+                        className={`flex-1 min-w-0 px-3 py-2 rounded-xl border text-xs font-bold focus:outline-none ${
                           isDark
-                            ? 'bg-emerald-950/30 border-emerald-800/50 text-emerald-300'
-                            : 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                            ? 'bg-[#1E2026] border-[#2C303A] text-white placeholder:text-neutral-500'
+                            : 'bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400'
                         }`}
+                      />
+                      <button
+                        type="submit"
+                        disabled={isSubmittingScore}
+                        className={`px-3 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0 ${primaryActionBtnClass}`}
                       >
-                        <Check className="w-4 h-4 shrink-0" />
-                        <span>¡Tu tiempo ya está registrado en el ranking de hoy!</span>
-                      </div>
+                        <Send className="w-3.5 h-3.5 shrink-0" />
+                        <span>
+                          {isSubmittingScore ? '...' : 'Guardar'}
+                        </span>
+                      </button>
+                    </div>
+
+                    {submitError && (
+                      <span className="text-[10px] text-rose-500 font-bold">
+                        {submitError}
+                      </span>
                     )}
-                  </>
+                  </form>
                 )}
 
                 {/* Lista con scroll de los mejores detectives */}
