@@ -348,6 +348,16 @@ function getTimeUntilMidnight() {
   return `${h}:${m}:${s}`;
 }
 
+// Función para detectar si hay un caso compartido en la URL (?caso=123456)
+function getSeedFromUrl() {
+  if (typeof window === 'undefined') return null;
+  const params = new URLSearchParams(window.location.search);
+  const casoParam = params.get('caso');
+  if (!casoParam) return null;
+  const parsed = parseInt(casoParam, 10);
+  return !Number.isNaN(parsed) && parsed > 0 ? parsed : null;
+}
+
 // ============================================================================
 // 3. MOTOR DE GENERACIÓN ALGORÍTMICA (EMBUDO 14 -> K -> K*120 -> 1)
 // ============================================================================
@@ -1289,7 +1299,10 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 }
 
 function generateCompleteLevel(enabledCategories = null, seed = null) {
-  const rng = seed !== null ? createPrng(seed) : Math.random;
+  // Si no se pasa semilla (modo aleatorio), creamos una de 6 dígitos para poder compartirla
+  const actualSeed =
+    seed !== null ? seed : Math.floor(100000 + Math.random() * 900000);
+  const rng = createPrng(actualSeed);
   const startTime = performance.now();
   let mapAttempts = 0;
 
@@ -1483,7 +1496,8 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
       const elapsedMs = Math.max(1, Math.round(performance.now() - startTime));
 
       return {
-        caseNumber: seed !== null ? seed % 10000 : Math.floor(100 + Math.random() * 900),
+        seed: actualSeed,
+        caseNumber: actualSeed,
         elapsedMs,
         mapAttempts,
         categories: categoriesToUse,
@@ -1558,17 +1572,30 @@ export default function App() {
     }
   }, [dailyStorageKey]);
 
-  const [isDailyMode, setIsDailyMode] = useState(true);
+  // Si la URL incluye ?caso=123456, arrancamos directamente en ese nivel compartido
+  const initialUrlSeed = useMemo(() => getSeedFromUrl(), []);
 
-  const [level, setLevel] = useState(() =>
-    generateCompleteLevel(dailyConfig.categories, dailyConfig.seed)
+  const [isDailyMode, setIsDailyMode] = useState(() => initialUrlSeed === null);
+
+  const [level, setLevel] = useState(() => {
+    if (initialUrlSeed !== null) {
+      const sharedLevel = generateCompleteLevel(null, initialUrlSeed);
+      if (sharedLevel) return sharedLevel;
+    }
+    return generateCompleteLevel(dailyConfig.categories, dailyConfig.seed);
+  });
+
+  const [placements, setPlacements] = useState(() =>
+    initialUrlSeed !== null ? {} : initialDailySaved?.placements || {}
+  );
+  const [activeSuspect, setActiveSuspect] = useState(0);
+  const [seconds, setSeconds] = useState(() =>
+    initialUrlSeed !== null ? 0 : initialDailySaved?.seconds || 0
   );
 
-  const [placements, setPlacements] = useState(() => initialDailySaved?.placements || {});
-  const [activeSuspect, setActiveSuspect] = useState(0);
-  const [seconds, setSeconds] = useState(() => initialDailySaved?.seconds || 0);
-
-  const [isSolved, setIsSolved] = useState(() => Boolean(initialDailySaved?.completed));
+  const [isSolved, setIsSolved] = useState(() =>
+    initialUrlSeed !== null ? false : Boolean(initialDailySaved?.completed)
+  );
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isModeModalOpen, setIsModeModalOpen] = useState(false);
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
@@ -1714,6 +1741,11 @@ export default function App() {
     const nextLevel = generateCompleteLevel(dailyConfig.categories, dailyConfig.seed);
     if (!nextLevel) return;
 
+    // Limpia el parámetro ?caso=... de la URL al volver al reto diario
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
     setIsDailyMode(true);
     setLevel(nextLevel);
     setActiveSuspect(0);
@@ -1743,6 +1775,15 @@ export default function App() {
   const handleNewRandomLevel = useCallback(() => {
     const nextLevel = generateCompleteLevel();
     if (nextLevel) {
+      // Actualiza la URL con el código del caso aleatorio actual
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(
+          {},
+          '',
+          `${window.location.pathname}?caso=${nextLevel.seed}`
+        );
+      }
+
       setIsDailyMode(false);
       setLevel(nextLevel);
       setPlacements({});
@@ -1925,8 +1966,12 @@ export default function App() {
       ? `Expediente diario (${dailyConfig.formattedDate})`
       : `Expediente nº ${level?.caseNumber ?? ''}`;
 
-    return `¡Alguien ha robado mi sándwich en la oficina!\n📂 ${modeLabel}\n🕵️‍♂️ Culpable cazado en ${formatTime(seconds)}\n\n¿Lo resuelves más rápido que yo? 👇\nhttps://www.sandwichcase.io`;
-  }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, seconds]);
+    const shareUrl = isDailyMode
+      ? 'https://www.sandwichcase.io'
+      : `https://www.sandwichcase.io/?caso=${level?.seed ?? ''}`;
+
+    return `¡Alguien ha robado mi sándwich en la oficina!\n📂 ${modeLabel}\n🕵️‍♂️ Culpable cazado en ${formatTime(seconds)}\n\n¿Lo resuelves más rápido que yo? 👇\n${shareUrl}`;
+  }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, level?.seed, seconds]);
 
   const handleCopyShareText = () => {
     navigator.clipboard?.writeText(shareText);
@@ -2243,7 +2288,7 @@ export default function App() {
                 <div className="flex items-center gap-1.5 text-[11px]">
                   <Check className="w-3.5 h-3.5 text-emerald-500" />
                   <span className={`font-bold ${subTextClass}`}>
-                    ¡Caso resuelto!
+                    ¡Caso #{level.caseNumber} resuelto!
                   </span>
                 </div>
               )}
@@ -2440,7 +2485,6 @@ export default function App() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
           onClick={() => setIsHelpModalOpen(false)}
         >
-          {/* Sombra extendida para cubrir bajo las barras del navegador */}
           <div className="fixed -inset-20 bg-black/75 backdrop-blur-xs pointer-events-none" />
 
           <div
@@ -2547,7 +2591,6 @@ export default function App() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
           onClick={() => setIsModeModalOpen(false)}
         >
-          {/* Sombra extendida para cubrir bajo las barras del navegador */}
           <div className="fixed -inset-20 bg-black/75 backdrop-blur-xs pointer-events-none" />
 
           <div
@@ -2680,7 +2723,6 @@ export default function App() {
           className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
           onClick={() => setIsShareModalOpen(false)}
         >
-          {/* Sombra extendida para cubrir bajo las barras del navegador */}
           <div className="fixed -inset-20 bg-black/75 backdrop-blur-xs pointer-events-none" />
 
           <div
