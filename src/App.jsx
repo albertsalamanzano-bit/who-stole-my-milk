@@ -55,7 +55,7 @@ function sanitizeText(str) {
   let clean = str.trim().replace(/\s+/g, ' ');
   BAD_WORDS.forEach((word) => {
     const regex = new RegExp(`\\b${word}\\b`, 'gi');
-    clean = clean.replace(regex, '🥪');
+    clean = clean.replace(regex, '***');
   });
   return clean;
 }
@@ -217,7 +217,7 @@ const generatePermutations = (arr) => {
 
 const PERMUTATIONS_120 = generatePermutations([0, 1, 2, 3, 4]);
 
-// Función auxiliar para resaltar palabras clave (**...**) y colorear despachos sin píldora
+// Función auxiliar para resaltar palabras clave (**...**), colorear despachos y mostrar el SVG del sándwich
 function renderFormattedClue(text, isDark) {
   if (!text) return null;
   const parts = text.split(/(\*\*.*?\*\*)/g);
@@ -237,6 +237,24 @@ function renderFormattedClue(text, isDark) {
         return (
           <strong key={idx} className={`font-bold ${colorClasses}`}>
             {content}
+          </strong>
+        );
+      }
+
+      if (lower.includes('sándwich') || lower.includes('sandwich')) {
+        return (
+          <strong
+            key={idx}
+            className={`font-bold inline-flex items-center gap-1 align-baseline ${
+              isDark ? 'text-white' : 'text-neutral-950'
+            }`}
+          >
+            <span>{content}</span>
+            <img
+              src={sandwichSvg}
+              alt="sándwich"
+              className="w-3.5 h-3.5 object-contain inline-block self-center shrink-0"
+            />
           </strong>
         );
       }
@@ -1015,7 +1033,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `adj_to_vase_orth`,
     category: 'Escenario',
     weight: 18,
-    text: `Tenía el mismísimo **sándwich (🥪)** directamente en uno de mis cuatro costados.`,
+    text: `Tenía el mismísimo **sándwich** directamente en uno de mis cuatro costados.`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) +
         Math.abs(st.suspectCol[speakerId] - vasePos.c) ===
@@ -1026,7 +1044,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `adj_to_vase_king`,
     category: 'Escenario',
     weight: 17,
-    text: `Podía oler el **sándwich (🥪)** desde mi sitio, estaba a un paso.`,
+    text: `Podía oler el **sándwich** desde mi sitio, estaba a un paso.`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) <= 1 &&
       Math.abs(st.suspectCol[speakerId] - vasePos.c) <= 1
@@ -1036,7 +1054,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `same_line_as_vase`,
     category: 'Escenario',
     weight: 16,
-    text: `Desde mi silla veía el **sándwich (🥪)** en mi **misma fila o columna**.`,
+    text: `Desde mi silla veía el **sándwich** en mi **misma fila o columna**.`,
     evalFn: (st) =>
       st.suspectRow[speakerId] === vasePos.r || st.suspectCol[speakerId] === vasePos.c
   });
@@ -1045,7 +1063,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `no_line_as_vase`,
     category: 'Escenario',
     weight: 13,
-    text: `El **sándwich (🥪)** no estaba **ni en mi fila ni en mi columna**.`,
+    text: `El **sándwich** no estaba **ni en mi fila ni en mi columna**.`,
     evalFn: (st) =>
       st.suspectRow[speakerId] !== vasePos.r && st.suspectCol[speakerId] !== vasePos.c
   });
@@ -1054,7 +1072,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `knight_to_vase`,
     category: 'Escenario',
     weight: 17,
-    text: `Mi silla estaba a un **salto de caballo (en L)** del **sándwich (🥪)**.`,
+    text: `Mi silla estaba a un **salto de caballo (en L)** del **sándwich**.`,
     evalFn: (st) => {
       const dr = Math.abs(st.suspectRow[speakerId] - vasePos.r);
       const dc = Math.abs(st.suspectCol[speakerId] - vasePos.c);
@@ -1133,7 +1151,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     id: `thief_is_herbivore`,
     category: 'Paranoia',
     weight: 15,
-    text: `Quien se zampó el sándwich es **un hombre**.`,
+    text: `Quien se zampó el **sándwich** es **un hombre**.`,
     evalFn: (st) => !SUSPECTS[st.roomSuspect[vaseRoom]].isCarnivore
   });
 
@@ -1727,18 +1745,6 @@ export default function App() {
     }
   }, []);
 
-  const difficultyInfo = useMemo(() => {
-    if (!level) return null;
-    const k = level.survivingGeos.length;
-    const barColor = isDark ? 'bg-neutral-100' : 'bg-neutral-900';
-
-    if (k <= 2) return { label: 'Fácil', bars: 1, barColor };
-    if (k === 3) return { label: 'Media', bars: 2, barColor };
-    if (k === 4) return { label: 'Difícil', bars: 3, barColor };
-    if (k === 5) return { label: 'Experto', bars: 4, barColor };
-    return { label: 'Maestro', bars: 5, barColor };
-  }, [level, isDark]);
-
   const suspectPositions = useMemo(() => {
     const map = {};
     Object.entries(placements).forEach(([key, sId]) => {
@@ -1904,7 +1910,7 @@ export default function App() {
       ? `Expediente diario (${dailyConfig.formattedDate})`
       : `Expediente nº ${level?.caseNumber ?? ''}`;
 
-    return `🥪 ¡Alguien ha robado mi sándwich en la oficina!\n📂 ${modeLabel}\n🕵️‍♂️ Culpable cazado en ${formatTime(seconds)}\n\n¿Lo resuelves más rápido que yo? 👇\nhttps://www.sandwichcase.io`;
+    return `¡Alguien ha robado mi sándwich en la oficina!\n📂 ${modeLabel}\n🕵️‍♂️ Culpable cazado en ${formatTime(seconds)}\n\n¿Lo resuelves más rápido que yo? 👇\nhttps://www.sandwichcase.io`;
   }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, seconds]);
 
   const handleCopyShareText = () => {
@@ -1948,70 +1954,31 @@ export default function App() {
       className={`h-dvh max-h-dvh overflow-hidden font-sans select-none flex flex-col items-center justify-between px-3 pt-[max(0.35rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] transition-colors duration-200 ${pageBgClass}`}
     >
       <div className="w-full max-w-[400px] h-full flex flex-col justify-between gap-1.5 min-h-0">
-        {/* 1. CABECERA COMPACTA */}
-        <header className="flex items-center justify-between gap-2 shrink-0 py-0.5">
-          <div className="flex items-center gap-2 min-w-0">
-            <button
-              type="button"
-              onClick={() => setIsModeModalOpen(true)}
-              title="Cambiar entre reto diario y caso aleatorio"
-              className={`w-9 h-9 rounded-xl border transition cursor-pointer shrink-0 flex items-center justify-center ${
-                isDark
-                  ? 'bg-[#1E2026] border-[#2C303A] hover:border-neutral-600 text-neutral-200'
-                  : 'bg-white border-neutral-200 hover:border-neutral-400 text-neutral-800 shadow-2xs'
-              }`}
-            >
-              <Menu className="w-4 h-4" />
-            </button>
+        {/* 1. CABECERA LIMPIA CON TÍTULO CENTRADO */}
+        <header className="grid grid-cols-[auto_1fr_auto] items-center gap-2 shrink-0 py-0.5">
+          <button
+            type="button"
+            onClick={() => setIsModeModalOpen(true)}
+            title="Cambiar entre reto diario y caso aleatorio"
+            className={`w-9 h-9 rounded-xl border transition cursor-pointer shrink-0 flex items-center justify-center ${
+              isDark
+                ? 'bg-[#1E2026] border-[#2C303A] hover:border-neutral-600 text-neutral-200'
+                : 'bg-white border-neutral-200 hover:border-neutral-400 text-neutral-800 shadow-2xs'
+            }`}
+          >
+            <Menu className="w-4 h-4" />
+          </button>
 
-            <div className="flex flex-col min-w-0">
-              <h1 className="text-[13px] sm:text-sm font-black tracking-tight leading-none flex items-center gap-1.5 min-w-0">
-                <img
-                  src={sandwichSvg}
-                  alt="Sandwich"
-                  className="w-4 h-4 object-contain shrink-0"
-                />
-                <span className="truncate">¿Quién ha robado mi sandwich?</span>
-              </h1>
+          <h1 className="text-[13px] sm:text-sm font-black tracking-tight leading-none flex items-center justify-center gap-1.5 min-w-0 text-center">
+            <img
+              src={sandwichSvg}
+              alt="Sándwich"
+              className="w-4 h-4 object-contain shrink-0"
+            />
+            <span className="truncate">¿Quién robó mi sándwich?</span>
+          </h1>
 
-              <div className="flex items-center gap-1.5 text-[10px] mt-1 leading-none">
-                <span className={`font-bold truncate ${subTextClass}`}>
-                  {isDailyMode
-                    ? `Robo del día · ${dailyConfig.formattedDate}`
-                    : `Expediente #${level.caseNumber}`}
-                </span>
-                <span className={subTextClass}>•</span>
-                <div
-                  className="flex items-center gap-1 shrink-0"
-                  title={`Dificultad: ${difficultyInfo.label}`}
-                >
-                  <span
-                    className={`font-black uppercase tracking-wider text-[9px] ${
-                      isDark ? 'text-neutral-300' : 'text-neutral-700'
-                    }`}
-                  >
-                    {difficultyInfo.label}
-                  </span>
-                  <div className="flex items-center gap-0.5">
-                    {[1, 2, 3, 4, 5].map((bar) => (
-                      <span
-                        key={bar}
-                        className={`w-1 h-1 rounded-full ${
-                          bar <= difficultyInfo.bars
-                            ? difficultyInfo.barColor
-                            : isDark
-                            ? 'bg-neutral-700'
-                            : 'bg-neutral-300'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex items-center justify-end gap-1.5 shrink-0">
             {/* El botón del Ranking solo aparece si se ha resuelto el reto diario */}
             {isDailyMode && gameWon && (
               <button
@@ -2039,10 +2006,10 @@ export default function App() {
                   setModalTab('share');
                   setIsShareModalOpen(true);
                 }}
-                className={`px-2 py-1 rounded-lg font-black text-[10px] flex items-center gap-1 transition cursor-pointer ${primaryActionBtnClass}`}
+                title="Compartir resultado"
+                className={`p-1.5 rounded-lg font-black text-[10px] flex items-center justify-center transition cursor-pointer ${primaryActionBtnClass}`}
               >
-                <Share2 className="w-3 h-3" />
-                <span>Compartir</span>
+                <Share2 className="w-3.5 h-3.5" />
               </button>
             )}
 
@@ -2175,7 +2142,7 @@ export default function App() {
                             <div className="flex flex-col items-center justify-center leading-none pointer-events-none">
                               <img
                                 src={sandwichSvg}
-                                alt="Sandwich robado"
+                                alt="Sándwich robado"
                                 className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
                               />
                               <span className="text-[6.5px] font-black uppercase tracking-wider bg-[#181A20] text-white px-1 py-px rounded-xs -mt-0.5">
@@ -2265,7 +2232,7 @@ export default function App() {
                 <div className="flex items-center gap-1.5 text-[11px]">
                   <Check className="w-3.5 h-3.5 text-emerald-500" />
                   <span className={`font-bold ${subTextClass}`}>
-                    ¡Caso #{level.caseNumber} resuelto!
+                    ¡Caso resuelto!
                   </span>
                 </div>
               )}
@@ -2282,29 +2249,44 @@ export default function App() {
           )}
         </div>
 
-        {/* 3. BARRA DE AVISO + BOTÓN PÍLDORA TÁCTIL (44x44px) PARA REGLAS DE RR.HH. */}
+        {/* 3. BARRA DE REGLA CLARA (EL DEL DESPACHO DEL CRIMEN MIENTE) + BOTÓN REGLAS */}
         <div className="flex items-center justify-between gap-2 px-0.5 shrink-0">
-          <span
-            className={`text-[11px] font-black uppercase tracking-wider leading-tight ${
-              isDark ? 'text-neutral-300' : 'text-neutral-700'
-            }`}
-          >
-            ¡El ladrón tiene migas y miente!
-          </span>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <img
+              src={sandwichSvg}
+              alt="Sándwich"
+              className="w-4 h-4 object-contain shrink-0"
+            />
+            <span
+              className={`text-[11px] font-bold leading-tight ${
+                isDark ? 'text-neutral-300' : 'text-neutral-700'
+              }`}
+            >
+              Quien está en el despacho del{' '}
+              <strong
+                className={`font-black ${
+                  isDark ? 'text-white' : 'text-neutral-950'
+                }`}
+              >
+                CRIMEN
+              </strong>{' '}
+              miente
+            </span>
+          </div>
 
           <button
             type="button"
             onClick={() => setIsHelpModalOpen(true)}
             title="Cómo se juega"
-            className={`min-h-[44px] min-w-[44px] px-3.5 py-2 rounded-full border flex items-center justify-center gap-2 text-xs font-bold transition cursor-pointer shrink-0 active:scale-95 ${
+            className={`min-h-[40px] px-3 py-1.5 rounded-full border flex items-center justify-center gap-1.5 text-xs font-bold transition cursor-pointer shrink-0 active:scale-95 ${
               isDark
                 ? 'bg-[#1E2026] border-[#2C303A] text-neutral-200 hover:border-neutral-500 hover:text-white'
                 : 'bg-white border-neutral-300 text-neutral-800 hover:bg-neutral-100 shadow-2xs'
             }`}
           >
-            <span>Reglas de RR.HH.</span>
+            <span>Reglas</span>
             <span
-              className={`w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-black leading-none ${
+              className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] font-black leading-none ${
                 isDark
                   ? 'bg-neutral-700 text-white'
                   : 'bg-neutral-900 text-white'
@@ -2507,11 +2489,11 @@ export default function App() {
                 }`}
               >
                 <span className="font-black block mb-0.5 text-current">
-                  2. El tragón siempre miente
+                  2. El del despacho del CRIMEN miente
                 </span>
-                Los 4 inocentes dicen la verdad. Quien esté en el{' '}
-                <strong>mismo despacho que el sándwich mordido (CRIMEN)</strong> es el
-                culpable y su coartada es <strong>totalmente falsa</strong>.
+                Los 4 inocentes dicen siempre la verdad. Quien esté dentro del{' '}
+                <strong>mismo despacho de color que el sándwich (CRIMEN)</strong> es el
+                ladrón y su coartada es <strong>falsa</strong>.
               </div>
 
               <div
@@ -2565,7 +2547,7 @@ export default function App() {
                 >
                   <img
                     src={sandwichSvg}
-                    alt="Sandwich"
+                    alt="Sándwich"
                     className="w-full h-full object-contain"
                   />
                 </div>
@@ -2789,6 +2771,14 @@ export default function App() {
                       : 'bg-neutral-50 border-neutral-200 text-neutral-700'
                   }`}
                 >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <img
+                      src={sandwichSvg}
+                      alt="Sándwich"
+                      className="w-4 h-4 object-contain shrink-0"
+                    />
+                    <span className="font-bold">Informe oficial</span>
+                  </div>
                   {shareText}
                 </div>
 
