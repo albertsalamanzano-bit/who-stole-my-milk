@@ -1526,6 +1526,7 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
         survivingGeos,
         totalStates: N,
         clues: chosenClues.map((c, sId) => ({
+          id: c.id,
           suspectId: sId,
           category: c.category,
           text: c.text,
@@ -2087,7 +2088,7 @@ export default function App() {
   const currentSuspect = SUSPECTS[activeSuspect];
   const currentClue = level?.clues.find((c) => c.suspectId === activeSuspect);
 
-  // Pistas interactivas en el mapa: detecta despachos, puertas, fachadas y sospechosos mencionados en la coartada activa
+  // Pistas interactivas en el mapa: detecta despachos, puertas, fachadas, geometrías del sándwich y sospechosos
   const activeClueHighlights = useMemo(() => {
     const rooms = new Set();
     const doors = new Set();
@@ -2101,6 +2102,8 @@ export default function App() {
     }
 
     const lower = currentClue.text.toLowerCase();
+    const vr = level.vasePos.r;
+    const vc = level.vasePos.c;
 
     // 1. Despachos por color (ej. "despacho azul")
     ROOMS.forEach((room) => {
@@ -2110,7 +2113,7 @@ export default function App() {
       }
     });
 
-    // 2. Puertas específicas (1, 2, 3, 4) o pares / impares
+    // 2. Puertas específicas (1, 2, 3, 4), pares, impares o las 4 puertas
     for (let dNum = 1; dNum <= 4; dNum++) {
       const regex = new RegExp(`\\bpuerta\\s+${dNum}\\b`, 'i');
       if (regex.test(lower)) {
@@ -2128,6 +2131,13 @@ export default function App() {
       doors.add(3);
     }
 
+    if (lower.includes('4 puertas numeradas')) {
+      doors.add(1);
+      doors.add(2);
+      doors.add(3);
+      doors.add(4);
+    }
+
     if (doors.size > 0 && level.doors) {
       level.doors.forEach((d) => {
         if (doors.has(d.number)) {
@@ -2137,66 +2147,157 @@ export default function App() {
       });
     }
 
-    // 3. Fachadas cardinales y exteriores
-    const hasNorth = /\bnorte\b/i.test(lower);
-    const hasSouth = /\bsur\b/i.test(lower);
-    const hasEast = /\beste\b/i.test(lower);
-    const hasWest = /\boeste\b/i.test(lower);
-    const hasGenericFacade =
-      lower.includes('fachada exterior') || lower.includes('fachadas');
-    const hasCorners = lower.includes('esquinas exteriores');
+    // 3. Interior 3x3 vs Fachadas exteriores / cardinales / ejes / diagonales
+    const isInteriorClue =
+      lower.includes('interior de la oficina') ||
+      lower.includes('interior de la planta') ||
+      lower.includes('sin tocar ninguna fachada') ||
+      lower.includes('lejos de las fachadas');
 
-    if (hasNorth) {
-      facades.add('north');
-      const rows = lower.includes('2 primeras filas') ? [0, 1] : [0];
-      rows.forEach((r) => {
-        for (let c = 0; c < 5; c++) facadeCells.add(`${r},${c}`);
-      });
-    }
+    if (isInteriorClue) {
+      // Ilumina exclusivamente la cuadrícula interior 3x3
+      for (let r = 1; r <= 3; r++) {
+        for (let c = 1; c <= 3; c++) {
+          facadeCells.add(`${r},${c}`);
+        }
+      }
+    } else {
+      const hasNorth = /\bnorte\b/i.test(lower);
+      const hasSouth = /\bsur\b/i.test(lower);
+      const hasEast = /\beste\b/i.test(lower);
+      const hasWest = /\boeste\b/i.test(lower);
+      const hasCorners = lower.includes('esquinas exteriores');
+      const hasGenericFacade = lower.includes('fachada exterior');
 
-    if (hasSouth) {
-      facades.add('south');
-      const rows = lower.includes('2 últimas filas') ? [3, 4] : [4];
-      rows.forEach((r) => {
-        for (let c = 0; c < 5; c++) facadeCells.add(`${r},${c}`);
-      });
-    }
+      if (hasNorth) {
+        facades.add('north');
+        if (lower.includes('2 primeras filas')) {
+          for (let r = 0; r <= 1; r++) {
+            for (let c = 0; c < 5; c++) facadeCells.add(`${r},${c}`);
+          }
+        } else if (!lower.includes('más al **norte**')) {
+          for (let c = 0; c < 5; c++) facadeCells.add(`0,${c}`);
+        }
+      }
 
-    if (hasEast) {
-      facades.add('east');
-      for (let r = 0; r < 5; r++) facadeCells.add(`${r},4`);
-    }
+      if (hasSouth) {
+        facades.add('south');
+        if (lower.includes('2 últimas filas')) {
+          for (let r = 3; r <= 4; r++) {
+            for (let c = 0; c < 5; c++) facadeCells.add(`${r},${c}`);
+          }
+        } else {
+          for (let c = 0; c < 5; c++) facadeCells.add(`4,${c}`);
+        }
+      }
 
-    if (hasWest) {
-      facades.add('west');
-      for (let r = 0; r < 5; r++) facadeCells.add(`${r},0`);
-    }
+      if (hasEast) {
+        facades.add('east');
+        for (let r = 0; r < 5; r++) facadeCells.add(`${r},4`);
+      }
 
-    if (hasGenericFacade) {
-      facades.add('north');
-      facades.add('south');
-      facades.add('east');
-      facades.add('west');
-      for (let i = 0; i < 5; i++) {
-        facadeCells.add(`0,${i}`);
-        facadeCells.add(`4,${i}`);
-        facadeCells.add(`${i},0`);
-        facadeCells.add(`${i},4`);
+      if (hasWest) {
+        facades.add('west');
+        if (!lower.includes('más al **oeste**')) {
+          for (let r = 0; r < 5; r++) facadeCells.add(`${r},0`);
+        }
+      }
+
+      if (hasCorners) {
+        facades.add('north');
+        facades.add('south');
+        facades.add('east');
+        facades.add('west');
+        facadeCells.add('0,0');
+        facadeCells.add('0,4');
+        facadeCells.add('4,0');
+        facadeCells.add('4,4');
+      } else if (hasGenericFacade) {
+        facades.add('north');
+        facades.add('south');
+        facades.add('east');
+        facades.add('west');
+        for (let i = 0; i < 5; i++) {
+          facadeCells.add(`0,${i}`);
+          facadeCells.add(`4,${i}`);
+          facadeCells.add(`${i},0`);
+          facadeCells.add(`${i},4`);
+        }
       }
     }
 
-    if (hasCorners) {
-      facades.add('north');
-      facades.add('south');
-      facades.add('east');
-      facades.add('west');
-      facadeCells.add('0,0');
-      facadeCells.add('0,4');
-      facadeCells.add('4,0');
-      facadeCells.add('4,4');
+    // Pasillo central (fila o columna del medio)
+    if (
+      lower.includes('pasillo central') ||
+      lower.includes('fila o columna del medio')
+    ) {
+      for (let i = 0; i < 5; i++) {
+        facadeCells.add(`2,${i}`);
+        facadeCells.add(`${i},2`);
+      }
     }
 
-    // 4. Sospechosos mencionados en la pista
+    // Dos diagonales principales
+    if (lower.includes('diagonales principales')) {
+      for (let i = 0; i < 5; i++) {
+        facadeCells.add(`${i},${i}`);
+        facadeCells.add(`${i},${4 - i}`);
+      }
+    }
+
+    // 4. Posiciones respecto al Sándwich (Escenario)
+    if (lower.includes('cuatro costados')) {
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (Math.abs(r - vr) + Math.abs(c - vc) === 1) {
+            facadeCells.add(`${r},${c}`);
+          }
+        }
+      }
+    } else if (
+      lower.includes('oler el **sándwich**') ||
+      lower.includes('estaba a un paso')
+    ) {
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (
+            Math.abs(r - vr) <= 1 &&
+            Math.abs(c - vc) <= 1 &&
+            !(r === vr && c === vc)
+          ) {
+            facadeCells.add(`${r},${c}`);
+          }
+        }
+      }
+    } else if (lower.includes('misma fila o columna')) {
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          if ((r === vr || c === vc) && !(r === vr && c === vc)) {
+            facadeCells.add(`${r},${c}`);
+          }
+        }
+      }
+    } else if (lower.includes('ni en mi fila ni en mi columna')) {
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (r !== vr && c !== vc) {
+            facadeCells.add(`${r},${c}`);
+          }
+        }
+      }
+    } else if (lower.includes('salto de caballo')) {
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          const dr = Math.abs(r - vr);
+          const dc = Math.abs(c - vc);
+          if ((dr === 2 && dc === 1) || (dr === 1 && dc === 2)) {
+            facadeCells.add(`${r},${c}`);
+          }
+        }
+      }
+    }
+
+    // 5. Sospechosos mencionados por nombre o por género (mujeres / hombres)
     SUSPECTS.forEach((s) => {
       if (s.id !== activeSuspect && lower.includes(s.name.toLowerCase())) {
         suspects.add(s.id);
@@ -2209,11 +2310,17 @@ export default function App() {
           suspects.add(s.id);
         }
       });
-    }
-
-    if (lower.includes('dos mujeres')) {
+    } else if (lower.includes('una mujer') || lower.includes('dos mujeres')) {
       SUSPECTS.forEach((s) => {
         if (s.isCarnivore) {
+          suspects.add(s.id);
+        }
+      });
+    }
+
+    if (lower.includes('un hombre')) {
+      SUSPECTS.forEach((s) => {
+        if (!s.isCarnivore) {
           suspects.add(s.id);
         }
       });
@@ -2503,16 +2610,16 @@ export default function App() {
                             />
                           )}
 
-                          {/* Resaltado de casilla para puertas, fachadas o sospechoso mencionado */}
+                          {/* Resaltado de casilla para puertas, fachadas, geometrías o sospechoso mencionado */}
                           {(isDoorCellHighlighted ||
                             isFacadeCellHighlighted ||
                             isPlacedSuspectHighlighted) && (
                             <div
                               style={{
                                 boxShadow:
-                                  'inset 0 0 0 2px rgba(24, 26, 32, 0.3), inset 0 0 10px rgba(255, 255, 255, 0.5)'
+                                  'inset 0 0 0 2px rgba(24, 26, 32, 0.35), inset 0 0 10px rgba(255, 255, 255, 0.55)'
                               }}
-                              className="absolute inset-0 pointer-events-none animate-pulse bg-white/25"
+                              className="absolute inset-0 pointer-events-none animate-pulse bg-white/30"
                             />
                           )}
 
@@ -2702,9 +2809,8 @@ export default function App() {
             const evalRes = validation.clueResults ? validation.clueResults[s.id] : null;
             const isInconsistent = Boolean(evalRes && !evalRes.isConsistent);
 
-            // Si la pista habla de este sospechoso y NO está colocado, tiembla su icono
-            const isPillMentionedAndUnplaced =
-              !isPlaced && activeClueHighlights.suspects.has(s.id);
+            const isSuspectMentioned = activeClueHighlights.suspects.has(s.id);
+            const isPillMentionedAndUnplaced = !isPlaced && isSuspectMentioned;
 
             const baseBgAndText = isSelected
               ? isDark
@@ -2782,7 +2888,7 @@ export default function App() {
                     src={s.emoji}
                     alt={s.name}
                     className={`w-5 h-5 object-contain ${
-                      isPillMentionedAndUnplaced ? 'animate-wobble' : ''
+                      isSuspectMentioned ? 'animate-wobble' : ''
                     }`}
                   />
                 </div>
