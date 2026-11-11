@@ -1602,6 +1602,9 @@ export default function App() {
     initialUrlSeed !== null ? {} : initialDailySaved?.placements || {}
   );
   const [activeSuspect, setActiveSuspect] = useState(0);
+  const [suspectedLiar, setSuspectedLiar] = useState(() =>
+    initialUrlSeed !== null ? null : initialDailySaved?.suspectedLiar ?? null
+  );
   const [seconds, setSeconds] = useState(() =>
     initialUrlSeed !== null ? 0 : initialDailySaved?.seconds || 0
   );
@@ -1689,6 +1692,7 @@ export default function App() {
         completed: isSolved,
         seconds: existing?.completed ? existing.seconds : seconds,
         placements: existing?.completed ? existing.placements : placements,
+        suspectedLiar,
         scoreSubmitted: existing?.scoreSubmitted || scoreSubmitted,
         submittedEntryId: existing?.submittedEntryId || submittedEntryId
       };
@@ -1701,6 +1705,7 @@ export default function App() {
     isSolved,
     seconds,
     placements,
+    suspectedLiar,
     scoreSubmitted,
     submittedEntryId,
     dailyStorageKey
@@ -1808,6 +1813,7 @@ export default function App() {
       const saved = raw ? JSON.parse(raw) : null;
       if (saved) {
         setPlacements(saved.placements || {});
+        setSuspectedLiar(saved.suspectedLiar ?? null);
         setSeconds(saved.seconds || 0);
         setIsSolved(Boolean(saved.completed));
         setScoreSubmitted(Boolean(saved.scoreSubmitted));
@@ -1819,6 +1825,7 @@ export default function App() {
     }
 
     setPlacements({});
+    setSuspectedLiar(null);
     setSeconds(0);
     setIsSolved(false);
     setScoreSubmitted(false);
@@ -1840,6 +1847,7 @@ export default function App() {
       setIsDailyMode(false);
       setLevel(nextLevel);
       setPlacements({});
+      setSuspectedLiar(null);
       setActiveSuspect(0);
       setSeconds(0);
       setIsSolved(false);
@@ -1853,6 +1861,7 @@ export default function App() {
   const handleClearBoard = useCallback(() => {
     if (isSolved) return;
     setPlacements({});
+    setSuspectedLiar(null);
   }, [isSolved]);
 
   const suspectPositions = useMemo(() => {
@@ -2078,15 +2087,17 @@ export default function App() {
   const currentSuspect = SUSPECTS[activeSuspect];
   const currentClue = level?.clues.find((c) => c.suspectId === activeSuspect);
 
-  // Pistas interactivas en el mapa: detecta despachos, puertas o fachadas mencionadas en la coartada activa
+  // Pistas interactivas en el mapa: detecta despachos, puertas, fachadas y sospechosos mencionados en la coartada activa
   const activeClueHighlights = useMemo(() => {
     const rooms = new Set();
     const doors = new Set();
     const doorCells = new Set();
     const facades = new Set();
+    const facadeCells = new Set();
+    const suspects = new Set();
 
     if (!currentClue?.text || !level) {
-      return { rooms, doors, doorCells, facades };
+      return { rooms, doors, doorCells, facades, facadeCells, suspects };
     }
 
     const lower = currentClue.text.toLowerCase();
@@ -2126,14 +2137,90 @@ export default function App() {
       });
     }
 
-    // 3. Fachadas cardinales
-    if (/\bnorte\b/i.test(lower)) facades.add('north');
-    if (/\bsur\b/i.test(lower)) facades.add('south');
-    if (/\beste\b/i.test(lower)) facades.add('east');
-    if (/\boeste\b/i.test(lower)) facades.add('west');
+    // 3. Fachadas cardinales y exteriores
+    const hasNorth = /\bnorte\b/i.test(lower);
+    const hasSouth = /\bsur\b/i.test(lower);
+    const hasEast = /\beste\b/i.test(lower);
+    const hasWest = /\boeste\b/i.test(lower);
+    const hasGenericFacade =
+      lower.includes('fachada exterior') || lower.includes('fachadas');
+    const hasCorners = lower.includes('esquinas exteriores');
 
-    return { rooms, doors, doorCells, facades };
-  }, [currentClue, level]);
+    if (hasNorth) {
+      facades.add('north');
+      const rows = lower.includes('2 primeras filas') ? [0, 1] : [0];
+      rows.forEach((r) => {
+        for (let c = 0; c < 5; c++) facadeCells.add(`${r},${c}`);
+      });
+    }
+
+    if (hasSouth) {
+      facades.add('south');
+      const rows = lower.includes('2 últimas filas') ? [3, 4] : [4];
+      rows.forEach((r) => {
+        for (let c = 0; c < 5; c++) facadeCells.add(`${r},${c}`);
+      });
+    }
+
+    if (hasEast) {
+      facades.add('east');
+      for (let r = 0; r < 5; r++) facadeCells.add(`${r},4`);
+    }
+
+    if (hasWest) {
+      facades.add('west');
+      for (let r = 0; r < 5; r++) facadeCells.add(`${r},0`);
+    }
+
+    if (hasGenericFacade) {
+      facades.add('north');
+      facades.add('south');
+      facades.add('east');
+      facades.add('west');
+      for (let i = 0; i < 5; i++) {
+        facadeCells.add(`0,${i}`);
+        facadeCells.add(`4,${i}`);
+        facadeCells.add(`${i},0`);
+        facadeCells.add(`${i},4`);
+      }
+    }
+
+    if (hasCorners) {
+      facades.add('north');
+      facades.add('south');
+      facades.add('east');
+      facades.add('west');
+      facadeCells.add('0,0');
+      facadeCells.add('0,4');
+      facadeCells.add('4,0');
+      facadeCells.add('4,4');
+    }
+
+    // 4. Sospechosos mencionados en la pista
+    SUSPECTS.forEach((s) => {
+      if (s.id !== activeSuspect && lower.includes(s.name.toLowerCase())) {
+        suspects.add(s.id);
+      }
+    });
+
+    if (lower.includes('otra mujer')) {
+      SUSPECTS.forEach((s) => {
+        if (s.isCarnivore && s.id !== activeSuspect) {
+          suspects.add(s.id);
+        }
+      });
+    }
+
+    if (lower.includes('dos mujeres')) {
+      SUSPECTS.forEach((s) => {
+        if (s.isCarnivore) {
+          suspects.add(s.id);
+        }
+      });
+    }
+
+    return { rooms, doors, doorCells, facades, facadeCells, suspects };
+  }, [currentClue, level, activeSuspect]);
 
   if (!level) return null;
 
@@ -2250,70 +2337,74 @@ export default function App() {
               }}
             >
               {/* FACHADA NORTE */}
-              <div className="absolute top-0 inset-x-0 h-4 flex items-center justify-center pointer-events-none">
+              <div className="absolute top-0 inset-x-0 h-4 flex items-center justify-center pointer-events-none z-20">
                 <span
-                  className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-200 ${
+                  className={`relative text-[9px] font-black uppercase tracking-widest transition-all duration-200 ${
                     activeClueHighlights.facades.has('north')
-                      ? isDark
-                        ? 'text-white'
-                        : 'text-neutral-950'
+                      ? 'bg-white text-[#181A20] border border-[#181A20] px-2 py-px rounded-full shadow-md scale-105 ring-2 ring-[#181A20]/20 animate-pulse'
                       : isDark
                       ? 'text-neutral-400'
                       : 'text-neutral-500'
                   }`}
                 >
-                  FACHADA NORTE
+                  {activeClueHighlights.facades.has('north') && (
+                    <span className="absolute -inset-0.5 rounded-full border border-white/90 animate-ping pointer-events-none" />
+                  )}
+                  <span className="relative z-10">FACHADA NORTE</span>
                 </span>
               </div>
 
               {/* FACHADA SUR */}
-              <div className="absolute bottom-0 inset-x-0 h-4 flex items-center justify-center pointer-events-none">
+              <div className="absolute bottom-0 inset-x-0 h-4 flex items-center justify-center pointer-events-none z-20">
                 <span
-                  className={`text-[9px] font-black uppercase tracking-widest transition-colors duration-200 ${
+                  className={`relative text-[9px] font-black uppercase tracking-widest transition-all duration-200 ${
                     activeClueHighlights.facades.has('south')
-                      ? isDark
-                        ? 'text-white'
-                        : 'text-neutral-950'
+                      ? 'bg-white text-[#181A20] border border-[#181A20] px-2 py-px rounded-full shadow-md scale-105 ring-2 ring-[#181A20]/20 animate-pulse'
                       : isDark
                       ? 'text-neutral-400'
                       : 'text-neutral-500'
                   }`}
                 >
-                  FACHADA SUR
+                  {activeClueHighlights.facades.has('south') && (
+                    <span className="absolute -inset-0.5 rounded-full border border-white/90 animate-ping pointer-events-none" />
+                  )}
+                  <span className="relative z-10">FACHADA SUR</span>
                 </span>
               </div>
 
               {/* FACHADA OESTE */}
-              <div className="absolute left-0 inset-y-0 w-4 flex items-center justify-center pointer-events-none">
+              <div className="absolute left-0 inset-y-0 w-4 flex items-center justify-center pointer-events-none z-20">
                 <span
-                  className={`text-[9px] font-black uppercase tracking-widest [writing-mode:vertical-lr] rotate-180 transition-colors duration-200 ${
+                  className={`relative text-[9px] font-black uppercase tracking-widest [writing-mode:vertical-lr] rotate-180 transition-all duration-200 ${
                     activeClueHighlights.facades.has('west')
-                      ? isDark
-                        ? 'text-white'
-                        : 'text-neutral-950'
+                      ? 'bg-white text-[#181A20] border border-[#181A20] py-2 px-px rounded-full shadow-md scale-105 ring-2 ring-[#181A20]/20 animate-pulse'
                       : isDark
                       ? 'text-neutral-400'
                       : 'text-neutral-500'
                   }`}
                 >
-                  FACHADA OESTE
+                  {activeClueHighlights.facades.has('west') && (
+                    <span className="absolute -inset-0.5 rounded-full border border-white/90 animate-ping pointer-events-none" />
+                  )}
+                  <span className="relative z-10">FACHADA OESTE</span>
                 </span>
               </div>
 
               {/* FACHADA ESTE */}
-              <div className="absolute right-0 inset-y-0 w-4 flex items-center justify-center pointer-events-none">
+              <div className="absolute right-0 inset-y-0 w-4 flex items-center justify-center pointer-events-none z-20">
                 <span
-                  className={`text-[9px] font-black uppercase tracking-widest [writing-mode:vertical-lr] transition-colors duration-200 ${
+                  className={`relative text-[9px] font-black uppercase tracking-widest [writing-mode:vertical-lr] transition-all duration-200 ${
                     activeClueHighlights.facades.has('east')
-                      ? isDark
-                        ? 'text-white'
-                        : 'text-neutral-950'
+                      ? 'bg-white text-[#181A20] border border-[#181A20] py-2 px-px rounded-full shadow-md scale-105 ring-2 ring-[#181A20]/20 animate-pulse'
                       : isDark
                       ? 'text-neutral-400'
                       : 'text-neutral-500'
                   }`}
                 >
-                  FACHADA ESTE
+                  {activeClueHighlights.facades.has('east') && (
+                    <span className="absolute -inset-0.5 rounded-full border border-white/90 animate-ping pointer-events-none" />
+                  )}
+                  <span className="relative z-10">FACHADA ESTE</span>
                 </span>
               </div>
 
@@ -2334,6 +2425,11 @@ export default function App() {
 
                       const isRoomHighlighted = activeClueHighlights.rooms.has(roomId);
                       const isDoorCellHighlighted = activeClueHighlights.doorCells.has(key);
+                      const isFacadeCellHighlighted =
+                        activeClueHighlights.facadeCells.has(key);
+                      const isPlacedSuspectHighlighted =
+                        placedSuspect !== null &&
+                        activeClueHighlights.suspects.has(placedSuspect.id);
 
                       const topWall = r > 0 && level.grid[r - 1][c] !== roomId;
                       const bottomWall = r < 4 && level.grid[r + 1][c] !== roomId;
@@ -2393,8 +2489,10 @@ export default function App() {
                             />
                           )}
 
-                          {/* Resaltado sutil en las dos casillas que conecta una puerta mencionada */}
-                          {isDoorCellHighlighted && (
+                          {/* Resaltado pulsante cuando la pista menciona puerta, fachada o el sospechoso colocado aquí */}
+                          {(isDoorCellHighlighted ||
+                            isFacadeCellHighlighted ||
+                            isPlacedSuspectHighlighted) && (
                             <div
                               style={{
                                 boxShadow:
@@ -2420,7 +2518,14 @@ export default function App() {
 
                           {/* Sospechoso colocado */}
                           {!isVase && placedSuspect && (
-                            <div className="relative z-10 flex flex-col items-center justify-center leading-none pointer-events-none">
+                            <div
+                              className={`relative z-10 flex flex-col items-center justify-center leading-none pointer-events-none transition-transform duration-200 ${
+                                isPlacedSuspectHighlighted ? 'scale-110' : ''
+                              }`}
+                            >
+                              {isPlacedSuspectHighlighted && (
+                                <span className="absolute -inset-1.5 rounded-full border-2 border-white/90 animate-ping pointer-events-none" />
+                              )}
                               <img
                                 src={placedSuspect.emoji}
                                 alt={placedSuspect.name}
@@ -2430,7 +2535,8 @@ export default function App() {
                                 className={`mt-0.5 px-1.5 py-px rounded text-[8.5px] font-black leading-tight ${
                                   hasConflict
                                     ? 'bg-rose-600 text-white'
-                                    : placedSuspect.id === activeSuspect
+                                    : placedSuspect.id === activeSuspect ||
+                                      isPlacedSuspectHighlighted
                                     ? 'bg-white text-neutral-950 ring-1 ring-[#181A20] shadow-2xs'
                                     : 'bg-[#181A20] text-white'
                                 }`}
@@ -2525,21 +2631,16 @@ export default function App() {
           )}
         </div>
 
-        {/* 3. BARRA DE REGLA + BOTÓN LIMPIAR MESA */}
+        {/* 3. BARRA DE REGLA (SIN ICONO Y CON TAMAÑO ADAPTADO) + BOTÓN LIMPIAR MESA REDUCIDO */}
         <div className="flex items-center justify-between gap-2 px-0.5 shrink-0">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <img
-              src={sandwichSvg}
-              alt="Sándwich"
-              className="w-4 h-4 object-contain shrink-0"
-            />
+          <div className="flex items-center min-w-0">
             {hasClueMismatch ? (
-              <span className="text-[11px] font-black leading-tight text-rose-500">
+              <span className="text-[clamp(0.76rem,3.4vw,0.92rem)] font-black leading-tight text-rose-500 truncate">
                 ¡Alguna coartada no cuadra!
               </span>
             ) : gameWon ? (
               <span
-                className={`text-[11px] font-black leading-tight ${
+                className={`text-[clamp(0.76rem,3.4vw,0.92rem)] font-black leading-tight truncate ${
                   isDark ? 'text-emerald-400' : 'text-emerald-600'
                 }`}
               >
@@ -2547,7 +2648,7 @@ export default function App() {
               </span>
             ) : (
               <span
-                className={`text-[11px] font-bold leading-tight ${
+                className={`text-[clamp(0.76rem,3.4vw,0.92rem)] font-bold leading-tight truncate ${
                   isDark ? 'text-neutral-300' : 'text-neutral-700'
                 }`}
               >
@@ -2569,7 +2670,7 @@ export default function App() {
             onClick={handleClearBoard}
             disabled={gameWon || !hasPlacements}
             title="Limpiar mesa"
-            className={`min-h-[40px] px-3 py-1.5 rounded-full border flex items-center justify-center gap-1.5 text-xs font-bold transition shrink-0 ${
+            className={`h-7 px-2.5 py-0.5 rounded-full border flex items-center justify-center gap-1 text-[11px] font-bold transition shrink-0 ${
               gameWon || !hasPlacements
                 ? isDark
                   ? 'bg-[#1E2026]/50 border-[#2C303A] text-neutral-600 cursor-not-allowed'
@@ -2579,18 +2680,22 @@ export default function App() {
                 : 'bg-white border-neutral-300 text-neutral-800 hover:bg-neutral-100 shadow-2xs cursor-pointer active:scale-95'
             }`}
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-3 h-3" />
             <span>Limpiar mesa</span>
           </button>
         </div>
 
-        {/* 4. PÍLDORAS SELECTORAS DE SOSPECHOSOS (CON DOT GRIS NEUTRO SUTIL EN COLOCADOS) */}
+        {/* 4. PÍLDORAS SELECTORAS DE SOSPECHOSOS */}
         <div className="w-full grid grid-cols-5 gap-1.5 h-12 shrink-0">
           {SUSPECTS.map((s) => {
             const isSelected = activeSuspect === s.id;
             const isPlaced = suspectPositions[s.id] !== undefined;
             const evalRes = validation.clueResults ? validation.clueResults[s.id] : null;
             const isInconsistent = Boolean(evalRes && !evalRes.isConsistent);
+
+            // Si la pista habla de este sospechoso y NO está colocado, palpita su píldora
+            const isPillMentionedAndUnplaced =
+              !isPlaced && activeClueHighlights.suspects.has(s.id);
 
             const baseBgAndText = isSelected
               ? isDark
@@ -2606,6 +2711,10 @@ export default function App() {
 
             const borderClass = isInconsistent
               ? 'border-2 border-rose-500 ring-1 ring-rose-500/40'
+              : isPillMentionedAndUnplaced
+              ? isDark
+                ? 'border-2 border-white ring-2 ring-white/35 animate-pulse shadow-md'
+                : 'border-2 border-neutral-900 ring-2 ring-neutral-900/25 animate-pulse shadow-md'
               : isSelected
               ? isDark
                 ? 'border border-white'
@@ -2618,13 +2727,18 @@ export default function App() {
               ? 'border border-[#2C303A]'
               : 'border border-neutral-200';
 
-            // Dot gris neutro sutil: visible únicamente cuando el sospechoso está colocado
-            const dotClass = isPlaced
-              ? isSelected
-                ? isDark
-                  ? 'bg-neutral-400 opacity-100'
-                  : 'bg-neutral-400 opacity-100'
-                : isDark
+            // Dot superior derecho:
+            // - Si hay un "Posible mentiroso" marcado: todos los demás pasan a VERDE y el marcado a ROJO.
+            // - Si no hay "Posible mentiroso" marcado: gris neutro si está colocado.
+            const hasLiarHypothesis = suspectedLiar !== null;
+            const isMarkedAsLiar = suspectedLiar === s.id;
+
+            const dotClass = hasLiarHypothesis
+              ? isMarkedAsLiar
+                ? 'bg-rose-500 opacity-100 ring-2 ring-rose-500/30'
+                : 'bg-emerald-500 opacity-100 ring-2 ring-emerald-500/30'
+              : isPlaced
+              ? isDark
                 ? 'bg-neutral-400 opacity-100'
                 : 'bg-neutral-500 opacity-100'
               : 'opacity-0';
@@ -2636,10 +2750,45 @@ export default function App() {
                 onClick={() => setActiveSuspect(s.id)}
                 className={`relative h-full rounded-xl font-black transition-all flex flex-col items-center justify-center cursor-pointer ${baseBgAndText} ${borderClass}`}
               >
-                {/* Dot gris neutro sutil para indicar si está colocado */}
+                {/* Halo de palpitación cuando la pista menciona al sospechoso y no está colocado */}
+                {isPillMentionedAndUnplaced && (
+                  <span
+                    className={`absolute -inset-0.5 rounded-xl border-2 animate-ping pointer-events-none ${
+                      isDark ? 'border-white/70' : 'border-neutral-900/60'
+                    }`}
+                  />
+                )}
+
+                {/* Indicador superior izquierdo de "Muñeco colocado en la mesa" */}
+                {isPlaced && (
+                  <span
+                    title="Colocado en la mesa"
+                    className={`absolute top-1 left-1 w-3 h-3 rounded-full flex items-center justify-center transition-opacity ${
+                      isSelected
+                        ? isDark
+                          ? 'bg-neutral-900 text-white'
+                          : 'bg-white text-neutral-900'
+                        : isDark
+                        ? 'bg-white/15 text-white'
+                        : 'bg-neutral-900/15 text-neutral-900'
+                    }`}
+                  >
+                    <Check className="w-2 h-2 stroke-[3.5]" />
+                  </span>
+                )}
+
+                {/* Dot superior derecho (hipótesis de veracidad / estado) */}
                 <span
-                  title={isPlaced ? 'Colocado en la mesa' : 'Sin colocar'}
-                  className={`absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full transition-opacity duration-150 ${dotClass}`}
+                  title={
+                    hasLiarHypothesis
+                      ? isMarkedAsLiar
+                        ? 'Marcado como posible mentiroso'
+                        : 'Asumido como inocente (dice la verdad)'
+                      : isPlaced
+                      ? 'Colocado en la mesa'
+                      : 'Sin colocar'
+                  }
+                  className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full transition-all duration-150 ${dotClass}`}
                 />
 
                 <div className="flex items-center gap-1 leading-none">
@@ -2668,7 +2817,7 @@ export default function App() {
           })}
         </div>
 
-        {/* 5. TARJETA DE DECLARACIÓN CENTRADA Y SIN COMILLAS NI PUNTOS EXTRA */}
+        {/* 5. TARJETA DE DECLARACIÓN CON CHECK DE "POSIBLE MENTIROSO" */}
         <div
           className={`w-full h-24 border rounded-2xl p-3 flex flex-col justify-between gap-1 shadow-xs shrink-0 overflow-hidden ${cardBgClass}`}
         >
@@ -2704,9 +2853,40 @@ export default function App() {
                 {currentSuspect.isCarnivore ? 'Mujer' : 'Hombre'}
               </span>
             </div>
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${subTextClass}`}>
-              Coartada
-            </span>
+
+            {/* Check de Posible Mentiroso (sustituye a la etiqueta estática "Coartada") */}
+            <button
+              type="button"
+              onClick={() =>
+                setSuspectedLiar((prev) =>
+                  prev === activeSuspect ? null : activeSuspect
+                )
+              }
+              className={`px-2 py-0.5 rounded-lg border text-[10px] font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
+                suspectedLiar === activeSuspect
+                  ? isDark
+                    ? 'bg-rose-500/20 border-rose-500/70 text-rose-300'
+                    : 'bg-rose-50 border-rose-300 text-rose-700'
+                  : isDark
+                  ? 'bg-[#14161B] border-[#2C303A] text-neutral-400 hover:text-neutral-200 hover:border-neutral-600'
+                  : 'bg-neutral-100 border-neutral-200 text-neutral-600 hover:text-neutral-900 hover:border-neutral-300'
+              }`}
+            >
+              <span
+                className={`w-3 h-3 rounded-xs border flex items-center justify-center transition ${
+                  suspectedLiar === activeSuspect
+                    ? 'bg-rose-500 border-rose-500 text-white'
+                    : isDark
+                    ? 'border-neutral-500 bg-transparent'
+                    : 'border-neutral-400 bg-transparent'
+                }`}
+              >
+                {suspectedLiar === activeSuspect && (
+                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+                )}
+              </span>
+              <span>Posible mentiroso</span>
+            </button>
           </div>
 
           <div className="flex-1 min-h-0 flex items-center justify-center px-1">
