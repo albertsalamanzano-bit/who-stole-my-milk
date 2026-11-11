@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Sparkles,
   Share2,
@@ -256,7 +256,7 @@ function renderFormattedClue(text, isDark) {
               <img
                 src={matchedSuspect.emoji}
                 alt={matchedSuspect.name}
-                className="w-3.5 h-3.5 object-contain inline-block align-text-bottom mx-0.5"
+                className="w-3.5 h-3.5 object-contain inline-block align-middle -translate-y-[1px] mx-0.5"
               />
               )
             </span>
@@ -290,7 +290,1033 @@ function renderFormattedClue(text, isDark) {
             <img
               src={sandwichSvg}
               alt="sándwich"
-              className="w-3.5 h-3.5 object-contain inline-block align-text-bottom ml-1"
+              className="w-3.5 h-3.5 object-contain inline-block align-middle -translate-y-[1px] ml-1"
+            />
+          </strong>
+        );
+      }
+
+      return (
+        <strong
+          key={idx}
+          className={`font-bold ${isDark ? 'text-white' : 'text-neutral-950'}`}
+        >
+          {content}
+        </strong>
+      );
+    }
+    return <span key={idx}>{part}</span>;
+  });
+}
+
+// ============================================================================
+// 2. SISTEMA DE SEMILLA PSEUDOALEATORIA DETERMINISTA (MULBERRY32)
+// ============================================================================
+
+function createPrng(seed) {
+  let s = seed | 0;
+  return function () {
+    s = (s + 0x6d2b79f5) | 0;
+    let t = Math.imul(s ^ (s >>> 15), 1 | s);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+const shuffle = (array, rng = Math.random) => {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
+const COMPLEMENTARY_TRIO_PAIRS = [
+  [['Umbral', 'Fachada', 'Claustrofobia'], ['Escenario', 'Sandwich', 'Despacho']],
+  [['Umbral', 'Fachada', 'Escenario'],     ['Claustrofobia', 'Sandwich', 'Despacho']],
+  [['Umbral', 'Fachada', 'Sandwich'],      ['Claustrofobia', 'Escenario', 'Despacho']],
+  [['Umbral', 'Fachada', 'Despacho'],      ['Claustrofobia', 'Escenario', 'Sandwich']],
+  [['Umbral', 'Claustrofobia', 'Escenario'],['Fachada', 'Sandwich', 'Despacho']],
+  [['Umbral', 'Claustrofobia', 'Sandwich'],['Fachada', 'Escenario', 'Despacho']],
+  [['Umbral', 'Claustrofobia', 'Despacho'],['Fachada', 'Escenario', 'Sandwich']],
+  [['Umbral', 'Escenario', 'Sandwich'],    ['Fachada', 'Claustrofobia', 'Despacho']],
+  [['Umbral', 'Escenario', 'Despacho'],    ['Fachada', 'Claustrofobia', 'Sandwich']],
+  [['Umbral', 'Sandwich', 'Despacho'],     ['Fachada', 'Claustrofobia', 'Escenario']]
+];
+
+const ALL_CATEGORY_TRIOS = COMPLEMENTARY_TRIO_PAIRS.flat();
+
+function getDailyConfig(date = new Date()) {
+  const epoch = new Date(2026, 0, 1).setHours(0, 0, 0, 0);
+  const today = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+  const dayIndex = Math.max(0, Math.round((today - epoch) / 86400000));
+
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  const dateSeed = parseInt(`${y}${m}${d}`, 10);
+
+  const cycleNumber = Math.floor(dayIndex / 20);
+  const dayInCycle = dayIndex % 20;
+  const cycleRng = createPrng(cycleNumber + 77777);
+
+  const shuffledPairs = shuffle(COMPLEMENTARY_TRIO_PAIRS, cycleRng);
+  const pairIdx = Math.floor(dayInCycle / 2);
+  const isSecondOfPair = dayInCycle % 2;
+
+  const pairOrder = cycleRng() < 0.5 ? [0, 1] : [1, 0];
+  const dailyCategories = shuffledPairs[pairIdx][pairOrder[isSecondOfPair]];
+
+  return {
+    dayNumber: dayIndex + 1,
+    seed: dateSeed,
+    categories: dailyCategories,
+    formattedDate: `${d}/${m}/${y}`
+  };
+}
+
+function getTimeUntilMidnight() {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0);
+  const diff = Math.max(0, Math.floor((midnight - now) / 1000));
+
+  const h = String(Math.floor(diff / 3600)).padStart(2, '0');
+  const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
+  const s = String(diff % 60).padStart(2, '0');
+  return `${h}:${m}:${s}`;
+}
+
+// Función para detectar si hay un caso compartido en la URL (?caso=123456)
+function getSeedFromUrl() {
+  if (typeof window === 'undefined') return null;
+  const params = new URLSearchParams(window.location.search);
+  const casoParam = params.get('caso');
+  if (!casoParam) return null;
+  const parsed = parseInt(casoParam, 10);
+  return !Number.isNaN(parsed) && parsed > 0 ? parsed : null;
+}
+
+function getSavedLevelState(storageKey) {
+  if (typeof window === 'undefined' || !storageKey) return null;
+  try {
+    const raw = localStorage.getItem(storageKey);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_e) {
+    return null;
+  }
+}
+
+// ============================================================================
+// 3. MOTOR DE GENERACIÓN ALGORÍTMICA (EMBUDO 14 -> K -> K*120 -> 1)
+// ============================================================================
+
+function generateRoomsAndVase(solGeo, rng) {
+  const grid = Array.from({ length: 5 }, () => Array(5).fill(-1));
+  const roomOrder = shuffle([0, 1, 2, 3, 4], rng);
+  const roomSizes = [1, 1, 1, 1, 1];
+
+  for (let r = 0; r < 5; r++) {
+    const c = solGeo[r];
+    grid[r][c] = roomOrder[r];
+  }
+
+  let unassigned = 20;
+  let guard = 0;
+  const dirs = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1]
+  ];
+
+  while (unassigned > 0 && guard < 500) {
+    guard++;
+    const candidates = [];
+    for (let r = 0; r < 5; r++) {
+      for (let c = 0; c < 5; c++) {
+        if (grid[r][c] !== -1) continue;
+        for (const [dr, dc] of dirs) {
+          const nr = r + dr;
+          const nc = c + dc;
+          if (nr >= 0 && nr < 5 && nc >= 0 && nc < 5 && grid[nr][nc] !== -1) {
+            const roomId = grid[nr][nc];
+            const weight = roomSizes[roomId] < 6 ? 3 : 1;
+            for (let w = 0; w < weight; w++) {
+              candidates.push({ r, c, roomId });
+            }
+          }
+        }
+      }
+    }
+    if (candidates.length === 0) break;
+    const pick = candidates[Math.floor(rng() * candidates.length)];
+    grid[pick.r][pick.c] = pick.roomId;
+    roomSizes[pick.roomId]++;
+    unassigned--;
+  }
+
+  if (roomSizes.some((s) => s < 3)) return null;
+
+  const freeCells = [];
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 5; c++) {
+      if (solGeo[r] !== c) {
+        freeCells.push({ r, c });
+      }
+    }
+  }
+  const vasePos = freeCells[Math.floor(rng() * freeCells.length)];
+  const vaseRoom = grid[vasePos.r][vasePos.c];
+
+  return { grid, vasePos, vaseRoom };
+}
+
+function getSurvivingGeometries(grid, vasePos) {
+  const surviving = [];
+  BASE_GEOMETRIES.forEach((geo, idx) => {
+    let valid = true;
+    const seenRooms = new Set();
+    for (let r = 0; r < 5; r++) {
+      const c = geo[r];
+      if (r === vasePos.r && c === vasePos.c) {
+        valid = false;
+        break;
+      }
+      const room = grid[r][c];
+      if (seenRooms.has(room)) {
+        valid = false;
+        break;
+      }
+      seenRooms.add(room);
+    }
+    if (valid && seenRooms.size === 5) {
+      surviving.push({ idx, geo });
+    }
+  });
+  return surviving;
+}
+
+function placeStrategicDoors(grid, vasePos, survivingGeos, rng) {
+  const allWalls = [];
+  const hotCells = new Set();
+  survivingGeos.forEach(({ geo }) => {
+    for (let r = 0; r < 5; r++) {
+      hotCells.add(`${r},${geo[r]}`);
+    }
+  });
+
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 5; c++) {
+      if (c + 1 < 5 && grid[r][c] !== grid[r][c + 1]) {
+        const isVaseAdjacent =
+          (r === vasePos.r && c === vasePos.c) || (r === vasePos.r && c + 1 === vasePos.c);
+        if (!isVaseAdjacent) {
+          const hotCount =
+            (hotCells.has(`${r},${c}`) ? 1 : 0) + (hotCells.has(`${r},${c + 1}`) ? 1 : 0);
+          allWalls.push({
+            r1: r,
+            c1: c,
+            r2: r,
+            c2: c + 1,
+            orientation: 'vertical',
+            roomA: grid[r][c],
+            roomB: grid[r][c + 1],
+            hotCount
+          });
+        }
+      }
+      if (r + 1 < 5 && grid[r][c] !== grid[r + 1][c]) {
+        const isVaseAdjacent =
+          (r === vasePos.r && c === vasePos.c) || (r + 1 === vasePos.r && c === vasePos.c);
+        if (!isVaseAdjacent) {
+          const hotCount =
+            (hotCells.has(`${r},${c}`) ? 1 : 0) + (hotCells.has(`${r + 1},${c}`) ? 1 : 0);
+          allWalls.push({
+            r1: r,
+            c1: c,
+            r2: r + 1,
+            c2: c,
+            orientation: 'horizontal',
+            roomA: grid[r][c],
+            roomB: grid[r + 1][c],
+            hotCount
+          });
+        }
+      }
+    }
+  }
+
+  if (allWalls.length < 4) return null;
+
+  const shuffledWalls = shuffle(allWalls, rng).sort((a, b) => b.hotCount - a.hotCount);
+  const selectedDoors = [];
+  const usedPairs = new Set();
+
+  for (const w of shuffledWalls) {
+    if (selectedDoors.length === 4) break;
+    const pairKey = [Math.min(w.roomA, w.roomB), Math.max(w.roomA, w.roomB)].join('-');
+    if (!usedPairs.has(pairKey)) {
+      usedPairs.add(pairKey);
+      selectedDoors.push(w);
+    }
+  }
+
+  for (const w of shuffledWalls) {
+    if (selectedDoors.length === 4) break;
+    if (!selectedDoors.includes(w)) {
+      selectedDoors.push(w);
+    }
+  }
+
+  if (selectedDoors.length < 4) return null;
+
+  return shuffle(selectedDoors, rng).map((door, idx) => ({
+    ...door,
+    number: idx + 1
+  }));
+}
+
+function buildStateObject(geoIdx, geo, perm, grid, doors) {
+  const suspectRow = new Array(5);
+  const suspectCol = new Array(5);
+  const suspectRoom = new Array(5);
+  const roomSuspect = new Array(5);
+
+  for (let r = 0; r < 5; r++) {
+    const c = geo[r];
+    const sId = perm[r];
+    const room = grid[r][c];
+    suspectRow[sId] = r;
+    suspectCol[sId] = c;
+    suspectRoom[sId] = room;
+    roomSuspect[room] = sId;
+  }
+
+  const doorOccupant = new Array(5).fill(-1);
+  const suspectDoors = Array.from({ length: 5 }, () => []);
+
+  for (const d of doors) {
+    for (let sId = 0; sId < 5; sId++) {
+      const sr = suspectRow[sId];
+      const sc = suspectCol[sId];
+      if ((sr === d.r1 && sc === d.c1) || (sr === d.r2 && sc === d.c2)) {
+        doorOccupant[d.number] = sId;
+        suspectDoors[sId].push(d.number);
+      }
+    }
+  }
+
+  return {
+    geoIdx,
+    geo,
+    perm,
+    suspectRow,
+    suspectCol,
+    suspectRoom,
+    roomSuspect,
+    doorOccupant,
+    suspectDoors
+  };
+}
+
+function analyzeMapTopology(grid, vasePos, doors) {
+  const roomSizes = [0, 0, 0, 0, 0];
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 5; c++) {
+      roomSizes[grid[r][c]]++;
+    }
+  }
+
+  const maxSize = Math.max(...roomSizes);
+  const minSize = Math.min(...roomSizes);
+  const largestRooms = roomSizes
+    .map((s, idx) => (s === maxSize ? idx : -1))
+    .filter((idx) => idx !== -1);
+  const smallestRooms = roomSizes
+    .map((s, idx) => (s === minSize ? idx : -1))
+    .filter((idx) => idx !== -1);
+
+  const roomDoors = Array.from({ length: 5 }, () => []);
+  const doorMap = {};
+  for (const d of doors) {
+    doorMap[d.number] = [d.roomA, d.roomB];
+    roomDoors[d.roomA].push(d.number);
+    roomDoors[d.roomB].push(d.number);
+  }
+
+  const cellTouchesRoomWall = Array.from({ length: 5 }, () =>
+    Array.from({ length: 5 }, () => new Set())
+  );
+  const dirs = [
+    [-1, 0],
+    [1, 0],
+    [0, -1],
+    [0, 1]
+  ];
+
+  for (let r = 0; r < 5; r++) {
+    for (let c = 0; c < 5; c++) {
+      const myRoom = grid[r][c];
+      for (const [dr, dc] of dirs) {
+        const nr = r + dr;
+        const nc = c + dc;
+        if (nr >= 0 && nr < 5 && nc >= 0 && nc < 5) {
+          const neighborRoom = grid[nr][nc];
+          if (neighborRoom !== myRoom) {
+            cellTouchesRoomWall[r][c].add(neighborRoom);
+          }
+        }
+      }
+    }
+  }
+
+  return {
+    roomSizes,
+    maxSize,
+    minSize,
+    largestRooms,
+    smallestRooms,
+    roomDoors,
+    doorMap,
+    cellTouchesRoomWall
+  };
+}
+
+function getClueRole(clue) {
+  if (clue.role) return clue.role;
+  const id = clue.id;
+
+  if (
+    id.startsWith('accuse_') ||
+    id.startsWith('vouch_') ||
+    id.startsWith('thief_')
+  ) {
+    return 'paranoia';
+  }
+
+  if (
+    id.startsWith('self_') ||
+    id.startsWith('room_') ||
+    id.startsWith('facade_') ||
+    id.endsWith('_half_rows') ||
+    id.endsWith('_half_cols') ||
+    id === 'central_axes' ||
+    id === 'main_diagonals' ||
+    id.startsWith('adj_to_vase_') ||
+    id.startsWith('same_') ||
+    id === 'no_line_as_vase' ||
+    id.startsWith('more_') ||
+    id.startsWith('adj_row_to_vase') ||
+    id.startsWith('adj_col_to_vase') ||
+    id === 'touch_many_rooms' ||
+    id === 'touch_exactly_one_room' ||
+    id === 'deep_inside_room' ||
+    id === 'touch_crime_room_wall' ||
+    id.startsWith('touch_wall_of_room_') ||
+    id.startsWith('no_touch_wall_of_room_')
+  ) {
+    return 'anchor';
+  }
+
+  if (
+    id.startsWith('nobody_') ||
+    id.startsWith('someone_') ||
+    id.startsWith('carnivore_') ||
+    id.startsWith('herbivore_') ||
+    id === 'even_doors_empty' ||
+    id === 'odd_doors_empty' ||
+    id === 'two_doors_occupied' ||
+    id.startsWith('woman_') ||
+    id.startsWith('man_') ||
+    id.startsWith('women_adj_')
+  ) {
+    return 'board';
+  }
+
+  return 'relational';
+}
+
+// Genera exactamente 32 pistas por cada una de las 6 categorías (192 pistas por sospechoso)
+function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, doors, topo) {
+  const clues = [];
+  const speaker = SUSPECTS[speakerId];
+  const isFem = speaker.isCarnivore; // true = Mujer (Analista, Becaria), false = Hombre
+  const {
+    roomSizes,
+    maxSize,
+    minSize,
+    largestRooms,
+    smallestRooms,
+    roomDoors,
+    doorMap,
+    cellTouchesRoomWall
+  } = topo;
+
+  // ==========================================================================
+  // 1. UMBRAL / PUERTAS (32 pistas: 12 anchor + 10 board + 8 relational + 2 paranoia)
+  // ==========================================================================
+  for (let dNum = 1; dNum <= 4; dNum++) {
+    clues.push({
+      id: `self_door_${dNum}`,
+      role: 'anchor',
+      isStrongAnchor: true,
+      family: 'self_specific_door',
+      category: 'Umbral',
+      weight: 15,
+      text: `Me quedé tomando un café junto a la **puerta ${dNum}**`,
+      evalFn: (st) => st.doorOccupant[dNum] === speakerId
+    });
+
+    clues.push({
+      id: `room_has_door_${dNum}`,
+      role: 'anchor',
+      isStrongAnchor: true,
+      family: 'room_specific_door',
+      category: 'Umbral',
+      weight: 14,
+      text: `En los tabiques de mi despacho está la **puerta ${dNum}**`,
+      evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].includes(dNum)
+    });
+
+    clues.push({
+      id: `nobody_door_${dNum}`,
+      role: 'board',
+      family: `door_status_${dNum}`,
+      category: 'Umbral',
+      weight: 12,
+      text: `Por la **puerta ${dNum}** no había **nadie** vigilando`,
+      evalFn: (st) => st.doorOccupant[dNum] === -1
+    });
+
+    clues.push({
+      id: `someone_door_${dNum}`,
+      role: 'board',
+      family: `door_status_${dNum}`,
+      category: 'Umbral',
+      weight: 12,
+      text: `Había **alguien** cotilleando junto a la **puerta ${dNum}**`,
+      evalFn: (st) => st.doorOccupant[dNum] !== -1
+    });
+  }
+
+  clues.push({
+    id: `self_even_door`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_door_parity',
+    category: 'Umbral',
+    weight: 14,
+    text: `Me quedé vigilando una **puerta par (2 o 4)**`,
+    evalFn: (st) => st.doorOccupant[2] === speakerId || st.doorOccupant[4] === speakerId
+  });
+
+  clues.push({
+    id: `self_odd_door`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_door_parity',
+    category: 'Umbral',
+    weight: 14,
+    text: `Estaba junto a una **puerta impar (1 o 3)**`,
+    evalFn: (st) => st.doorOccupant[1] === speakerId || st.doorOccupant[3] === speakerId
+  });
+
+  clues.push({
+    id: `room_dead_end`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'room_door_count',
+    category: 'Umbral',
+    weight: 15,
+    text: `Mi despacho es una ratonera: solo tiene **1 puerta numerada**`,
+    evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].length === 1
+  });
+
+  clues.push({
+    id: `room_multi_doors`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'room_door_count',
+    category: 'Umbral',
+    weight: 13,
+    text: `Mi despacho parece un pasillo, tiene **al menos 2 puertas** numeradas`,
+    evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].length >= 2
+  });
+
+  clues.push({
+    id: `even_doors_empty`,
+    role: 'board',
+    family: 'global_doors_parity',
+    category: 'Umbral',
+    weight: 15,
+    text: `Las **puertas pares (2 y 4)** estaban completamente **desiertas**`,
+    evalFn: (st) => st.doorOccupant[2] === -1 && st.doorOccupant[4] === -1
+  });
+
+  clues.push({
+    id: `odd_doors_empty`,
+    role: 'board',
+    family: 'global_doors_parity',
+    category: 'Umbral',
+    weight: 15,
+    text: `No había **nadie** vigilando las **puertas impares (1 y 3)**`,
+    evalFn: (st) => st.doorOccupant[1] === -1 && st.doorOccupant[3] === -1
+  });
+
+  for (let otherId = 0; otherId < 5; otherId++) {
+    if (otherId === speakerId) continue;
+    clues.push({
+      id: `other_at_door_${otherId}`,
+      role: 'relational',
+      family: 'rel_other_door',
+      targetId: otherId,
+      category: 'Umbral',
+      weight: 14,
+      text: `Vi a **${SUSPECTS[otherId].name}** cotilleando junto a una **puerta numerada**`,
+      evalFn: (st) => st.suspectDoors[otherId].length > 0
+    });
+
+    clues.push({
+      id: `conn_any_door_${otherId}`,
+      role: 'relational',
+      family: 'rel_conn_door',
+      targetId: otherId,
+      category: 'Umbral',
+      weight: 15,
+      text: `Una **puerta numerada** conecta mi despacho con el de **${SUSPECTS[otherId].name}**`,
+      evalFn: (st) => {
+        const rm1 = st.suspectRoom[speakerId];
+        const rm2 = st.suspectRoom[otherId];
+        return [1, 2, 3, 4].some((dNum) => {
+          const [rA, rB] = doorMap[dNum];
+          return (rm1 === rA && rm2 === rB) || (rm1 === rB && rm2 === rA);
+        });
+      }
+    });
+  }
+
+  clues.push({
+    id: `thief_at_some_door`,
+    role: 'paranoia',
+    family: 'thief_doors',
+    category: 'Umbral',
+    weight: 15,
+    text: `El **ladrón** estaba apostado junto a una de las **4 puertas numeradas**`,
+    evalFn: (st) => {
+      const thiefInS = st.roomSuspect[vaseRoom];
+      return st.suspectDoors[thiefInS].length > 0;
+    }
+  });
+
+  clues.push({
+    id: `thief_at_no_door`,
+    role: 'paranoia',
+    family: 'thief_doors',
+    category: 'Umbral',
+    weight: 14,
+    text: `El **ladrón** evitó ponerse junto a las **puertas numeradas**`,
+    evalFn: (st) => {
+      const thiefInS = st.roomSuspect[vaseRoom];
+      return st.suspectDoors[thiefInS].length === 0;
+    }
+  });
+
+  // ==========================================================================
+  // 2. FACHADA / CARDINAL (32 pistas: 12 anchor + 4 board + 12 relational + 4 paranoia)
+  // ==========================================================================
+  clues.push({
+    id: `facade_north`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_facade_edge',
+    category: 'Fachada',
+    weight: 15,
+    text: `Estaba ${isFem ? 'pegada' : 'pegado'} a la fachada **Norte** de la oficina`,
+    evalFn: (st) => st.suspectRow[speakerId] === 0
+  });
+
+  clues.push({
+    id: `facade_south`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_facade_edge',
+    category: 'Fachada',
+    weight: 15,
+    text: `Me quedé junto a la fachada **Sur** de la oficina`,
+    evalFn: (st) => st.suspectRow[speakerId] === 4
+  });
+
+  clues.push({
+    id: `facade_west`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_facade_edge',
+    category: 'Fachada',
+    weight: 15,
+    text: `Me encontraba junto a la fachada **Oeste** de la oficina`,
+    evalFn: (st) => st.suspectCol[speakerId] === 0
+  });
+
+  clues.push({
+    id: `facade_east`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_facade_edge',
+    category: 'Fachada',
+    weight: 15,
+    text: `Estaba junto a la fachada **Este** de la oficina`,
+    evalFn: (st) => st.suspectCol[speakerId] === 4
+  });
+
+  clues.push({
+    id: `facade_corner`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_facade_zone',
+    category: 'Fachada',
+    weight: 16,
+    text: `Me escaqueé en una de las **4 esquinas exteriores** de la oficina`,
+    evalFn: (st) =>
+      (st.suspectRow[speakerId] === 0 || st.suspectRow[speakerId] === 4) &&
+      (st.suspectCol[speakerId] === 0 || st.suspectCol[speakerId] === 4)
+  });
+
+  clues.push({
+    id: `facade_interior`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_facade_zone',
+    category: 'Fachada',
+    weight: 15,
+    text: `Estaba en el **interior de la oficina**, sin tocar ninguna fachada`,
+    evalFn: (st) =>
+      st.suspectRow[speakerId] > 0 &&
+      st.suspectRow[speakerId] < 4 &&
+      st.suspectCol[speakerId] > 0 &&
+      st.suspectCol[speakerId] < 4
+  });
+
+  clues.push({
+    id: `north_half_rows`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_half_zone',
+    category: 'Fachada',
+    weight: 14,
+    text: `Estaba ${isFem ? 'sentada' : 'sentado'} en las **2 primeras filas del Norte**`,
+    evalFn: (st) => st.suspectRow[speakerId] <= 1
+  });
+
+  clues.push({
+    id: `south_half_rows`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    familySe han aplicado los siguientes ajustes sobre el código de `App.jsx`[cite: 1]:
+
+* **Alineación de SVGs en las pistas**: Se ha sustituido `align-text-bottom` por `align-middle -translate-y-[1.5px]` en los iconos de los sospechosos y del sándwich dentro de `renderFormattedClue` para que queden centrados verticalmente con la línea del texto[cite: 1].
+* **Eliminación del aviso al clicar el sándwich**: Se ha quitado la interacción y el mensaje flotante al pulsar la casilla del sándwich[cite: 1].
+* **Texto de la regla principal**: Se ha cambiado *"Uno de ellos miente"* por **"Quien está en CRIMEN miente"** en la barra situada bajo el tablero[cite: 1].
+* **Título ligeramente más grande**: Se ha incrementado el tamaño del `<h1>` de la cabecera a `text-[clamp(0.95rem,4.2vw,1.12rem)]` junto con un icono de `18px`[cite: 1].
+* **Textos del menú emergente**:
+  * Subtítulo: *"¿Qué sándwich robado investigamos ahora?"*[cite: 1].
+  * Modo diario: **"Reto del Día"** — *"El mismo misterio para todos"*[cite: 1].
+  * Modo aleatorio: **"Generar crimen"** — *"Generar un nuevo drama con semilla"*[cite: 1].
+
+```jsx
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import {
+  Sparkles,
+  Share2,
+  Check,
+  X,
+  Copy,
+  Shuffle,
+  Calendar,
+  Clock,
+  Menu,
+  Trophy,
+  Send,
+  History,
+  RotateCcw,
+  HelpCircle
+} from 'lucide-react';
+import { createClient } from '@supabase/supabase-js';
+
+import auditorSvg from './assets/auditor.svg';
+import becarioSvg from './assets/becario.svg';
+import consultorSvg from './assets/consultor.svg';
+import directorSvg from './assets/director.svg';
+import empleadoSvg from './assets/empleado.svg';
+import sandwichSvg from './assets/sandwich.svg';
+import { Analytics } from '@vercel/analytics/react';
+
+// ============================================================================
+// 0. CONFIGURACIÓN DE SUPABASE (RANKING DIARIO)
+// ============================================================================
+
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+const supabase =
+  supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : null;
+
+const BAD_WORDS = [
+  'puto',
+  'puta',
+  'mierda',
+  'gilipollas',
+  'cabron',
+  'cabrón',
+  'pene',
+  'polla',
+  'coño',
+  'hijoputa',
+  'joder',
+  'maricon',
+  'maricón',
+  'zorra',
+  'subnormal'
+];
+
+function sanitizeText(str) {
+  if (!str) return '';
+  let clean = str.trim().replace(/\s+/g, ' ');
+  BAD_WORDS.forEach((word) => {
+    const regex = new RegExp(`\\b${word}\\b`, 'gi');
+    clean = clean.replace(regex, '***');
+  });
+  return clean;
+}
+
+// Limpia comillas o puntos/puntos suspensivos sobrantes al inicio/final de cualquier declaración
+function cleanStatementText(str) {
+  if (!str) return '';
+  return str
+    .trim()
+    .replace(/^[«"'“”]+|[»"'“”]+$/g, '')
+    .replace(/[\.…]+$/g, '')
+    .trim();
+}
+
+// ============================================================================
+// 1. CONSTANTES MATEMÁTICAS Y CONFIGURACIÓN DEL SISTEMA
+// ============================================================================
+
+const BASE_GEOMETRIES = [
+  [0, 2, 4, 1, 3], // #1:  1-3-5-2-4
+  [0, 3, 1, 4, 2], // #2:  1-4-2-5-3
+  [1, 3, 0, 2, 4], // #3:  2-4-1-3-5
+  [1, 3, 0, 4, 2], // #4:  2-4-1-5-3
+  [1, 4, 2, 0, 3], // #5:  2-5-3-1-4
+  [2, 0, 3, 1, 4], // #6:  3-1-4-2-5
+  [2, 0, 4, 1, 3], // #7:  3-1-5-2-4
+  [2, 4, 0, 3, 1], // #8:  3-5-1-4-2
+  [2, 4, 1, 3, 0], // #9:  3-5-2-4-1
+  [3, 0, 2, 4, 1], // #10: 4-1-3-5-2
+  [3, 1, 4, 0, 2], // #11: 4-2-5-1-3
+  [3, 1, 4, 2, 0], // #12: 4-2-5-3-1
+  [4, 1, 3, 0, 2], // #13: 5-2-4-1-3
+  [4, 2, 0, 3, 1]  // #14: 5-3-1-4-2
+];
+
+// Colores pastel para los 5 Despachos
+const ROOMS = [
+  {
+    id: 0,
+    name: 'Azul',
+    bgHex: '#D8E8FC',
+    bgActive: '#B8D6FA',
+    borderHex: '#2563EB'
+  },
+  {
+    id: 1,
+    name: 'Rojo',
+    bgHex: '#FCDEDE',
+    bgActive: '#F9BCTC',
+    borderHex: '#DC2626'
+  },
+  {
+    id: 2,
+    name: 'Verde',
+    bgHex: '#CCF5E2',
+    bgActive: '#9EE8C8',
+    borderHex: '#059669'
+  },
+  {
+    id: 3,
+    name: 'Amarillo',
+    bgHex: '#FCF4BB',
+    bgActive: '#F9E678',
+    borderHex: '#CA8A04'
+  },
+  {
+    id: 4,
+    name: 'Morado',
+    bgHex: '#E8E2FC',
+    bgActive: '#D2C5FA',
+    borderHex: '#7C3AED'
+  }
+];
+
+// Estilos de texto fieles a los tonos pastel de cada sala, adaptados a Modo Claro y Modo Oscuro
+const ROOM_TEXT_STYLES = {
+  azul: {
+    light: 'text-[#3B76C4]',
+    dark: 'text-[#B8D8FA]'
+  },
+  rojo: {
+    light: 'text-[#D64C4C]',
+    dark: 'text-[#F9B4B4]'
+  },
+  verde: {
+    light: 'text-[#1E9E68]',
+    dark: 'text-[#9CECC8]'
+  },
+  amarillo: {
+    light: 'text-[#B89214]',
+    dark: 'text-[#F7EA92]'
+  },
+  morado: {
+    light: 'text-[#7652D9]',
+    dark: 'text-[#D5C7FA]'
+  }
+};
+
+const SUSPECTS = [
+  {
+    id: 0,
+    code: 'A',
+    name: 'Analista',
+    emoji: consultorSvg,
+    diet: 'Mujer',
+    isCarnivore: true,
+    confession: 'Mis gráficas predecían que ese sándwich iba a caducar'
+  },
+  {
+    id: 1,
+    code: 'B',
+    name: 'Becaria',
+    emoji: becarioSvg,
+    diet: 'Mujer',
+    isCarnivore: true,
+    confession: '¡Perdón! Pensé que era parte del catering de bienvenida'
+  },
+  {
+    id: 2,
+    code: 'C',
+    name: 'Contable',
+    emoji: auditorSvg,
+    diet: 'Hombre',
+    isCarnivore: false,
+    confession: 'Solo apliqué una retención del 100% sobre tu almuerzo'
+  },
+  {
+    id: 3,
+    code: 'D',
+    name: 'Director',
+    emoji: directorSvg,
+    diet: 'Hombre',
+    isCarnivore: false,
+    confession: 'Como jefe, consideré oportuno absorber tus recursos'
+  },
+  {
+    id: 4,
+    code: 'E',
+    name: 'Enchufado',
+    emoji: empleadoSvg,
+    diet: 'Hombre',
+    isCarnivore: false,
+    confession: 'Necesitaba carbohidratos urgentes para terminar el Excel'
+  }
+];
+
+const CLUE_CATEGORIES = {
+  Umbral: { id: 'Umbral', label: 'Umbral / Puertas' },
+  Fachada: { id: 'Fachada', label: 'Fachada / Cardinal' },
+  Claustrofobia: { id: 'Claustrofobia', label: 'Claustrofobia / Tamaño' },
+  Escenario: { id: 'Escenario', label: 'Tabiques / Vecindad' },
+  Sandwich: { id: 'Sandwich', label: 'El Sándwich / Crimen' },
+  Despacho: { id: 'Despacho', label: 'Despacho / Género' }
+};
+
+const generatePermutations = (arr) => {
+  if (arr.length <= 1) return [arr];
+  const result = [];
+  for (let i = 0; i < arr.length; i++) {
+    const current = arr[i];
+    const remaining = [...arr.slice(0, i), ...arr.slice(i + 1)];
+    const perms = generatePermutations(remaining);
+    for (const p of perms) {
+      result.push([current, ...p]);
+    }
+  }
+  return result;
+};
+
+const PERMUTATIONS_120 = generatePermutations([0, 1, 2, 3, 4]);
+
+// Función auxiliar para resaltar palabras clave (**...**), colorear despachos, mostrar SVG de sospechosos entre paréntesis y el SVG del sándwich
+function renderFormattedClue(text, isDark) {
+  if (!text) return null;
+  const cleaned = cleanStatementText(text);
+  const parts = cleaned.split(/(\*\*.*?\*\*)/g);
+
+  return parts.map((part, idx) => {
+    if (part.startsWith('**') && part.endsWith('**')) {
+      const content = part.slice(2, -2).replace(/[\.…]+$/g, '');
+      const lower = content.toLowerCase();
+
+      const matchedSuspect = SUSPECTS.find(
+        (s) => s.name.toLowerCase() === lower
+      );
+
+      if (matchedSuspect) {
+        return (
+          <strong
+            key={idx}
+            className={`font-bold ${isDark ? 'text-white' : 'text-neutral-950'}`}
+          >
+            {content}{' '}
+            <span className="whitespace-nowrap font-normal">
+              (
+              <img
+                src={matchedSuspect.emoji}
+                alt={matchedSuspect.name}
+                className="w-3.5 h-3.5 object-contain inline-block align-middle -translate-y-[1.5px] mx-0.5"
+              />
+              )
+            </span>
+          </strong>
+        );
+      }
+
+      const matchedColor = Object.keys(ROOM_TEXT_STYLES).find((colorKey) =>
+        lower.includes(colorKey)
+      );
+
+      if (matchedColor) {
+        const styleObj = ROOM_TEXT_STYLES[matchedColor];
+        const colorClasses = isDark ? styleObj.dark : styleObj.light;
+        return (
+          <strong key={idx} className={`font-bold ${colorClasses}`}>
+            {content}
+          </strong>
+        );
+      }
+
+      if (lower.includes('sándwich') || lower.includes('sandwich')) {
+        return (
+          <strong
+            key={idx}
+            className={`font-bold whitespace-nowrap ${
+              isDark ? 'text-white' : 'text-neutral-950'
+            }`}
+          >
+            <span>{content}</span>
+            <img
+              src={sandwichSvg}
+              alt="sándwich"
+              className="w-3.5 h-3.5 object-contain inline-block align-middle -translate-y-[1.5px] ml-1"
             />
           </strong>
         );
@@ -2520,18 +3546,6 @@ export default function App() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isModeModalOpen, setIsModeModalOpen] = useState(false);
 
-  // Mensaje al clicar el sándwich
-  const [showSandwichHint, setShowSandwichHint] = useState(false);
-  const sandwichHintTimeoutRef = useRef(null);
-
-  useEffect(() => {
-    return () => {
-      if (sandwichHintTimeoutRef.current) {
-        clearTimeout(sandwichHintTimeoutRef.current);
-      }
-    };
-  }, []);
-
   // Abrir «Reglas» automáticamente el primer día
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -2747,7 +3761,6 @@ export default function App() {
     setActiveSuspect(0);
     setIsModeModalOpen(false);
     setCopiedShare(false);
-    setShowSandwichHint(false);
 
     const saved = getSavedLevelState(dailyStorageKey);
     if (saved) {
@@ -2791,7 +3804,6 @@ export default function App() {
       setIsShareModalOpen(false);
       setIsModeModalOpen(false);
       setCopiedShare(false);
-      setShowSandwichHint(false);
       setModalTab('share');
     }
   }, []);
@@ -2942,26 +3954,9 @@ export default function App() {
     return () => clearInterval(timer);
   }, [gameWon, isAnyModalOpen]);
 
-  const triggerSandwichHint = useCallback(() => {
-    setShowSandwichHint(true);
-    if (sandwichHintTimeoutRef.current) {
-      clearTimeout(sandwichHintTimeoutRef.current);
-    }
-    sandwichHintTimeoutRef.current = setTimeout(() => {
-      setShowSandwichHint(false);
-    }, 3200);
-  }, []);
-
   const handleCellClick = (r, c) => {
-    if (!level) return;
-
-    // Si clicas el sándwich, muestra un aviso diciendo que el que está en ese despacho miente
-    if (r === level.vasePos.r && c === level.vasePos.c) {
-      triggerSandwichHint();
-      return;
-    }
-
-    if (gameWon) return;
+    if (!level || gameWon) return;
+    if (r === level.vasePos.r && c === level.vasePos.c) return;
 
     const key = `${r},${c}`;
 
@@ -2996,8 +3991,8 @@ export default function App() {
       : `Expediente nº ${level?.caseNumber ?? ''}`;
 
     const shareUrl = isDailyMode
-      ? 'https://www.sandwichcase.io'
-      : `https://www.sandwichcase.io/?caso=${level?.seed ?? ''}`;
+      ? '[https://www.sandwichcase.io](https://www.sandwichcase.io)'
+      : `[https://www.sandwichcase.io/?caso=$](https://www.sandwichcase.io/?caso=$){level?.seed ?? ''}`;
 
     return `¡Alguien ha robado mi sándwich en la oficina!\n📂 ${modeLabel}\n🥪 Culpable cazado en ${formatTime(seconds)}\n\n¿Lo resuelves más rápido que yo? 👇\n${shareUrl}`;
   }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, level?.seed, seconds]);
@@ -3018,7 +4013,7 @@ export default function App() {
       }
     }
     handleCopyShareText();
-    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+    window.open(`[https://wa.me/?text=$](https://wa.me/?text=$){encodeURIComponent(shareText)}`, '_blank');
   };
 
   const highlightedEntryId = useMemo(() => {
@@ -3068,7 +4063,7 @@ export default function App() {
       className={`h-dvh max-h-dvh overflow-hidden font-sans select-none flex flex-col items-center justify-between px-3 pt-[max(0.35rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] transition-colors duration-200 ${pageBgClass}`}
     >
       <div className="w-full max-w-[400px] h-full flex flex-col justify-between gap-1.5 min-h-0">
-        {/* 1. CABECERA CON TÍTULO DINÁMICO Y VALOR DE FECHA/CASO EN FUENTE REGULAR */}
+        {/* 1. CABECERA CON TÍTULO DINÁMICO LIGERAMENTE MÁS GRANDE Y VALOR DE FECHA/CASO EN FUENTE REGULAR */}
         <header className="grid grid-cols-[auto_1fr_auto] items-center gap-1.5 shrink-0 py-0.5">
           <button
             type="button"
@@ -3080,14 +4075,14 @@ export default function App() {
                 : 'bg-white border-neutral-200 hover:border-neutral-400 text-neutral-800 shadow-2xs'
             }`}
           >
-            <Menu className="w-4 h-4" />
+            <Menu className="w-4 h-4"/>
           </button>
 
-          <h1 className="font-sans text-[clamp(0.82rem,3.8vw,1rem)] font-black tracking-tight leading-tight flex items-center justify-center gap-1.5 min-w-0 text-center px-0.5">
+          <h1 className="font-sans text-[clamp(0.95rem,4.2vw,1.12rem)] font-black tracking-tight leading-tight flex items-center justify-center gap-1.5 min-w-0 text-center px-0.5">
             <img
               src={sandwichSvg}
               alt="Sándwich"
-              className="w-4 h-4 object-contain shrink-0"
+              className="w-[18px] h-[18px] object-contain shrink-0"
             />
             <span className="truncate">
               {isDailyMode ? (
@@ -3115,7 +4110,7 @@ export default function App() {
                 title="Compartir resultado"
                 className={`p-1.5 rounded-lg font-black text-[10px] flex items-center justify-center transition cursor-pointer ${primaryActionBtnClass}`}
               >
-                <Share2 className="w-3.5 h-3.5" />
+                <Share2 className="w-3.5 h-3.5"/>
               </button>
             )}
 
@@ -3131,7 +4126,7 @@ export default function App() {
                 title="Ver Ranking"
                 className="p-1.5 rounded-lg border border-amber-400 bg-amber-400 hover:bg-amber-500 text-white transition cursor-pointer flex items-center justify-center shadow-2xs"
               >
-                <Trophy className="w-3.5 h-3.5 text-white" />
+                <Trophy className="w-3.5 h-3.5 text-white"/>
               </button>
             )}
 
@@ -3258,7 +4253,7 @@ export default function App() {
                               : '1px solid rgba(24, 26, 32, 0.12)'
                           }}
                           className={`relative w-full h-full flex flex-col items-center justify-center p-0 overflow-hidden transition-colors duration-200 focus:outline-none ${
-                            gameWon && !isVase ? 'cursor-default' : 'cursor-pointer'
+                            gameWon || isVase ? 'cursor-default' : 'cursor-pointer'
                           } ${hasConflict ? 'ring-3 ring-inset ring-rose-600 z-10' : ''}`}
                         >
                           {/* Marcador del Crimen compacto */}
@@ -3333,23 +4328,6 @@ export default function App() {
                     </div>
                   );
                 })}
-
-                {/* AVISO FLOTANTE AL CLICAR EL SÁNDWICH */}
-                {showSandwichHint && (
-                  <div
-                    onClick={() => setShowSandwichHint(false)}
-                    className="absolute inset-x-2 bottom-2 z-30 flex items-center justify-center pointer-events-auto cursor-pointer"
-                  >
-                    <div className="bg-[#181A20]/95 text-white border border-white/20 px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5 text-[11px] font-bold text-center">
-                      <img
-                        src={sandwichSvg}
-                        alt="Sándwich"
-                        className="w-4 h-4 object-contain shrink-0"
-                      />
-                      <span>El que está en ese despacho miente</span>
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -3363,7 +4341,7 @@ export default function App() {
             >
               {isDailyMode ? (
                 <div className="flex items-center gap-1.5 text-[11px]">
-                  <Clock className={`w-3.5 h-3.5 ${subTextClass}`} />
+                  <Clock ${subTextClass}`} className="{`w-3.5" h-3.5/>
                   <span className={subTextClass}>Próximo en</span>
                   <span className="font-mono font-black tracking-wider">
                     {countdown}
@@ -3371,7 +4349,7 @@ export default function App() {
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 text-[11px]">
-                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                  <Check className="w-3.5 h-3.5 text-emerald-500"/>
                   <span className={`font-bold ${subTextClass}`}>
                     ¡Caso #{level.caseNumber} resuelto!
                   </span>
@@ -3383,26 +4361,17 @@ export default function App() {
                 onClick={handleNewRandomLevel}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-black flex items-center gap-1 transition cursor-pointer ${primaryActionBtnClass}`}
               >
-                <Shuffle className="w-3 h-3" />
+                <Shuffle className="w-3 h-3"/>
                 <span>Otro robo</span>
               </button>
             </div>
           )}
         </div>
 
-        {/* 3. BARRA DE REGLA ("Uno de ellos miente") + BOTÓN LIMPIAR MESA REDUCIDO */}
+        {/* 3. BARRA DE REGLA ("Quien está en CRIMEN miente") + BOTÓN LIMPIAR MESA */}
         <div className="flex items-center justify-between gap-2 px-0.5 shrink-0">
           <div className="flex items-center min-w-0">
-            {showSandwichHint ? (
-              <span
-                className={`text-[clamp(0.82rem,3.6vw,0.95rem)] font-bold leading-tight truncate ${
-                  isDark ? 'text-amber-300' : 'text-amber-700'
-                }`}
-              >
-                El que está en ese despacho{' '}
-                <strong className="font-black">miente</strong>
-              </span>
-            ) : hasClueMismatch ? (
+            {hasClueMismatch ? (
               <span className="text-[clamp(0.85rem,3.7vw,0.98rem)] font-black leading-tight text-rose-500 truncate">
                 ¡Alguna coartada no cuadra!
               </span>
@@ -3420,7 +4389,14 @@ export default function App() {
                   isDark ? 'text-neutral-300' : 'text-neutral-700'
                 }`}
               >
-                Uno de ellos{' '}
+                Quien está en{' '}
+                <strong
+                  className={`font-black ${
+                    isDark ? 'text-white' : 'text-neutral-950'
+                  }`}
+                >
+                  CRIMEN
+                </strong>{' '}
                 <strong
                   className={`font-black ${
                     isDark ? 'text-white' : 'text-neutral-950'
@@ -3447,7 +4423,7 @@ export default function App() {
                 : 'bg-white border-neutral-300 text-neutral-800 hover:bg-neutral-100 shadow-2xs cursor-pointer active:scale-95'
             }`}
           >
-            <RotateCcw className="w-3 h-3" />
+            <RotateCcw className="w-3 h-3"/>
             <span>Limpiar mesa</span>
           </button>
         </div>
@@ -3616,7 +4592,7 @@ export default function App() {
                 }`}
               >
                 {effectiveSuspectedLiar === activeSuspect && (
-                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+                  <Check className="w-2.5 h-2.5 stroke-[3]"/>
                 )}
               </span>
               <span>Mentiroso</span>
@@ -3680,7 +4656,7 @@ export default function App() {
                     : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
                 }`}
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4"/>
               </button>
             </div>
 
@@ -3708,7 +4684,7 @@ export default function App() {
                 }`}
               >
                 <span className="font-black block mb-0.5 text-current">
-                  2. Uno de ellos miente
+                  2. Quien está en CRIMEN miente
                 </span>
                 Los 4 inocentes dicen siempre la verdad. Quien esté dentro del{' '}
                 <strong>mismo despacho de color que el sándwich (CRIMEN)</strong> es el
@@ -3777,7 +4753,7 @@ export default function App() {
                     Archivos de RR.HH.
                   </h2>
                   <p className={`text-xs mt-0.5 ${subTextClass}`}>
-                    ¿Qué robo de almuerzo investigamos ahora?
+                    ¿Qué sándwich robado investigamos ahora?
                   </p>
                 </div>
               </div>
@@ -3790,7 +4766,7 @@ export default function App() {
                     : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
                 }`}
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4"/>
               </button>
             </div>
 
@@ -3809,9 +4785,9 @@ export default function App() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Calendar className="w-5 h-5 shrink-0" />
+                  <Calendar className="w-5 h-5 shrink-0"/>
                   <div>
-                    <div className="text-xs font-black">El Robo del Día</div>
+                    <div className="text-xs font-black">Reto del Día</div>
                     <div
                       className={`text-[11px] ${
                         isDailyMode
@@ -3821,7 +4797,7 @@ export default function App() {
                           : subTextClass
                       }`}
                     >
-                      El mismo misterio para toda la oficina ({dailyConfig.formattedDate})
+                      El mismo misterio para todos
                     </div>
                   </div>
                 </div>
@@ -3846,9 +4822,9 @@ export default function App() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Shuffle className="w-5 h-5 shrink-0" />
+                  <Shuffle className="w-5 h-5 shrink-0"/>
                   <div>
-                    <div className="text-xs font-black">Horas Extra (Aleatorio)</div>
+                    <div className="text-xs font-black">Generar crimen</div>
                     <div
                       className={`text-[11px] ${
                         !isDailyMode
@@ -3858,7 +4834,7 @@ export default function App() {
                           : subTextClass
                       }`}
                     >
-                      Generar un nuevo drama de oficina al instante
+                      Generar un nuevo drama con semilla
                     </div>
                   </div>
                 </div>
@@ -3883,7 +4859,7 @@ export default function App() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <HelpCircle className="w-5 h-5 shrink-0" />
+                  <HelpCircle className="w-5 h-5 shrink-0"/>
                   <div>
                     <div className="text-xs font-black">Reglas / Cómo se juega</div>
                     <div className={`text-[11px] ${subTextClass}`}>
@@ -3948,7 +4924,7 @@ export default function App() {
                     : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
                 }`}
               >
-                <X className="w-4 h-4" />
+                <X className="w-4 h-4"/>
               </button>
             </div>
 
@@ -3986,7 +4962,7 @@ export default function App() {
                   }`}
                 >
                   <span className="w-4 h-4 rounded bg-amber-400 flex items-center justify-center shrink-0">
-                    <Trophy className="w-2.5 h-2.5 text-white" />
+                    <Trophy className="w-2.5 h-2.5 text-white"/>
                   </span>
                   <span>Ranking</span>
                 </button>
@@ -4037,7 +5013,7 @@ export default function App() {
                     onClick={handleNativeOrWhatsAppShare}
                     className={`w-full py-2.5 px-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm ${primaryActionBtnClass}`}
                   >
-                    <Share2 className="w-4 h-4" />
+                    <Share2 className="w-4 h-4"/>
                     <span>Presumir en el grupo</span>
                   </button>
 
@@ -4053,12 +5029,12 @@ export default function App() {
                     >
                       {copiedShare ? (
                         <>
-                          <Check className="w-3.5 h-3.5 text-emerald-500" />
+                          <Check className="w-3.5 h-3.5 text-emerald-500"/>
                           <span>¡Copiado!</span>
                         </>
                       ) : (
                         <>
-                          <Copy className="w-3.5 h-3.5" />
+                          <Copy className="w-3.5 h-3.5"/>
                           <span>Copiar informe</span>
                         </>
                       )}
@@ -4073,7 +5049,7 @@ export default function App() {
                           : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border-neutral-300'
                       }`}
                     >
-                      <Sparkles className="w-3.5 h-3.5" />
+                      <Sparkles className="w-3.5 h-3.5"/>
                       <span>Otro robo</span>
                     </button>
                   </div>
@@ -4105,7 +5081,7 @@ export default function App() {
                         : 'bg-neutral-100 border-neutral-200 hover:bg-neutral-200 text-neutral-800'
                     }`}
                   >
-                    <History className="w-3.5 h-3.5 text-amber-400" />
+                    <History className="w-3.5 h-3.5 text-amber-400"/>
                     <span>
                       {leaderboardDay === 'today'
                         ? 'Ver ranking de ayer'
@@ -4152,7 +5128,7 @@ export default function App() {
                         disabled={isSubmittingScore}
                         className={`px-3 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0 ${primaryActionBtnClass}`}
                       >
-                        <Send className="w-3.5 h-3.5 shrink-0" />
+                        <Send className="w-3.5 h-3.5 shrink-0"/>
                         <span>
                           {isSubmittingScore ? '...' : 'Guardar'}
                         </span>
@@ -4255,7 +5231,7 @@ export default function App() {
         </div>
       )}
 
-      <Analytics />
+      <Analytics/>
     </div>
   );
 }
