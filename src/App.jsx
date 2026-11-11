@@ -1634,7 +1634,7 @@ export default function App() {
   const [copiedShare, setCopiedShare] = useState(false);
 
   // --- ESTADOS DEL RANKING DIARIO (HOY Y AYER) ---
-  const [modalTab, setModalTab] = useState('share'); // 'share' | 'leaderboard'
+  const [modalTab, setModalTab] = useState('leaderboard'); // 'leaderboard' | 'share'
   const [leaderboardDay, setLeaderboardDay] = useState('today'); // 'today' | 'yesterday'
   const [leaderboard, setLeaderboard] = useState([]);
   const [isLoadingBoard, setIsLoadingBoard] = useState(false);
@@ -1984,11 +1984,11 @@ export default function App() {
   useEffect(() => {
     if (validation?.allCluesValid && !isSolved) {
       setIsSolved(true);
-      setModalTab('share');
+      setModalTab(isDailyMode ? 'leaderboard' : 'share');
       setLeaderboardDay('today');
       setIsShareModalOpen(true);
     }
-  }, [validation, isSolved]);
+  }, [validation, isSolved, isDailyMode]);
 
   // El cronómetro se pausa si el caso está resuelto o si hay algún popup abierto
   useEffect(() => {
@@ -2134,7 +2134,22 @@ export default function App() {
           </h1>
 
           <div className="flex items-center justify-end gap-1.5 shrink-0">
-            {/* Botón del Ranking: Pastilla amarilla y trofeo en silueta */}
+            {/* Botón Compartir (Intercambiado a la izquierda del Trofeo) */}
+            {gameWon && (
+              <button
+                type="button"
+                onClick={() => {
+                  setModalTab('share');
+                  setIsShareModalOpen(true);
+                }}
+                title="Compartir resultado"
+                className={`p-1.5 rounded-lg font-black text-[10px] flex items-center justify-center transition cursor-pointer ${primaryActionBtnClass}`}
+              >
+                <Share2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {/* Botón del Ranking (Intercambiado a la derecha del botón Compartir) */}
             {isDailyMode && gameWon && (
               <button
                 type="button"
@@ -2147,20 +2162,6 @@ export default function App() {
                 className="p-1.5 rounded-lg border border-amber-400 bg-amber-400 hover:bg-amber-500 text-white transition cursor-pointer flex items-center justify-center shadow-2xs"
               >
                 <Trophy className="w-3.5 h-3.5 text-white" />
-              </button>
-            )}
-
-            {gameWon && (
-              <button
-                type="button"
-                onClick={() => {
-                  setModalTab('share');
-                  setIsShareModalOpen(true);
-                }}
-                title="Compartir resultado"
-                className={`p-1.5 rounded-lg font-black text-[10px] flex items-center justify-center transition cursor-pointer ${primaryActionBtnClass}`}
-              >
-                <Share2 className="w-3.5 h-3.5" />
               </button>
             )}
 
@@ -2402,7 +2403,7 @@ export default function App() {
           )}
         </div>
 
-        {/* 3. BARRA DE REGLA CORTA Y ADAPTADA + BOTÓN LIMPIAR MESA REDUCIDO */}
+        {/* 3. BARRA DE REGLA ("Uno de ellos miente") + BOTÓN LIMPIAR MESA REDUCIDO */}
         <div className="flex items-center justify-between gap-2 px-0.5 shrink-0">
           <div className="flex items-center min-w-0">
             {hasClueMismatch ? (
@@ -2423,15 +2424,14 @@ export default function App() {
                   isDark ? 'text-neutral-300' : 'text-neutral-700'
                 }`}
               >
-                El del despacho{' '}
+                Uno de ellos{' '}
                 <strong
                   className={`font-black ${
                     isDark ? 'text-white' : 'text-neutral-950'
                   }`}
                 >
-                  CRIMEN
-                </strong>{' '}
-                miente
+                  miente
+                </strong>
               </span>
             )}
           </div>
@@ -2711,7 +2711,7 @@ export default function App() {
                 }`}
               >
                 <span className="font-black block mb-0.5 text-current">
-                  2. El del despacho del CRIMEN miente
+                  2. Uno de ellos miente
                 </span>
                 Los 4 inocentes dicen siempre la verdad. Quien esté dentro del{' '}
                 <strong>mismo despacho de color que el sándwich (CRIMEN)</strong> es el
@@ -2955,7 +2955,7 @@ export default function App() {
               </button>
             </div>
 
-            {/* Selector de Pestañas (Solo en Modo Diario una vez resuelto) */}
+            {/* Selector de Pestañas Intercambiado: [Ranking | Informe RR.HH.] */}
             {isDailyMode && (
               <div
                 className={`grid grid-cols-2 p-1 rounded-xl border shrink-0 ${
@@ -2964,19 +2964,6 @@ export default function App() {
                     : 'bg-neutral-100 border-neutral-200'
                 }`}
               >
-                <button
-                  type="button"
-                  onClick={() => setModalTab('share')}
-                  className={`py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
-                    modalTab === 'share'
-                      ? isDark
-                        ? 'bg-[#282B34] text-white shadow-2xs'
-                        : 'bg-white text-neutral-900 shadow-2xs'
-                      : subTextClass
-                  }`}
-                >
-                  Informe RR.HH.
-                </button>
                 <button
                   type="button"
                   onClick={() => setModalTab('leaderboard')}
@@ -2993,10 +2980,23 @@ export default function App() {
                   </span>
                   <span>Ranking</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setModalTab('share')}
+                  className={`py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
+                    modalTab === 'share'
+                      ? isDark
+                        ? 'bg-[#282B34] text-white shadow-2xs'
+                        : 'bg-white text-neutral-900 shadow-2xs'
+                      : subTextClass
+                  }`}
+                >
+                  Informe RR.HH.
+                </button>
               </div>
             )}
 
-            {/* PESTAÑA 1: COMPARTIR INFORME */}
+            {/* PESTAÑA COMPARTIR INFORME */}
             {(!isDailyMode || modalTab === 'share') && (
               <>
                 {isDailyMode && (
@@ -3084,7 +3084,7 @@ export default function App() {
               </>
             )}
 
-            {/* PESTAÑA 2: RANKING (CON FILA DEL JUGADOR RESALTADA) */}
+            {/* PESTAÑA RANKING (CON SCROLL INTERNO Y FILA DEL JUGADOR RESALTADA) */}
             {isDailyMode && modalTab === 'leaderboard' && (
               <div className="flex flex-col gap-2.5 min-h-0 flex-1 overflow-hidden">
                 {/* Barra superior para alternar entre el Ranking de Hoy y el de Ayer */}
@@ -3170,7 +3170,7 @@ export default function App() {
                   </form>
                 )}
 
-                {/* Lista con scroll de los mejores detectives */}
+                {/* Lista con scroll vertical automático de los mejores detectives */}
                 <div className="flex-1 min-h-0 overflow-y-auto pr-1 flex flex-col gap-1.5">
                   {!supabase ? (
                     <div className={`py-6 text-center text-xs ${subTextClass}`}>
