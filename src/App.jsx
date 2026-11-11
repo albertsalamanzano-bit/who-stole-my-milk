@@ -2242,6 +2242,20 @@ export default function App() {
     <div
       className={`h-dvh max-h-dvh overflow-hidden font-sans select-none flex flex-col items-center justify-between px-3 pt-[max(0.35rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] transition-colors duration-200 ${pageBgClass}`}
     >
+      {/* Animación sutil de tembleque para sospechosos mencionados en la pista */}
+      <style>{`
+        @keyframes suspectWobble {
+          0%, 100% { transform: rotate(0deg) translateY(0); }
+          20% { transform: rotate(-7deg) translateY(-1px); }
+          40% { transform: rotate(7deg) translateY(-1px); }
+          60% { transform: rotate(-5deg) translateY(0); }
+          80% { transform: rotate(5deg) translateY(0); }
+        }
+        .animate-wobble {
+          animation: suspectWobble 1.15s ease-in-out infinite;
+        }
+      `}</style>
+
       <div className="w-full max-w-[400px] h-full flex flex-col justify-between gap-1.5 min-h-0">
         {/* 1. CABECERA CON TÍTULO SANDWICHCASE.IO */}
         <header className="grid grid-cols-[auto_1fr_auto] items-center gap-1.5 shrink-0 py-0.5">
@@ -2489,16 +2503,16 @@ export default function App() {
                             />
                           )}
 
-                          {/* Resaltado pulsante cuando la pista menciona puerta, fachada o el sospechoso colocado aquí */}
+                          {/* Resaltado de casilla para puertas, fachadas o sospechoso mencionado */}
                           {(isDoorCellHighlighted ||
                             isFacadeCellHighlighted ||
                             isPlacedSuspectHighlighted) && (
                             <div
                               style={{
                                 boxShadow:
-                                  'inset 0 0 0 2px rgba(24, 26, 32, 0.35), inset 0 0 10px rgba(255, 255, 255, 0.55)'
+                                  'inset 0 0 0 2px rgba(24, 26, 32, 0.3), inset 0 0 10px rgba(255, 255, 255, 0.5)'
                               }}
-                              className="absolute inset-0 pointer-events-none animate-pulse bg-white/30"
+                              className="absolute inset-0 pointer-events-none animate-pulse bg-white/25"
                             />
                           )}
 
@@ -2516,20 +2530,15 @@ export default function App() {
                             </div>
                           )}
 
-                          {/* Sospechoso colocado */}
+                          {/* Sospechoso colocado (con tembleque sutil si es mencionado en la pista) */}
                           {!isVase && placedSuspect && (
-                            <div
-                              className={`relative z-10 flex flex-col items-center justify-center leading-none pointer-events-none transition-transform duration-200 ${
-                                isPlacedSuspectHighlighted ? 'scale-110' : ''
-                              }`}
-                            >
-                              {isPlacedSuspectHighlighted && (
-                                <span className="absolute -inset-1.5 rounded-full border-2 border-white/90 animate-ping pointer-events-none" />
-                              )}
+                            <div className="relative z-10 flex flex-col items-center justify-center leading-none pointer-events-none">
                               <img
                                 src={placedSuspect.emoji}
                                 alt={placedSuspect.name}
-                                className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
+                                className={`w-6 h-6 sm:w-7 sm:h-7 object-contain ${
+                                  isPlacedSuspectHighlighted ? 'animate-wobble' : ''
+                                }`}
                               />
                               <span
                                 className={`mt-0.5 px-1.5 py-px rounded text-[8.5px] font-black leading-tight ${
@@ -2631,16 +2640,16 @@ export default function App() {
           )}
         </div>
 
-        {/* 3. BARRA DE REGLA (SIN ICONO Y CON TAMAÑO ADAPTADO) + BOTÓN LIMPIAR MESA REDUCIDO */}
+        {/* 3. BARRA DE REGLA CORTA Y ADAPTADA + BOTÓN LIMPIAR MESA REDUCIDO */}
         <div className="flex items-center justify-between gap-2 px-0.5 shrink-0">
           <div className="flex items-center min-w-0">
             {hasClueMismatch ? (
-              <span className="text-[clamp(0.76rem,3.4vw,0.92rem)] font-black leading-tight text-rose-500 truncate">
+              <span className="text-[clamp(0.85rem,3.7vw,0.98rem)] font-black leading-tight text-rose-500 truncate">
                 ¡Alguna coartada no cuadra!
               </span>
             ) : gameWon ? (
               <span
-                className={`text-[clamp(0.76rem,3.4vw,0.92rem)] font-black leading-tight truncate ${
+                className={`text-[clamp(0.85rem,3.7vw,0.98rem)] font-black leading-tight truncate ${
                   isDark ? 'text-emerald-400' : 'text-emerald-600'
                 }`}
               >
@@ -2648,11 +2657,11 @@ export default function App() {
               </span>
             ) : (
               <span
-                className={`text-[clamp(0.76rem,3.4vw,0.92rem)] font-bold leading-tight truncate ${
+                className={`text-[clamp(0.85rem,3.7vw,0.98rem)] font-bold leading-tight truncate ${
                   isDark ? 'text-neutral-300' : 'text-neutral-700'
                 }`}
               >
-                Quien está en el despacho del{' '}
+                El del despacho{' '}
                 <strong
                   className={`font-black ${
                     isDark ? 'text-white' : 'text-neutral-950'
@@ -2685,7 +2694,7 @@ export default function App() {
           </button>
         </div>
 
-        {/* 4. PÍLDORAS SELECTORAS DE SOSPECHOSOS */}
+        {/* 4. PÍLDORAS SELECTORAS DE SOSPECHOSOS (UN ÚNICO CÍRCULO POR PÍLDORA) */}
         <div className="w-full grid grid-cols-5 gap-1.5 h-12 shrink-0">
           {SUSPECTS.map((s) => {
             const isSelected = activeSuspect === s.id;
@@ -2693,7 +2702,7 @@ export default function App() {
             const evalRes = validation.clueResults ? validation.clueResults[s.id] : null;
             const isInconsistent = Boolean(evalRes && !evalRes.isConsistent);
 
-            // Si la pista habla de este sospechoso y NO está colocado, palpita su píldora
+            // Si la pista habla de este sospechoso y NO está colocado, tiembla su icono
             const isPillMentionedAndUnplaced =
               !isPlaced && activeClueHighlights.suspects.has(s.id);
 
@@ -2713,8 +2722,8 @@ export default function App() {
               ? 'border-2 border-rose-500 ring-1 ring-rose-500/40'
               : isPillMentionedAndUnplaced
               ? isDark
-                ? 'border-2 border-white ring-2 ring-white/35 animate-pulse shadow-md'
-                : 'border-2 border-neutral-900 ring-2 ring-neutral-900/25 animate-pulse shadow-md'
+                ? 'border border-neutral-400'
+                : 'border border-neutral-500'
               : isSelected
               ? isDark
                 ? 'border border-white'
@@ -2727,21 +2736,30 @@ export default function App() {
               ? 'border border-[#2C303A]'
               : 'border border-neutral-200';
 
-            // Dot superior derecho:
-            // - Si hay un "Posible mentiroso" marcado: todos los demás pasan a VERDE y el marcado a ROJO.
-            // - Si no hay "Posible mentiroso" marcado: gris neutro si está colocado.
+            // Único círculo superior derecho:
+            // - Color: Gris si no hay nadie marcado como mentiroso; Rojo/Verde si hay alguien marcado.
+            // - Relleno: Hueco (solo borde) si NO está colocado en el mapa; Relleno sólido si SÍ está colocado.
             const hasLiarHypothesis = suspectedLiar !== null;
             const isMarkedAsLiar = suspectedLiar === s.id;
 
-            const dotClass = hasLiarHypothesis
-              ? isMarkedAsLiar
-                ? 'bg-rose-500 opacity-100 ring-2 ring-rose-500/30'
-                : 'bg-emerald-500 opacity-100 ring-2 ring-emerald-500/30'
-              : isPlaced
-              ? isDark
-                ? 'bg-neutral-400 opacity-100'
-                : 'bg-neutral-500 opacity-100'
-              : 'opacity-0';
+            let circleStyle = '';
+            if (hasLiarHypothesis) {
+              if (isMarkedAsLiar) {
+                circleStyle = isPlaced
+                  ? 'border-rose-500 bg-rose-500'
+                  : 'border-rose-500 bg-transparent';
+              } else {
+                circleStyle = isPlaced
+                  ? 'border-emerald-500 bg-emerald-500'
+                  : 'border-emerald-500 bg-transparent';
+              }
+            } else {
+              circleStyle = isPlaced
+                ? 'border-neutral-400 bg-neutral-400'
+                : isDark
+                ? 'border-neutral-600 bg-transparent'
+                : 'border-neutral-300 bg-transparent';
+            }
 
             return (
               <button
@@ -2750,45 +2768,12 @@ export default function App() {
                 onClick={() => setActiveSuspect(s.id)}
                 className={`relative h-full rounded-xl font-black transition-all flex flex-col items-center justify-center cursor-pointer ${baseBgAndText} ${borderClass}`}
               >
-                {/* Halo de palpitación cuando la pista menciona al sospechoso y no está colocado */}
-                {isPillMentionedAndUnplaced && (
-                  <span
-                    className={`absolute -inset-0.5 rounded-xl border-2 animate-ping pointer-events-none ${
-                      isDark ? 'border-white/70' : 'border-neutral-900/60'
-                    }`}
-                  />
-                )}
-
-                {/* Indicador superior izquierdo de "Muñeco colocado en la mesa" */}
-                {isPlaced && (
-                  <span
-                    title="Colocado en la mesa"
-                    className={`absolute top-1 left-1 w-3 h-3 rounded-full flex items-center justify-center transition-opacity ${
-                      isSelected
-                        ? isDark
-                          ? 'bg-neutral-900 text-white'
-                          : 'bg-white text-neutral-900'
-                        : isDark
-                        ? 'bg-white/15 text-white'
-                        : 'bg-neutral-900/15 text-neutral-900'
-                    }`}
-                  >
-                    <Check className="w-2 h-2 stroke-[3.5]" />
-                  </span>
-                )}
-
-                {/* Dot superior derecho (hipótesis de veracidad / estado) */}
+                {/* Único círculo indicador (relleno = colocado, color = hipótesis de mentiroso) */}
                 <span
                   title={
-                    hasLiarHypothesis
-                      ? isMarkedAsLiar
-                        ? 'Marcado como posible mentiroso'
-                        : 'Asumido como inocente (dice la verdad)'
-                      : isPlaced
-                      ? 'Colocado en la mesa'
-                      : 'Sin colocar'
+                    isPlaced ? 'Colocado en la mesa' : 'Sin colocar en la mesa'
                   }
-                  className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full transition-all duration-150 ${dotClass}`}
+                  className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-[1.5px] transition-colors duration-150 ${circleStyle}`}
                 />
 
                 <div className="flex items-center gap-1 leading-none">
@@ -2796,7 +2781,9 @@ export default function App() {
                   <img
                     src={s.emoji}
                     alt={s.name}
-                    className="w-5 h-5 object-contain"
+                    className={`w-5 h-5 object-contain ${
+                      isPillMentionedAndUnplaced ? 'animate-wobble' : ''
+                    }`}
                   />
                 </div>
                 <span
@@ -2817,7 +2804,7 @@ export default function App() {
           })}
         </div>
 
-        {/* 5. TARJETA DE DECLARACIÓN CON CHECK DE "POSIBLE MENTIROSO" */}
+        {/* 5. TARJETA DE DECLARACIÓN CON CHECK "MENTIROSO" SIN PÍLDORA */}
         <div
           className={`w-full h-24 border rounded-2xl p-3 flex flex-col justify-between gap-1 shadow-xs shrink-0 overflow-hidden ${cardBgClass}`}
         >
@@ -2854,7 +2841,7 @@ export default function App() {
               </span>
             </div>
 
-            {/* Check de Posible Mentiroso (sustituye a la etiqueta estática "Coartada") */}
+            {/* Check limpio de "Mentiroso" sin píldora */}
             <button
               type="button"
               onClick={() =>
@@ -2862,18 +2849,16 @@ export default function App() {
                   prev === activeSuspect ? null : activeSuspect
                 )
               }
-              className={`px-2 py-0.5 rounded-lg border text-[10px] font-bold flex items-center gap-1.5 transition cursor-pointer shrink-0 ${
+              className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition cursor-pointer shrink-0 ${
                 suspectedLiar === activeSuspect
                   ? isDark
-                    ? 'bg-rose-500/20 border-rose-500/70 text-rose-300'
-                    : 'bg-rose-50 border-rose-300 text-rose-700'
-                  : isDark
-                  ? 'bg-[#14161B] border-[#2C303A] text-neutral-400 hover:text-neutral-200 hover:border-neutral-600'
-                  : 'bg-neutral-100 border-neutral-200 text-neutral-600 hover:text-neutral-900 hover:border-neutral-300'
+                    ? 'text-rose-400'
+                    : 'text-rose-600'
+                  : `${subTextClass} hover:opacity-80`
               }`}
             >
               <span
-                className={`w-3 h-3 rounded-xs border flex items-center justify-center transition ${
+                className={`w-3.5 h-3.5 rounded-xs border flex items-center justify-center transition ${
                   suspectedLiar === activeSuspect
                     ? 'bg-rose-500 border-rose-500 text-white'
                     : isDark
@@ -2885,7 +2870,7 @@ export default function App() {
                   <Check className="w-2.5 h-2.5 stroke-[3]" />
                 )}
               </span>
-              <span>Posible mentiroso</span>
+              <span>Mentiroso</span>
             </button>
           </div>
 
