@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import {
   Sparkles,
   Share2,
@@ -62,13 +62,13 @@ function sanitizeText(str) {
   return clean;
 }
 
-// Limpia comillas o puntos sobrantes al inicio/final de cualquier declaración
+// Limpia comillas o puntos/puntos suspensivos sobrantes al inicio/final de cualquier declaración
 function cleanStatementText(str) {
   if (!str) return '';
   return str
     .trim()
     .replace(/^[«"'“”]+|[»"'“”]+$/g, '')
-    .replace(/\.+$/g, '')
+    .replace(/[\.…]+$/g, '')
     .trim();
 }
 
@@ -229,7 +229,7 @@ const generatePermutations = (arr) => {
 
 const PERMUTATIONS_120 = generatePermutations([0, 1, 2, 3, 4]);
 
-// Función auxiliar para resaltar palabras clave (**...**), colorear despachos y mostrar el SVG del sándwich
+// Función auxiliar para resaltar palabras clave (**...**), colorear despachos, mostrar SVG de sospechosos entre paréntesis y el SVG del sándwich
 function renderFormattedClue(text, isDark) {
   if (!text) return null;
   const cleaned = cleanStatementText(text);
@@ -237,8 +237,32 @@ function renderFormattedClue(text, isDark) {
 
   return parts.map((part, idx) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      const content = part.slice(2, -2);
+      const content = part.slice(2, -2).replace(/[\.…]+$/g, '');
       const lower = content.toLowerCase();
+
+      const matchedSuspect = SUSPECTS.find(
+        (s) => s.name.toLowerCase() === lower
+      );
+
+      if (matchedSuspect) {
+        return (
+          <strong
+            key={idx}
+            className={`font-bold ${isDark ? 'text-white' : 'text-neutral-950'}`}
+          >
+            {content}{' '}
+            <span className="whitespace-nowrap font-normal">
+              (
+              <img
+                src={matchedSuspect.emoji}
+                alt={matchedSuspect.name}
+                className="w-3.5 h-3.5 object-contain inline-block align-text-bottom mx-0.5"
+              />
+              )
+            </span>
+          </strong>
+        );
+      }
 
       const matchedColor = Object.keys(ROOM_TEXT_STYLES).find((colorKey) =>
         lower.includes(colorKey)
@@ -258,7 +282,7 @@ function renderFormattedClue(text, isDark) {
         return (
           <strong
             key={idx}
-            className={`font-bold inline-flex items-center gap-1 align-baseline ${
+            className={`font-bold whitespace-nowrap ${
               isDark ? 'text-white' : 'text-neutral-950'
             }`}
           >
@@ -266,7 +290,7 @@ function renderFormattedClue(text, isDark) {
             <img
               src={sandwichSvg}
               alt="sándwich"
-              className="w-3.5 h-3.5 object-contain inline-block self-center shrink-0"
+              className="w-3.5 h-3.5 object-contain inline-block align-text-bottom ml-1"
             />
           </strong>
         );
@@ -321,6 +345,8 @@ const COMPLEMENTARY_TRIO_PAIRS = [
   [['Umbral', 'Sandwich', 'Despacho'],     ['Fachada', 'Claustrofobia', 'Escenario']]
 ];
 
+const ALL_CATEGORY_TRIOS = COMPLEMENTARY_TRIO_PAIRS.flat();
+
 function getDailyConfig(date = new Date()) {
   const epoch = new Date(2026, 0, 1).setHours(0, 0, 0, 0);
   const today = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
@@ -369,6 +395,16 @@ function getSeedFromUrl() {
   if (!casoParam) return null;
   const parsed = parseInt(casoParam, 10);
   return !Number.isNaN(parsed) && parsed > 0 ? parsed : null;
+}
+
+function getSavedLevelState(storageKey) {
+  if (typeof window === 'undefined' || !storageKey) return null;
+  try {
+    const raw = localStorage.getItem(storageKey);
+    return raw ? JSON.parse(raw) : null;
+  } catch (_e) {
+    return null;
+  }
 }
 
 // ============================================================================
@@ -647,11 +683,6 @@ function analyzeMapTopology(grid, vasePos, doors) {
   };
 }
 
-// Clasifica cada pista según su rol deductivo:
-// - 'anchor': El sospechoso habla de su propia posición/despacho respecto a elementos fijos del mapa.
-// - 'board': Observación global de huecos o géneros en el mapa (sin depender de otro sospechoso concreto).
-// - 'paranoia': Acusaciones, defensas o datos directos sobre el ladrón.
-// - 'relational': Posición o despacho en función de otro sospechoso concreto (A respecto a B).
 function getClueRole(clue) {
   if (clue.role) return clue.role;
   const id = clue.id;
@@ -744,7 +775,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       family: 'room_specific_door',
       category: 'Umbral',
       weight: 14,
-      text: `En los muros de mi despacho está la **puerta ${dNum}**`,
+      text: `En los tabiques de mi despacho está la **puerta ${dNum}**`,
       evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].includes(dNum)
     });
 
@@ -901,7 +932,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'self_facade_edge',
     category: 'Fachada',
     weight: 15,
-    text: `Estaba ${isFem ? 'pegada' : 'pegado'} al ventanal **Norte** de la oficina`,
+    text: `Estaba ${isFem ? 'pegada' : 'pegado'} a la fachada **Norte** de la oficina`,
     evalFn: (st) => st.suspectRow[speakerId] === 0
   });
 
@@ -912,7 +943,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'self_facade_edge',
     category: 'Fachada',
     weight: 15,
-    text: `Me quedé junto a la fachada **Sur** del edificio`,
+    text: `Me quedé junto a la fachada **Sur** de la oficina`,
     evalFn: (st) => st.suspectRow[speakerId] === 4
   });
 
@@ -934,7 +965,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'self_facade_edge',
     category: 'Fachada',
     weight: 15,
-    text: `Estaba junto a la fachada **Este**, donde da el sol`,
+    text: `Estaba junto a la fachada **Este** de la oficina`,
     evalFn: (st) => st.suspectCol[speakerId] === 4
   });
 
@@ -945,7 +976,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'self_facade_zone',
     category: 'Fachada',
     weight: 16,
-    text: `Me escaqueé en una de las **4 esquinas exteriores** de la planta`,
+    text: `Me escaqueé en una de las **4 esquinas exteriores** de la oficina`,
     evalFn: (st) =>
       (st.suspectRow[speakerId] === 0 || st.suspectRow[speakerId] === 4) &&
       (st.suspectCol[speakerId] === 0 || st.suspectCol[speakerId] === 4)
@@ -958,7 +989,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'self_facade_zone',
     category: 'Fachada',
     weight: 15,
-    text: `Estaba en el **interior de la oficina**, sin tocar ninguna fachada exterior`,
+    text: `Estaba en el **interior de la oficina**, sin tocar ninguna fachada`,
     evalFn: (st) =>
       st.suspectRow[speakerId] > 0 &&
       st.suspectRow[speakerId] < 4 &&
@@ -1028,7 +1059,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'self_diagonals',
     category: 'Fachada',
     weight: 15,
-    text: `Estaba ${isFem ? 'situada' : 'situado'} en una de las **dos diagonales principales** del plano`,
+    text: `Estaba ${isFem ? 'situada' : 'situado'} en una de las **dos diagonales principales** de la oficina`,
     evalFn: (st) => {
       const r = st.suspectRow[speakerId];
       const c = st.suspectCol[speakerId];
@@ -1086,7 +1117,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'board_facade_zone',
     category: 'Fachada',
     weight: 14,
-    text: `Había **un hombre** en una de las **4 esquinas exteriores** de la planta`,
+    text: `Había **un hombre** en una de las **4 esquinas exteriores** de la oficina`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) =>
@@ -1129,7 +1160,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       targetId: otherId,
       category: 'Fachada',
       weight: 14,
-      text: `Vi a **${SUSPECTS[otherId].name}** ${otherIsFem ? 'pegada' : 'pegado'} a una **fachada exterior** de la oficina`,
+      text: `Vi a **${SUSPECTS[otherId].name}** ${otherIsFem ? 'pegada' : 'pegado'} a una **fachada** de la oficina`,
       evalFn: (st) => {
         const r = st.suspectRow[otherId];
         const c = st.suspectCol[otherId];
@@ -1164,7 +1195,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'thief_facade',
     category: 'Fachada',
     weight: 14,
-    text: `El **ladrón** estaba junto a una **fachada exterior** del edificio`,
+    text: `El **ladrón** estaba junto a una **fachada** de la oficina`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       const r = st.suspectRow[thief];
@@ -1179,7 +1210,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'thief_facade',
     category: 'Fachada',
     weight: 15,
-    text: `El **ladrón** actuó desde el **interior de la planta**, lejos de las fachadas`,
+    text: `El **ladrón** actuó desde el **interior de la oficina**, lejos de las fachadas`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       const r = st.suspectRow[thief];
@@ -1200,7 +1231,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     weight: 15,
     text:
       largestRooms.length === 1
-        ? `Me instalé en el **despacho más grande** de todos (**${maxSize} casillas**)`
+        ? `Me instalé en el **despacho más grande** de la oficina (**${maxSize} casillas**)`
         : `Estaba en uno de los **despachos más grandes** (**${maxSize} casillas**)`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] === maxSize
   });
@@ -1226,7 +1257,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'self_room_extreme',
     category: 'Claustrofobia',
     weight: 12,
-    text: `Mi despacho **no es el más grande** de la planta`,
+    text: `Mi despacho **no es el más grande** de la oficina`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] < maxSize
   });
 
@@ -1406,7 +1437,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       targetId: otherId,
       category: 'Claustrofobia',
       weight: 15,
-      text: `Mi despacho mide **exactamente las mismas casillas** que el de **${SUSPECTS[otherId].name}**`,
+      text: `Mi despacho mide **las mismas casillas** que el de **${SUSPECTS[otherId].name}**`,
       evalFn: (st) =>
         roomSizes[st.suspectRoom[speakerId]] === roomSizes[st.suspectRoom[otherId]]
     });
@@ -1507,7 +1538,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'self_touch_crime_wall',
     category: 'Escenario',
     weight: 15,
-    text: `Estaba fuera del despacho del **sándwich**, pero **tocando su pared**`,
+    text: `Estaba fuera del despacho del **sándwich**, pero **tocando su tabique**`,
     evalFn: (st) => {
       const r = st.suspectRow[speakerId];
       const c = st.suspectCol[speakerId];
@@ -1524,7 +1555,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       family: 'self_touch_color_wall',
       category: 'Escenario',
       weight: 15,
-      text: `Estaba fuera del **despacho ${rmName}**, junto a su pared`,
+      text: `Estaba fuera del **despacho ${rmName}**, **tocando su tabique**`,
       evalFn: (st) => {
         const r = st.suspectRow[speakerId];
         const c = st.suspectCol[speakerId];
@@ -1539,7 +1570,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       family: `no_touch_wall_${rm}`,
       category: 'Escenario',
       weight: 12,
-      text: `Estaba fuera del **despacho ${rmName}** y **sin tocar su pared**`,
+      text: `Estaba fuera del **despacho ${rmName}** y **sin tocar su tabique**`,
       evalFn: (st) => {
         const r = st.suspectRow[speakerId];
         const c = st.suspectCol[speakerId];
@@ -1554,7 +1585,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'board_walls',
     category: 'Escenario',
     weight: 14,
-    text: `Había **una mujer** cuya casilla tocaba **al menos 2 despachos ajenos**`,
+    text: `Había **una mujer** cuya casilla tocaba los tabiques de **al menos 2 despachos ajenos**`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) =>
@@ -1600,7 +1631,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       targetId: otherId,
       category: 'Escenario',
       weight: 15,
-      text: `La casilla de **${SUSPECTS[otherId].name}** tocaba por fuera el tabique de **mi despacho**`,
+      text: `La casilla de **${SUSPECTS[otherId].name}** tocaba el tabique de **mi despacho**`,
       evalFn: (st) => {
         const or = st.suspectRow[otherId];
         const oc = st.suspectCol[otherId];
@@ -1615,7 +1646,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       targetId: otherId,
       category: 'Escenario',
       weight: 14,
-      text: `Desde su sitio, **${SUSPECTS[otherId].name}** tocaba los tabiques de **al menos 2 despachos ajenos**`,
+      text: `**${SUSPECTS[otherId].name}** tocaba los tabiques de **al menos 2 despachos ajenos**`,
       evalFn: (st) => {
         const or = st.suspectRow[otherId];
         const oc = st.suspectCol[otherId];
@@ -1690,7 +1721,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'self_vase_touch',
     category: 'Sandwich',
     weight: 16,
-    text: `Mi casilla tocaba por un **lado** (arriba, abajo, izquierda o derecha) al **sándwich**`,
+    text: `Mi casilla tocaba por un **lado** (no en diagonal) al **sándwich**`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) +
         Math.abs(st.suspectCol[speakerId] - vasePos.c) ===
@@ -1717,7 +1748,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'self_vase_touch',
     category: 'Sandwich',
     weight: 15,
-    text: `Estaba en una de las casillas que **rodean al sándwich** (por lado o diagonal)`,
+    text: `Estaba en una casilla que **rodea al sándwich** (por lado o diagonal)`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) <= 1 &&
       Math.abs(st.suspectCol[speakerId] - vasePos.c) <= 1
@@ -1764,7 +1795,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'self_vase_adj_axis',
     category: 'Sandwich',
     weight: 15,
-    text: `Mi fila era **vecina** (justo arriba o abajo) a la fila del **sándwich**`,
+    text: `Mi fila era **vecina** (arriba o abajo) a la fila del **sándwich**`,
     evalFn: (st) => Math.abs(st.suspectRow[speakerId] - vasePos.r) === 1
   });
 
@@ -1775,7 +1806,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'self_vase_adj_axis',
     category: 'Sandwich',
     weight: 15,
-    text: `Mi columna era **vecina** (justo a izquierda o derecha) a la del **sándwich**`,
+    text: `Mi columna era **vecina** (izquierda o derecha) a la del **sándwich**`,
     evalFn: (st) => Math.abs(st.suspectCol[speakerId] - vasePos.c) === 1
   });
 
@@ -1859,7 +1890,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'board_vase_ring',
     category: 'Sandwich',
     weight: 14,
-    text: `Había **alguien** en las casillas que **rodean al sándwich** (por lado o diagonal)`,
+    text: `Había **alguien** en las casillas que **rodean al sándwich** (lado o diagonal)`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) =>
@@ -1874,7 +1905,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'board_vase_ring',
     category: 'Sandwich',
     weight: 15,
-    text: `No había **nadie** en las casillas que **rodean al sándwich** (por lado o diagonal)`,
+    text: `No había **nadie** en las casillas que **rodean al sándwich** (lado o diagonal)`,
     evalFn: (st) =>
       !SUSPECTS.some(
         (s) =>
@@ -1905,7 +1936,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       targetId: otherId,
       category: 'Sandwich',
       weight: 15,
-      text: `Vi a **${SUSPECTS[otherId].name}** en una casilla que **rodea al sándwich** (lado o diagonal)`,
+      text: `Vi a **${SUSPECTS[otherId].name}** en una casilla que **rodea al sándwich**`,
       evalFn: (st) =>
         Math.abs(st.suspectRow[otherId] - vasePos.r) <= 1 &&
         Math.abs(st.suspectCol[otherId] - vasePos.c) <= 1
@@ -1918,7 +1949,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       targetId: otherId,
       category: 'Sandwich',
       weight: 15,
-      text: `¡**${SUSPECTS[otherId].name}** **miente** descaradamente, tiene migas de **sándwich**!`,
+      text: `¡**${SUSPECTS[otherId].name}** **miente**, tiene migas de **sándwich**!`,
       evalFn: (st) => st.suspectRoom[otherId] === vaseRoom
     });
 
@@ -2072,10 +2103,11 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
   const startTime = performance.now();
   let mapAttempts = 0;
 
+  // Tanto el modo diario como el modo aleatorio escogen un trío de 3 categorías de pistas
   const categoriesToUse =
-    enabledCategories && enabledCategories.length > 0
+    enabledCategories && enabledCategories.length === 3
       ? enabledCategories
-      : shuffle(Object.keys(CLUE_CATEGORIES), rng).slice(0, 3);
+      : ALL_CATEGORY_TRIOS[Math.floor(rng() * ALL_CATEGORY_TRIOS.length)];
 
   const activeCatSet = new Set(categoriesToUse);
 
@@ -2309,10 +2341,9 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
         survivors.length === 1 &&
         survivors[0] === trueStateIdx
       ) {
-        const minDistinct = Math.min(3, activeCatSet.size);
-        // GARANTÍA 3: Verificación final de que Analista (pickBySuspect[0]) lleva un ancla afirmativa
+        // GARANTÍA 3: Las 3 categorías del trío están presentes y Analista lleva un ancla afirmativa
         if (
-          usedCategories.size >= minDistinct &&
+          usedCategories.size === 3 &&
           pickBySuspect[0].role === 'anchor' &&
           pickBySuspect[0].isStrongAnchor &&
           anchorCount >= 2 &&
@@ -2421,49 +2452,85 @@ export default function App() {
 
   const dailyStorageKey = `sandwich_daily_state_${dailyConfig.seed}`;
 
-  const initialDailySaved = useMemo(() => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const raw = localStorage.getItem(dailyStorageKey);
-      return raw ? JSON.parse(raw) : null;
-    } catch (_e) {
-      return null;
+  // Detecta sesión inicial (URL ?caso=XXXXXX o última sesión aleatoria/diaria guardada al refrescar)
+  const initialSession = useMemo(() => {
+    const urlSeed = getSeedFromUrl();
+    if (urlSeed !== null) {
+      return { isDaily: false, randomSeed: urlSeed };
     }
-  }, [dailyStorageKey]);
+    if (typeof window !== 'undefined') {
+      try {
+        const rawSession = localStorage.getItem('sandwich_active_session');
+        if (rawSession) {
+          const parsed = JSON.parse(rawSession);
+          if (
+            parsed &&
+            parsed.isDaily === false &&
+            typeof parsed.seed === 'number' &&
+            parsed.seed > 0
+          ) {
+            return { isDaily: false, randomSeed: parsed.seed };
+          }
+        }
+      } catch (_e) {
+        // Ignorar
+      }
+    }
+    return { isDaily: true, randomSeed: null };
+  }, []);
 
-  // Si la URL incluye ?caso=123456, arrancamos directamente en ese nivel compartido
-  const initialUrlSeed = useMemo(() => getSeedFromUrl(), []);
-
-  const [isDailyMode, setIsDailyMode] = useState(() => initialUrlSeed === null);
+  const [isDailyMode, setIsDailyMode] = useState(() => initialSession.isDaily);
 
   const [level, setLevel] = useState(() => {
-    if (initialUrlSeed !== null) {
-      const sharedLevel = generateCompleteLevel(null, initialUrlSeed);
-      if (sharedLevel) return sharedLevel;
+    if (!initialSession.isDaily && initialSession.randomSeed !== null) {
+      const randomLvl = generateCompleteLevel(null, initialSession.randomSeed);
+      if (randomLvl) return randomLvl;
     }
     return generateCompleteLevel(dailyConfig.categories, dailyConfig.seed);
   });
 
-  const [placements, setPlacements] = useState(() =>
-    initialUrlSeed !== null ? {} : initialDailySaved?.placements || {}
+  const activeStorageKey = useMemo(() => {
+    if (isDailyMode) return dailyStorageKey;
+    return level?.seed ? `sandwich_random_state_${level.seed}` : null;
+  }, [isDailyMode, dailyStorageKey, level?.seed]);
+
+  const initialSavedState = useMemo(
+    () => getSavedLevelState(activeStorageKey),
+    // Solo al montar la aplicación
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
+
+  const [placements, setPlacements] = useState(
+    () => initialSavedState?.placements || {}
   );
   const [activeSuspect, setActiveSuspect] = useState(0);
   const [suspectedLiar, setSuspectedLiar] = useState(() =>
-    initialUrlSeed !== null
-      ? null
-      : initialDailySaved?.completed
+    initialSavedState?.completed
       ? level?.thiefId ?? null
-      : initialDailySaved?.suspectedLiar ?? null
+      : initialSavedState?.suspectedLiar ?? null
   );
-  const [seconds, setSeconds] = useState(() =>
-    initialUrlSeed !== null ? 0 : initialDailySaved?.seconds || 0
+  const [seconds, setSeconds] = useState(
+    () => initialSavedState?.seconds || 0
   );
 
   const [isSolved, setIsSolved] = useState(() =>
-    initialUrlSeed !== null ? false : Boolean(initialDailySaved?.completed)
+    Boolean(initialSavedState?.completed)
   );
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isModeModalOpen, setIsModeModalOpen] = useState(false);
+
+  // Mensaje al clicar el sándwich
+  const [showSandwichHint, setShowSandwichHint] = useState(false);
+  const sandwichHintTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (sandwichHintTimeoutRef.current) {
+        clearTimeout(sandwichHintTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Abrir «Reglas» automáticamente el primer día
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(() => {
@@ -2493,10 +2560,10 @@ export default function App() {
   });
   const [isSubmittingScore, setIsSubmittingScore] = useState(false);
   const [scoreSubmitted, setScoreSubmitted] = useState(() =>
-    Boolean(initialDailySaved?.scoreSubmitted)
+    Boolean(initialSavedState?.scoreSubmitted)
   );
   const [submittedEntryId, setSubmittedEntryId] = useState(
-    () => initialDailySaved?.submittedEntryId || null
+    () => initialSavedState?.submittedEntryId || null
   );
   const [submitError, setSubmitError] = useState('');
 
@@ -2504,7 +2571,7 @@ export default function App() {
 
   const isAnyModalOpen = isHelpModalOpen || isModeModalOpen || isShareModalOpen;
 
-  // Sincroniza el color de fondo de html/body y theme-color (incluyendo sombra de popups en barras del navegador)
+  // Sincroniza el color de fondo de html/body y theme-color
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const baseBg = isDark ? '#14161B' : '#F3F4F6';
@@ -2530,10 +2597,34 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
+  // Sincroniza la URL y la sesión activa en localStorage para que refrescar en modo aleatorio mantenga el nivel
   useEffect(() => {
-    if (!isDailyMode || typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !level) return;
     try {
-      const existingRaw = localStorage.getItem(dailyStorageKey);
+      localStorage.setItem(
+        'sandwich_active_session',
+        JSON.stringify({ isDaily: isDailyMode, seed: level.seed })
+      );
+      if (!isDailyMode) {
+        const currentUrlSeed = getSeedFromUrl();
+        if (currentUrlSeed !== level.seed) {
+          window.history.replaceState(
+            {},
+            '',
+            `${window.location.pathname}?caso=${level.seed}`
+          );
+        }
+      }
+    } catch (_e) {
+      // Ignorar
+    }
+  }, [isDailyMode, level]);
+
+  // Guarda el tiempo, posiciones y estado tanto en el reto diario como en niveles aleatorios
+  useEffect(() => {
+    if (typeof window === 'undefined' || !activeStorageKey) return;
+    try {
+      const existingRaw = localStorage.getItem(activeStorageKey);
       const existing = existingRaw ? JSON.parse(existingRaw) : null;
 
       if (existing?.completed && !isSolved) return;
@@ -2546,19 +2637,18 @@ export default function App() {
         scoreSubmitted: existing?.scoreSubmitted || scoreSubmitted,
         submittedEntryId: existing?.submittedEntryId || submittedEntryId
       };
-      localStorage.setItem(dailyStorageKey, JSON.stringify(payload));
+      localStorage.setItem(activeStorageKey, JSON.stringify(payload));
     } catch (_e) {
       // Ignorar errores de almacenamiento
     }
   }, [
-    isDailyMode,
+    activeStorageKey,
     isSolved,
     seconds,
     placements,
     suspectedLiar,
     scoreSubmitted,
     submittedEntryId,
-    dailyStorageKey,
     level?.thiefId
   ]);
 
@@ -2648,7 +2738,6 @@ export default function App() {
     const nextLevel = generateCompleteLevel(dailyConfig.categories, dailyConfig.seed);
     if (!nextLevel) return;
 
-    // Limpia el parámetro ?caso=... de la URL al volver al reto diario
     if (typeof window !== 'undefined') {
       window.history.replaceState({}, '', window.location.pathname);
     }
@@ -2658,23 +2747,19 @@ export default function App() {
     setActiveSuspect(0);
     setIsModeModalOpen(false);
     setCopiedShare(false);
+    setShowSandwichHint(false);
 
-    try {
-      const raw = localStorage.getItem(dailyStorageKey);
-      const saved = raw ? JSON.parse(raw) : null;
-      if (saved) {
-        setPlacements(saved.placements || {});
-        setSuspectedLiar(
-          saved.completed ? nextLevel.thiefId : saved.suspectedLiar ?? null
-        );
-        setSeconds(saved.seconds || 0);
-        setIsSolved(Boolean(saved.completed));
-        setScoreSubmitted(Boolean(saved.scoreSubmitted));
-        setSubmittedEntryId(saved.submittedEntryId || null);
-        return;
-      }
-    } catch (_e) {
-      // Fallback
+    const saved = getSavedLevelState(dailyStorageKey);
+    if (saved) {
+      setPlacements(saved.placements || {});
+      setSuspectedLiar(
+        saved.completed ? nextLevel.thiefId : saved.suspectedLiar ?? null
+      );
+      setSeconds(saved.seconds || 0);
+      setIsSolved(Boolean(saved.completed));
+      setScoreSubmitted(Boolean(saved.scoreSubmitted));
+      setSubmittedEntryId(saved.submittedEntryId || null);
+      return;
     }
 
     setPlacements({});
@@ -2688,7 +2773,6 @@ export default function App() {
   const handleNewRandomLevel = useCallback(() => {
     const nextLevel = generateCompleteLevel();
     if (nextLevel) {
-      // Actualiza la URL con el código del caso aleatorio actual
       if (typeof window !== 'undefined') {
         window.history.replaceState(
           {},
@@ -2707,6 +2791,7 @@ export default function App() {
       setIsShareModalOpen(false);
       setIsModeModalOpen(false);
       setCopiedShare(false);
+      setShowSandwichHint(false);
       setModalTab('share');
     }
   }, []);
@@ -2833,7 +2918,6 @@ export default function App() {
     validation?.conflicts.size === 0 &&
     !validation?.allCluesValid;
 
-  // Si el nivel está resuelto, el mentiroso marcado pasa a ser automáticamente el ladrón real y queda fijo
   const effectiveSuspectedLiar =
     gameWon && level ? level.thiefId : suspectedLiar;
 
@@ -2858,9 +2942,26 @@ export default function App() {
     return () => clearInterval(timer);
   }, [gameWon, isAnyModalOpen]);
 
+  const triggerSandwichHint = useCallback(() => {
+    setShowSandwichHint(true);
+    if (sandwichHintTimeoutRef.current) {
+      clearTimeout(sandwichHintTimeoutRef.current);
+    }
+    sandwichHintTimeoutRef.current = setTimeout(() => {
+      setShowSandwichHint(false);
+    }, 3200);
+  }, []);
+
   const handleCellClick = (r, c) => {
-    if (!level || gameWon) return;
-    if (r === level.vasePos.r && c === level.vasePos.c) return;
+    if (!level) return;
+
+    // Si clicas el sándwich, muestra un aviso diciendo que el que está en ese despacho miente
+    if (r === level.vasePos.r && c === level.vasePos.c) {
+      triggerSandwichHint();
+      return;
+    }
+
+    if (gameWon) return;
 
     const key = `${r},${c}`;
 
@@ -2920,7 +3021,6 @@ export default function App() {
     window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
   };
 
-  // Identifica cuál es la fila del jugador en el Ranking para resaltarla
   const highlightedEntryId = useMemo(() => {
     if (!leaderboard.length) return null;
     if (submittedEntryId && leaderboard.some((e) => e.id === submittedEntryId)) {
@@ -2968,7 +3068,7 @@ export default function App() {
       className={`h-dvh max-h-dvh overflow-hidden font-sans select-none flex flex-col items-center justify-between px-3 pt-[max(0.35rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] transition-colors duration-200 ${pageBgClass}`}
     >
       <div className="w-full max-w-[400px] h-full flex flex-col justify-between gap-1.5 min-h-0">
-        {/* 1. CABECERA CON TÍTULO DINÁMICO (RETO DIARIO FECHA / CASO #XXXXXX) */}
+        {/* 1. CABECERA CON TÍTULO DINÁMICO Y VALOR DE FECHA/CASO EN FUENTE REGULAR */}
         <header className="grid grid-cols-[auto_1fr_auto] items-center gap-1.5 shrink-0 py-0.5">
           <button
             type="button"
@@ -2990,9 +3090,16 @@ export default function App() {
               className="w-4 h-4 object-contain shrink-0"
             />
             <span className="truncate">
-              {isDailyMode
-                ? `Reto diario ${dailyConfig.formattedDate}`
-                : `Caso #${level.caseNumber}`}
+              {isDailyMode ? (
+                <>
+                  Reto diario{' '}
+                  <span className="font-normal">{dailyConfig.formattedDate}</span>
+                </>
+              ) : (
+                <>
+                  Caso <span className="font-normal">#{level.caseNumber}</span>
+                </>
+              )}
             </span>
           </h1>
 
@@ -3151,7 +3258,7 @@ export default function App() {
                               : '1px solid rgba(24, 26, 32, 0.12)'
                           }}
                           className={`relative w-full h-full flex flex-col items-center justify-center p-0 overflow-hidden transition-colors duration-200 focus:outline-none ${
-                            gameWon ? 'cursor-default' : 'cursor-pointer'
+                            gameWon && !isVase ? 'cursor-default' : 'cursor-pointer'
                           } ${hasConflict ? 'ring-3 ring-inset ring-rose-600 z-10' : ''}`}
                         >
                           {/* Marcador del Crimen compacto */}
@@ -3226,6 +3333,23 @@ export default function App() {
                     </div>
                   );
                 })}
+
+                {/* AVISO FLOTANTE AL CLICAR EL SÁNDWICH */}
+                {showSandwichHint && (
+                  <div
+                    onClick={() => setShowSandwichHint(false)}
+                    className="absolute inset-x-2 bottom-2 z-30 flex items-center justify-center pointer-events-auto cursor-pointer"
+                  >
+                    <div className="bg-[#181A20]/95 text-white border border-white/20 px-3 py-1.5 rounded-xl shadow-lg flex items-center gap-1.5 text-[11px] font-bold text-center">
+                      <img
+                        src={sandwichSvg}
+                        alt="Sándwich"
+                        className="w-4 h-4 object-contain shrink-0"
+                      />
+                      <span>El que está en ese despacho miente</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -3269,7 +3393,16 @@ export default function App() {
         {/* 3. BARRA DE REGLA ("Uno de ellos miente") + BOTÓN LIMPIAR MESA REDUCIDO */}
         <div className="flex items-center justify-between gap-2 px-0.5 shrink-0">
           <div className="flex items-center min-w-0">
-            {hasClueMismatch ? (
+            {showSandwichHint ? (
+              <span
+                className={`text-[clamp(0.82rem,3.6vw,0.95rem)] font-bold leading-tight truncate ${
+                  isDark ? 'text-amber-300' : 'text-amber-700'
+                }`}
+              >
+                El que está en ese despacho{' '}
+                <strong className="font-black">miente</strong>
+              </span>
+            ) : hasClueMismatch ? (
               <span className="text-[clamp(0.85rem,3.7vw,0.98rem)] font-black leading-tight text-rose-500 truncate">
                 ¡Alguna coartada no cuadra!
               </span>
@@ -3492,7 +3625,7 @@ export default function App() {
 
           <div className="flex-1 min-h-0 flex items-center justify-center px-1">
             <p
-              className={`w-full text-center font-sans text-[clamp(0.85rem,3.7vw,0.98rem)] font-normal leading-snug line-clamp-2 ${
+              className={`w-full text-center font-sans text-[clamp(0.82rem,3.6vw,0.95rem)] font-normal leading-snug ${
                 isDark ? 'text-neutral-200' : 'text-neutral-700'
               }`}
             >
