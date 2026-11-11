@@ -1604,7 +1604,11 @@ export default function App() {
   );
   const [activeSuspect, setActiveSuspect] = useState(0);
   const [suspectedLiar, setSuspectedLiar] = useState(() =>
-    initialUrlSeed !== null ? null : initialDailySaved?.suspectedLiar ?? null
+    initialUrlSeed !== null
+      ? null
+      : initialDailySaved?.completed
+      ? level?.thiefId ?? null
+      : initialDailySaved?.suspectedLiar ?? null
   );
   const [seconds, setSeconds] = useState(() =>
     initialUrlSeed !== null ? 0 : initialDailySaved?.seconds || 0
@@ -1634,7 +1638,7 @@ export default function App() {
   const [copiedShare, setCopiedShare] = useState(false);
 
   // --- ESTADOS DEL RANKING DIARIO (HOY Y AYER) ---
-  const [modalTab, setModalTab] = useState('leaderboard'); // 'leaderboard' | 'share'
+  const [modalTab, setModalTab] = useState('share'); // 'share' | 'leaderboard'
   const [leaderboardDay, setLeaderboardDay] = useState('today'); // 'today' | 'yesterday'
   const [leaderboard, setLeaderboard] = useState([]);
   const [isLoadingBoard, setIsLoadingBoard] = useState(false);
@@ -1693,7 +1697,7 @@ export default function App() {
         completed: isSolved,
         seconds: existing?.completed ? existing.seconds : seconds,
         placements: existing?.completed ? existing.placements : placements,
-        suspectedLiar,
+        suspectedLiar: isSolved ? level?.thiefId ?? suspectedLiar : suspectedLiar,
         scoreSubmitted: existing?.scoreSubmitted || scoreSubmitted,
         submittedEntryId: existing?.submittedEntryId || submittedEntryId
       };
@@ -1709,7 +1713,8 @@ export default function App() {
     suspectedLiar,
     scoreSubmitted,
     submittedEntryId,
-    dailyStorageKey
+    dailyStorageKey,
+    level?.thiefId
   ]);
 
   const targetBoardSeed =
@@ -1814,7 +1819,9 @@ export default function App() {
       const saved = raw ? JSON.parse(raw) : null;
       if (saved) {
         setPlacements(saved.placements || {});
-        setSuspectedLiar(saved.suspectedLiar ?? null);
+        setSuspectedLiar(
+          saved.completed ? nextLevel.thiefId : saved.suspectedLiar ?? null
+        );
         setSeconds(saved.seconds || 0);
         setIsSolved(Boolean(saved.completed));
         setScoreSubmitted(Boolean(saved.scoreSubmitted));
@@ -1981,14 +1988,21 @@ export default function App() {
     validation?.conflicts.size === 0 &&
     !validation?.allCluesValid;
 
+  // Si el nivel está resuelto, el mentiroso marcado pasa a ser automáticamente el ladrón real y queda fijo
+  const effectiveSuspectedLiar =
+    gameWon && level ? level.thiefId : suspectedLiar;
+
   useEffect(() => {
     if (validation?.allCluesValid && !isSolved) {
       setIsSolved(true);
-      setModalTab(isDailyMode ? 'leaderboard' : 'share');
+      if (level) {
+        setSuspectedLiar(level.thiefId);
+      }
+      setModalTab('share');
       setLeaderboardDay('today');
       setIsShareModalOpen(true);
     }
-  }, [validation, isSolved, isDailyMode]);
+  }, [validation, isSolved, level]);
 
   // El cronómetro se pausa si el caso está resuelto o si hay algún popup abierto
   useEffect(() => {
@@ -2039,7 +2053,7 @@ export default function App() {
       ? 'https://www.sandwichcase.io'
       : `https://www.sandwichcase.io/?caso=${level?.seed ?? ''}`;
 
-    return `¡Alguien ha robado mi sándwich en la oficina!\n📂 ${modeLabel}\n🕵️‍♂️ Culpable cazado en ${formatTime(seconds)}\n\n¿Lo resuelves más rápido que yo? 👇\n${shareUrl}`;
+    return `¡Alguien ha robado mi sándwich en la oficina!\n📂 ${modeLabel}\n🥪 Culpable cazado en ${formatTime(seconds)}\n\n¿Lo resuelves más rápido que yo? 👇\n${shareUrl}`;
   }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, level?.seed, seconds]);
 
   const handleCopyShareText = () => {
@@ -2134,7 +2148,7 @@ export default function App() {
           </h1>
 
           <div className="flex items-center justify-end gap-1.5 shrink-0">
-            {/* Botón Compartir (Intercambiado a la izquierda del Trofeo) */}
+            {/* 1º Botón Compartir */}
             {gameWon && (
               <button
                 type="button"
@@ -2149,7 +2163,7 @@ export default function App() {
               </button>
             )}
 
-            {/* Botón del Ranking (Intercambiado a la derecha del botón Compartir) */}
+            {/* 2º Botón del Ranking */}
             {isDailyMode && gameWon && (
               <button
                 type="button"
@@ -2491,10 +2505,10 @@ export default function App() {
               : 'border border-neutral-200';
 
             // Único círculo superior derecho:
-            // - Color: Gris si no hay nadie marcado como mentiroso; Rojo/Verde si hay alguien marcado.
+            // - Color: Gris si no hay nadie marcado como mentiroso; Rojo/Verde si hay alguien marcado (o el nivel está resuelto).
             // - Relleno: Hueco (solo borde) si NO está colocado en el mapa; Relleno sólido si SÍ está colocado.
-            const hasLiarHypothesis = suspectedLiar !== null;
-            const isMarkedAsLiar = suspectedLiar === s.id;
+            const hasLiarHypothesis = effectiveSuspectedLiar !== null;
+            const isMarkedAsLiar = effectiveSuspectedLiar === s.id;
 
             let circleStyle = '';
             if (hasLiarHypothesis) {
@@ -2556,7 +2570,7 @@ export default function App() {
           })}
         </div>
 
-        {/* 5. TARJETA DE DECLARACIÓN CON CHECK "MENTIROSO" SIN PÍLDORA */}
+        {/* 5. TARJETA DE DECLARACIÓN CON CHECK "MENTIROSO" SIN PÍLDORA (FIJO SI ESTÁ RESUELTO) */}
         <div
           className={`w-full h-24 border rounded-2xl p-3 flex flex-col justify-between gap-1 shadow-xs shrink-0 overflow-hidden ${cardBgClass}`}
         >
@@ -2593,32 +2607,36 @@ export default function App() {
               </span>
             </div>
 
-            {/* Check limpio de "Mentiroso" sin píldora */}
+            {/* Check limpio de "Mentiroso" sin píldora (bloqueado cuando el caso está resuelto) */}
             <button
               type="button"
-              onClick={() =>
+              disabled={gameWon}
+              onClick={() => {
+                if (gameWon) return;
                 setSuspectedLiar((prev) =>
                   prev === activeSuspect ? null : activeSuspect
-                )
-              }
-              className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition cursor-pointer shrink-0 ${
-                suspectedLiar === activeSuspect
+                );
+              }}
+              className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition shrink-0 ${
+                gameWon ? 'cursor-default' : 'cursor-pointer'
+              } ${
+                effectiveSuspectedLiar === activeSuspect
                   ? isDark
                     ? 'text-rose-400'
                     : 'text-rose-600'
-                  : `${subTextClass} hover:opacity-80`
+                  : `${subTextClass} ${gameWon ? '' : 'hover:opacity-80'}`
               }`}
             >
               <span
                 className={`w-3.5 h-3.5 rounded-xs border flex items-center justify-center transition ${
-                  suspectedLiar === activeSuspect
+                  effectiveSuspectedLiar === activeSuspect
                     ? 'bg-rose-500 border-rose-500 text-white'
                     : isDark
                     ? 'border-neutral-500 bg-transparent'
                     : 'border-neutral-400 bg-transparent'
                 }`}
               >
-                {suspectedLiar === activeSuspect && (
+                {effectiveSuspectedLiar === activeSuspect && (
                   <Check className="w-2.5 h-2.5 stroke-[3]" />
                 )}
               </span>
@@ -2955,7 +2973,7 @@ export default function App() {
               </button>
             </div>
 
-            {/* Selector de Pestañas Intercambiado: [Ranking | Informe RR.HH.] */}
+            {/* Selector de Pestañas: 1º Informe RR.HH. (Compartir) | 2º Ranking */}
             {isDailyMode && (
               <div
                 className={`grid grid-cols-2 p-1 rounded-xl border shrink-0 ${
@@ -2964,6 +2982,19 @@ export default function App() {
                     : 'bg-neutral-100 border-neutral-200'
                 }`}
               >
+                <button
+                  type="button"
+                  onClick={() => setModalTab('share')}
+                  className={`py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
+                    modalTab === 'share'
+                      ? isDark
+                        ? 'bg-[#282B34] text-white shadow-2xs'
+                        : 'bg-white text-neutral-900 shadow-2xs'
+                      : subTextClass
+                  }`}
+                >
+                  Informe RR.HH.
+                </button>
                 <button
                   type="button"
                   onClick={() => setModalTab('leaderboard')}
@@ -2980,23 +3011,10 @@ export default function App() {
                   </span>
                   <span>Ranking</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setModalTab('share')}
-                  className={`py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
-                    modalTab === 'share'
-                      ? isDark
-                        ? 'bg-[#282B34] text-white shadow-2xs'
-                        : 'bg-white text-neutral-900 shadow-2xs'
-                      : subTextClass
-                  }`}
-                >
-                  Informe RR.HH.
-                </button>
               </div>
             )}
 
-            {/* PESTAÑA COMPARTIR INFORME */}
+            {/* PESTAÑA 1: COMPARTIR INFORME */}
             {(!isDailyMode || modalTab === 'share') && (
               <>
                 {isDailyMode && (
@@ -3084,7 +3102,7 @@ export default function App() {
               </>
             )}
 
-            {/* PESTAÑA RANKING (CON SCROLL INTERNO Y FILA DEL JUGADOR RESALTADA) */}
+            {/* PESTAÑA 2: RANKING (CON SCROLL INTERNO Y FILA DEL JUGADOR RESALTADA) */}
             {isDailyMode && modalTab === 'leaderboard' && (
               <div className="flex flex-col gap-2.5 min-h-0 flex-1 overflow-hidden">
                 {/* Barra superior para alternar entre el Ranking de Hoy y el de Ayer */}
