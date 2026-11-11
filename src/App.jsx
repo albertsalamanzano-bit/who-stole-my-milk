@@ -647,6 +647,49 @@ function analyzeMapTopology(grid, vasePos, doors) {
   };
 }
 
+// Clasifica cada pista según su rol deductivo para evitar el "efecto de los 3 ciegos":
+// - 'anchor': El sospechoso habla de su propia posición/despacho respecto a elementos fijos del mapa.
+// - 'board': Observación global de huecos o géneros en el mapa (sin depender de otro sospechoso concreto).
+// - 'paranoia': Acusaciones, defensas o datos sobre el ladrón.
+// - 'relational': Posición o despacho en función de otro sospechoso concreto (A respecto a B).
+function getClueRole(clue) {
+  if (clue.category === 'Paranoia') return 'paranoia';
+  const id = clue.id;
+
+  if (
+    id.startsWith('self_') ||
+    id.startsWith('room_') ||
+    id.startsWith('facade_') ||
+    id === 'south_half_rows' ||
+    id === 'central_axes' ||
+    id === 'main_diagonals' ||
+    id.startsWith('adj_to_vase_') ||
+    id === 'same_line_as_vase' ||
+    id === 'no_line_as_vase' ||
+    id === 'knight_to_vase' ||
+    id === 'touch_many_rooms' ||
+    id === 'deep_inside_room' ||
+    id.startsWith('touch_wall_of_room_')
+  ) {
+    return 'anchor';
+  }
+
+  if (
+    id.startsWith('nobody_door_') ||
+    id.startsWith('someone_door_') ||
+    id.startsWith('carnivore_') ||
+    id.startsWith('herbivore_') ||
+    id === 'even_doors_empty' ||
+    id === 'odd_doors_empty' ||
+    id === 'two_doors_occupied' ||
+    id.startsWith('women_adj_')
+  ) {
+    return 'board';
+  }
+
+  return 'relational';
+}
+
 function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, doors, topo) {
   const clues = [];
   const speaker = SUSPECTS[speakerId];
@@ -1308,7 +1351,10 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     }
   });
 
-  return clues;
+  return clues.map((c) => ({
+    ...c,
+    role: getClueRole(c)
+  }));
 }
 
 function generateCompleteLevel(enabledCategories = null, seed = null) {
@@ -1410,7 +1456,11 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
         }
       }
 
-      if (filtered.length === 0) {
+      // Analista (sId === 0) necesita al menos una pista 'anchor' disponible
+      if (
+        filtered.length === 0 ||
+        (sId === 0 && !filtered.some((c) => c.role === 'anchor'))
+      ) {
         poolEmpty = true;
         break;
       }
@@ -1426,11 +1476,17 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
 
     let chosenClues = null;
 
-    for (let searchTry = 0; searchTry < 95; searchTry++) {
-      const order = shuffle([0, 1, 2, 3, 4], rng);
+    for (let searchTry = 0; searchTry < 110; searchTry++) {
+      // Evaluamos siempre a Analista (0) primero para garantizar su pista 'anchor'
+      const order = [0, ...shuffle([1, 2, 3, 4], rng)];
       let survivors = Array.from({ length: N }, (_, i) => i);
       const pickBySuspect = new Array(5);
       const usedCategories = new Set();
+
+      let anchorCount = 0;
+      let boardCount = 0;
+      let paranoiaCount = 0;
+      let relationalCount = 0;
 
       for (let step = 0; step < 5; step++) {
         const sId = order[step];
@@ -1438,9 +1494,27 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
         let bestClue = null;
         let bestScore = Infinity;
 
-        const sampleLimit = Math.min(pool.length, 36);
+        const sampleLimit = Math.min(pool.length, 42);
         for (let k = 0; k < sampleLimit; k++) {
           const cand = pool[k];
+
+          // 1. Analista (sId === 0) SIEMPRE lleva pista 'anchor'
+          if (sId === 0 && cand.role !== 'anchor') continue;
+
+          // 2. Máximo 3 pistas 'anchor' en total
+          if (cand.role === 'anchor' && anchorCount >= 3) continue;
+
+          // 3. Máximo 1 pista de 'paranoia' por partida
+          if (cand.role === 'paranoia' && paranoiaCount >= 1) continue;
+
+          // 4. Evitar el "efecto de los 3 ciegos": máximo 2 pistas relacionales/paranoia en total
+          if (
+            (cand.role === 'relational' || cand.role === 'paranoia') &&
+            relationalCount + paranoiaCount >= 2
+          ) {
+            continue;
+          }
+
           let nextCount = 0;
           for (let idx = 0; idx < survivors.length; idx++) {
             if (cand.compatSet.has(survivors[idx])) {
@@ -1458,6 +1532,12 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
           if (cand.category !== 'Despacho') {
             score -= 5;
           }
+          // Priorizar alcanzar al menos 2-3 anclas/tablero antes de cerrar
+          if (cand.role === 'anchor' && anchorCount < 2) {
+            score -= 10;
+          } else if (cand.role === 'board') {
+            score -= 6;
+          }
           score += rng() * 3;
 
           if (score < bestScore) {
@@ -1469,12 +1549,28 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
         if (!bestClue) break;
         pickBySuspect[sId] = bestClue;
         usedCategories.add(bestClue.category);
+
+        if (bestClue.role === 'anchor') anchorCount++;
+        else if (bestClue.role === 'board') boardCount++;
+        else if (bestClue.role === 'paranoia') paranoiaCount++;
+        else relationalCount++;
+
         survivors = survivors.filter((idx) => bestClue.compatSet.has(idx));
       }
 
-      if (survivors.length === 1 && survivors[0] === trueStateIdx) {
+      if (
+         !pickBySuspect.includes(undefined) &&
+        survivors.length === 1 &&
+        survivors[0] === trueStateIdx
+      ) {
         const minDistinct = Math.min(3, activeCatSet.size);
-        if (usedCategories.size >= minDistinct) {
+        if (
+          usedCategories.size >= minDistinct &&
+          pickBySuspect[0].role === 'anchor' &&
+          anchorCount >= 2 &&
+          anchorCount <= 3 &&
+          anchorCount + boardCount >= 3
+        ) {
           chosenClues = pickBySuspect;
           break;
         }
@@ -1527,6 +1623,7 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
         totalStates: N,
         clues: chosenClues.map((c, sId) => ({
           id: c.id,
+          role: c.role,
           suspectId: sId,
           category: c.category,
           text: c.text,
