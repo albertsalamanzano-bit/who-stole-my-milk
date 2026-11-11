@@ -673,14 +673,11 @@ function getClueRole(clue) {
     id === 'central_axes' ||
     id === 'main_diagonals' ||
     id.startsWith('adj_to_vase_') ||
-    id === 'not_adj_to_vase_king' ||
-    id === 'same_line_as_vase' ||
+    id.startsWith('same_') ||
     id === 'no_line_as_vase' ||
-    id === 'knight_to_vase' ||
-    id === 'same_diag_as_vase' ||
-    id === 'more_north_than_vase' ||
-    id === 'more_south_than_vase' ||
-    id === 'far_from_vase' ||
+    id.startsWith('more_') ||
+    id.startsWith('adj_row_to_vase') ||
+    id.startsWith('adj_col_to_vase') ||
     id === 'touch_many_rooms' ||
     id === 'touch_exactly_one_room' ||
     id === 'deep_inside_room' ||
@@ -726,17 +723,29 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   } = topo;
 
   // ==========================================================================
-  // 1. UMBRAL / PUERTAS (32 pistas: 11 anchor + 11 board + 8 relational + 2 paranoia)
+  // 1. UMBRAL / PUERTAS (32 pistas: 12 anchor + 10 board + 8 relational + 2 paranoia)
   // ==========================================================================
   for (let dNum = 1; dNum <= 4; dNum++) {
     clues.push({
       id: `self_door_${dNum}`,
       role: 'anchor',
+      isStrongAnchor: true,
       family: 'self_specific_door',
       category: 'Umbral',
       weight: 15,
       text: `Me quedé tomando un café junto a la **puerta ${dNum}**`,
       evalFn: (st) => st.doorOccupant[dNum] === speakerId
+    });
+
+    clues.push({
+      id: `room_has_door_${dNum}`,
+      role: 'anchor',
+      isStrongAnchor: true,
+      family: 'room_specific_door',
+      category: 'Umbral',
+      weight: 14,
+      text: `En los muros de mi despacho está la **puerta ${dNum}**`,
+      evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].includes(dNum)
     });
 
     clues.push({
@@ -763,6 +772,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `self_even_door`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_door_parity',
     category: 'Umbral',
     weight: 14,
@@ -773,6 +783,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `self_odd_door`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_door_parity',
     category: 'Umbral',
     weight: 14,
@@ -781,18 +792,9 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   clues.push({
-    id: `self_no_door`,
-    role: 'anchor',
-    family: 'self_door_presence',
-    category: 'Umbral',
-    weight: 13,
-    text: `Yo pasé de cotillear: **no estaba en ninguna puerta** numerada`,
-    evalFn: (st) => st.suspectDoors[speakerId].length === 0
-  });
-
-  clues.push({
     id: `room_dead_end`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'room_door_count',
     category: 'Umbral',
     weight: 15,
@@ -803,37 +805,12 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `room_multi_doors`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'room_door_count',
     category: 'Umbral',
     weight: 13,
     text: `Mi despacho parece un pasillo, tiene **al menos 2 puertas** numeradas`,
     evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].length >= 2
-  });
-
-  clues.push({
-    id: `room_no_even_doors`,
-    role: 'anchor',
-    family: 'room_door_parity',
-    category: 'Umbral',
-    weight: 14,
-    text: `En los muros de mi despacho **no hay ninguna puerta par**`,
-    evalFn: (st) => {
-      const dList = roomDoors[st.suspectRoom[speakerId]];
-      return !dList.includes(2) && !dList.includes(4);
-    }
-  });
-
-  clues.push({
-    id: `room_no_odd_doors`,
-    role: 'anchor',
-    family: 'room_door_parity',
-    category: 'Umbral',
-    weight: 14,
-    text: `En los muros de mi despacho **no hay ninguna puerta impar**`,
-    evalFn: (st) => {
-      const dList = roomDoors[st.suspectRoom[speakerId]];
-      return !dList.includes(1) && !dList.includes(3);
-    }
   });
 
   clues.push({
@@ -854,17 +831,6 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     weight: 15,
     text: `No había **nadie** vigilando las **puertas impares (1 y 3)**`,
     evalFn: (st) => st.doorOccupant[1] === -1 && st.doorOccupant[3] === -1
-  });
-
-  clues.push({
-    id: `two_doors_occupied`,
-    role: 'board',
-    family: 'global_doors_count',
-    category: 'Umbral',
-    weight: 14,
-    text: `En total había exactamente **2 puertas numeradas** con gente vigilando`,
-    evalFn: (st) =>
-      [1, 2, 3, 4].filter((d) => st.doorOccupant[d] !== -1).length === 2
   });
 
   for (let otherId = 0; otherId < 5; otherId++) {
@@ -931,6 +897,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `facade_north`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_facade_edge',
     category: 'Fachada',
     weight: 15,
@@ -941,6 +908,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `facade_south`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_facade_edge',
     category: 'Fachada',
     weight: 15,
@@ -951,6 +919,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `facade_west`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_facade_edge',
     category: 'Fachada',
     weight: 15,
@@ -961,6 +930,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `facade_east`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_facade_edge',
     category: 'Fachada',
     weight: 15,
@@ -971,6 +941,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `facade_corner`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_facade_zone',
     category: 'Fachada',
     weight: 16,
@@ -983,6 +954,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `facade_interior`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_facade_zone',
     category: 'Fachada',
     weight: 15,
@@ -997,6 +969,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `north_half_rows`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_half_zone',
     category: 'Fachada',
     weight: 14,
@@ -1007,6 +980,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `south_half_rows`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_half_zone',
     category: 'Fachada',
     weight: 14,
@@ -1017,6 +991,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `west_half_cols`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_half_zone',
     category: 'Fachada',
     weight: 14,
@@ -1027,6 +1002,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `east_half_cols`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_half_zone',
     category: 'Fachada',
     weight: 14,
@@ -1037,6 +1013,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `central_axes`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_axes',
     category: 'Fachada',
     weight: 15,
@@ -1047,6 +1024,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `main_diagonals`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_diagonals',
     category: 'Fachada',
     weight: 15,
@@ -1216,6 +1194,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `self_largest_room`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_room_extreme',
     category: 'Claustrofobia',
     weight: 15,
@@ -1229,6 +1208,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `self_smallest_room`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_room_extreme',
     category: 'Claustrofobia',
     weight: 15,
@@ -1242,9 +1222,10 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `self_not_largest_room`,
     role: 'anchor',
+    isStrongAnchor: false,
     family: 'self_room_extreme',
     category: 'Claustrofobia',
-    weight: 13,
+    weight: 12,
     text: `Mi despacho **no es el más grande** de la planta`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] < maxSize
   });
@@ -1252,9 +1233,10 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `self_not_smallest_room`,
     role: 'anchor',
+    isStrongAnchor: false,
     family: 'self_room_extreme',
     category: 'Claustrofobia',
-    weight: 13,
+    weight: 12,
     text: `Mi despacho **no es el más pequeño** de la oficina`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] > minSize
   });
@@ -1262,6 +1244,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `self_room_size_3`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_exact_size',
     category: 'Claustrofobia',
     weight: 15,
@@ -1272,6 +1255,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `self_room_size_4`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_exact_size',
     category: 'Claustrofobia',
     weight: 15,
@@ -1282,6 +1266,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `self_room_size_5`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_exact_size',
     category: 'Claustrofobia',
     weight: 15,
@@ -1292,6 +1277,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `self_room_size_6_plus`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_exact_size',
     category: 'Claustrofobia',
     weight: 15,
@@ -1302,6 +1288,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `self_room_at_least_5`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_size_threshold',
     category: 'Claustrofobia',
     weight: 13,
@@ -1312,6 +1299,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `self_room_at_most_4`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_size_threshold',
     category: 'Claustrofobia',
     weight: 13,
@@ -1322,6 +1310,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `self_room_even_size`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_size_parity',
     category: 'Claustrofobia',
     weight: 13,
@@ -1332,6 +1321,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `self_room_odd_size`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_size_parity',
     category: 'Claustrofobia',
     weight: 13,
@@ -1468,6 +1458,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `touch_many_rooms`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_wall_count',
     category: 'Escenario',
     weight: 15,
@@ -1482,6 +1473,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `touch_exactly_one_room`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_wall_count',
     category: 'Escenario',
     weight: 14,
@@ -1496,6 +1488,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `deep_inside_room`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_wall_count',
     category: 'Escenario',
     weight: 15,
@@ -1510,6 +1503,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `touch_crime_room_wall`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_touch_crime_wall',
     category: 'Escenario',
     weight: 15,
@@ -1526,6 +1520,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     clues.push({
       id: `touch_wall_of_room_${rm}`,
       role: 'anchor',
+      isStrongAnchor: true,
       family: 'self_touch_color_wall',
       category: 'Escenario',
       weight: 15,
@@ -1540,9 +1535,10 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     clues.push({
       id: `no_touch_wall_of_room_${rm}`,
       role: 'anchor',
+      isStrongAnchor: false,
       family: `no_touch_wall_${rm}`,
       category: 'Escenario',
-      weight: 13,
+      weight: 12,
       text: `Estaba fuera del **despacho ${rmName}** y **sin tocar su pared**`,
       evalFn: (st) => {
         const r = st.suspectRow[speakerId];
@@ -1685,15 +1681,16 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   // ==========================================================================
-  // 5. SANDWICH / CRIMEN (32 pistas: 10 anchor + 2 board + 12 relational + 8 paranoia)
+  // 5. SANDWICH / CRIMEN (32 pistas 100% visuales: 12 anchor + 4 board + 8 relational + 8 paranoia)
   // ==========================================================================
   clues.push({
     id: `adj_to_vase_orth`,
     role: 'anchor',
-    family: 'self_vase_dist',
+    isStrongAnchor: true,
+    family: 'self_vase_touch',
     category: 'Sandwich',
     weight: 16,
-    text: `Tenía el mismísimo **sándwich** directamente en uno de mis cuatro costados`,
+    text: `Mi casilla tocaba por un **lado** (arriba, abajo, izquierda o derecha) al **sándwich**`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) +
         Math.abs(st.suspectCol[speakerId] - vasePos.c) ===
@@ -1701,114 +1698,135 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   clues.push({
+    id: `adj_to_vase_diag`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_vase_touch',
+    category: 'Sandwich',
+    weight: 16,
+    text: `Mi casilla tocaba **en diagonal** la casilla del **sándwich**`,
+    evalFn: (st) =>
+      Math.abs(st.suspectRow[speakerId] - vasePos.r) === 1 &&
+      Math.abs(st.suspectCol[speakerId] - vasePos.c) === 1
+  });
+
+  clues.push({
     id: `adj_to_vase_king`,
     role: 'anchor',
-    family: 'self_vase_dist',
+    isStrongAnchor: true,
+    family: 'self_vase_touch',
     category: 'Sandwich',
     weight: 15,
-    text: `Podía oler el **sándwich** desde mi sitio, estaba a un paso`,
+    text: `Estaba en una de las casillas que **rodean al sándwich** (por lado o diagonal)`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) <= 1 &&
       Math.abs(st.suspectCol[speakerId] - vasePos.c) <= 1
   });
 
   clues.push({
-    id: `not_adj_to_vase_king`,
+    id: `same_row_as_vase`,
     role: 'anchor',
-    family: 'self_vase_dist',
+    isStrongAnchor: true,
+    family: 'self_vase_line',
     category: 'Sandwich',
-    weight: 13,
-    text: `Yo estaba lejos del tupper: **no estaba a un paso** del **sándwich**`,
-    evalFn: (st) =>
-      Math.abs(st.suspectRow[speakerId] - vasePos.r) > 1 ||
-      Math.abs(st.suspectCol[speakerId] - vasePos.c) > 1
+    weight: 16,
+    text: `Estaba en la **misma fila horizontal** que el **sándwich**`,
+    evalFn: (st) => st.suspectRow[speakerId] === vasePos.r
+  });
+
+  clues.push({
+    id: `same_col_as_vase`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_vase_line',
+    category: 'Sandwich',
+    weight: 16,
+    text: `Estaba en la **misma columna vertical** que el **sándwich**`,
+    evalFn: (st) => st.suspectCol[speakerId] === vasePos.c
   });
 
   clues.push({
     id: `same_line_as_vase`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_vase_line',
     category: 'Sandwich',
     weight: 15,
-    text: `Desde mi silla veía el **sándwich** en mi **misma fila o columna**`,
+    text: `Compartía **fila o columna** con la casilla del **sándwich**`,
     evalFn: (st) =>
       st.suspectRow[speakerId] === vasePos.r || st.suspectCol[speakerId] === vasePos.c
   });
 
   clues.push({
-    id: `no_line_as_vase`,
+    id: `adj_row_to_vase`,
     role: 'anchor',
-    family: 'self_vase_line',
-    category: 'Sandwich',
-    weight: 13,
-    text: `El **sándwich** no estaba **ni en mi fila ni en mi columna**`,
-    evalFn: (st) =>
-      st.suspectRow[speakerId] !== vasePos.r && st.suspectCol[speakerId] !== vasePos.c
-  });
-
-  clues.push({
-    id: `knight_to_vase`,
-    role: 'anchor',
-    family: 'self_vase_dist',
-    category: 'Sandwich',
-    weight: 16,
-    text: `Mi silla estaba a un **salto de caballo (en L)** del **sándwich**`,
-    evalFn: (st) => {
-      const dr = Math.abs(st.suspectRow[speakerId] - vasePos.r);
-      const dc = Math.abs(st.suspectCol[speakerId] - vasePos.c);
-      return (dr === 2 && dc === 1) || (dr === 1 && dc === 2);
-    }
-  });
-
-  clues.push({
-    id: `same_diag_as_vase`,
-    role: 'anchor',
-    family: 'self_vase_line',
+    isStrongAnchor: true,
+    family: 'self_vase_adj_axis',
     category: 'Sandwich',
     weight: 15,
-    text: `El **sándwich** estaba en mi **misma línea diagonal**`,
-    evalFn: (st) =>
-      Math.abs(st.suspectRow[speakerId] - vasePos.r) ===
-      Math.abs(st.suspectCol[speakerId] - vasePos.c)
+    text: `Mi fila era **vecina** (justo arriba o abajo) a la fila del **sándwich**`,
+    evalFn: (st) => Math.abs(st.suspectRow[speakerId] - vasePos.r) === 1
+  });
+
+  clues.push({
+    id: `adj_col_to_vase`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_vase_adj_axis',
+    category: 'Sandwich',
+    weight: 15,
+    text: `Mi columna era **vecina** (justo a izquierda o derecha) a la del **sándwich**`,
+    evalFn: (st) => Math.abs(st.suspectCol[speakerId] - vasePos.c) === 1
   });
 
   clues.push({
     id: `more_north_than_vase`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_vase_dir',
     category: 'Sandwich',
     weight: 14,
-    text: `Yo estaba ${isFem ? 'sentada' : 'sentado'} en una fila **más al Norte** que el **sándwich**`,
+    text: `Estaba en una fila más al **Norte** que la del **sándwich**`,
     evalFn: (st) => st.suspectRow[speakerId] < vasePos.r
   });
 
   clues.push({
     id: `more_south_than_vase`,
     role: 'anchor',
+    isStrongAnchor: true,
     family: 'self_vase_dir',
     category: 'Sandwich',
     weight: 14,
-    text: `Yo estaba ${isFem ? 'sentada' : 'sentado'} en una fila **más al Sur** que el **sándwich**`,
+    text: `Estaba en una fila más al **Sur** que la del **sándwich**`,
     evalFn: (st) => st.suspectRow[speakerId] > vasePos.r
   });
 
   clues.push({
-    id: `far_from_vase`,
+    id: `more_west_than_vase`,
     role: 'anchor',
-    family: 'self_vase_dist',
+    isStrongAnchor: true,
+    family: 'self_vase_dir',
     category: 'Sandwich',
     weight: 14,
-    text: `Estaba en la otra punta: a **4 o más pasos** del **sándwich**`,
-    evalFn: (st) =>
-      Math.abs(st.suspectRow[speakerId] - vasePos.r) +
-        Math.abs(st.suspectCol[speakerId] - vasePos.c) >=
-      4
+    text: `Estaba en una columna más al **Oeste** que la del **sándwich**`,
+    evalFn: (st) => st.suspectCol[speakerId] < vasePos.c
+  });
+
+  clues.push({
+    id: `more_east_than_vase`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_vase_dir',
+    category: 'Sandwich',
+    weight: 14,
+    text: `Estaba en una columna más al **Este** que la del **sándwich**`,
+    evalFn: (st) => st.suspectCol[speakerId] > vasePos.c
   });
 
   clues.push({
     id: `carnivore_same_line_vase`,
     role: 'board',
-    family: 'board_vase',
+    family: 'board_vase_line',
     category: 'Sandwich',
     weight: 14,
     text: `Había **una mujer** en la **misma fila o columna** que el **sándwich**`,
@@ -1821,61 +1839,52 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   clues.push({
-    id: `someone_adj_vase_orth`,
+    id: `herbivore_same_line_vase`,
     role: 'board',
-    family: 'board_vase',
+    family: 'board_vase_line',
     category: 'Sandwich',
-    weight: 14,
-    text: `Había **alguien** sentado directamente en uno de los costados del **sándwich**`,
+    weight: 13,
+    text: `Había **un hombre** en la **misma fila o columna** que el **sándwich**`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) =>
-          Math.abs(st.suspectRow[s.id] - vasePos.r) +
-            Math.abs(st.suspectCol[s.id] - vasePos.c) ===
-          1
+          !s.isCarnivore &&
+          (st.suspectRow[s.id] === vasePos.r || st.suspectCol[s.id] === vasePos.c)
+      )
+  });
+
+  clues.push({
+    id: `someone_surrounding_vase`,
+    role: 'board',
+    family: 'board_vase_ring',
+    category: 'Sandwich',
+    weight: 14,
+    text: `Había **alguien** en las casillas que **rodean al sándwich** (por lado o diagonal)`,
+    evalFn: (st) =>
+      SUSPECTS.some(
+        (s) =>
+          Math.abs(st.suspectRow[s.id] - vasePos.r) <= 1 &&
+          Math.abs(st.suspectCol[s.id] - vasePos.c) <= 1
+      )
+  });
+
+  clues.push({
+    id: `nobody_surrounding_vase`,
+    role: 'board',
+    family: 'board_vase_ring',
+    category: 'Sandwich',
+    weight: 15,
+    text: `No había **nadie** en las casillas que **rodean al sándwich** (por lado o diagonal)`,
+    evalFn: (st) =>
+      !SUSPECTS.some(
+        (s) =>
+          Math.abs(st.suspectRow[s.id] - vasePos.r) <= 1 &&
+          Math.abs(st.suspectCol[s.id] - vasePos.c) <= 1
       )
   });
 
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
-
-    clues.push({
-      id: `closer_to_vase_than_${otherId}`,
-      role: 'relational',
-      family: 'rel_vase_dist',
-      targetId: otherId,
-      category: 'Sandwich',
-      weight: 14,
-      text: `Yo estaba **más cerca** del **sándwich** que **${SUSPECTS[otherId].name}**`,
-      evalFn: (st) => {
-        const dMe =
-          Math.abs(st.suspectRow[speakerId] - vasePos.r) +
-          Math.abs(st.suspectCol[speakerId] - vasePos.c);
-        const dOther =
-          Math.abs(st.suspectRow[otherId] - vasePos.r) +
-          Math.abs(st.suspectCol[otherId] - vasePos.c);
-        return dMe < dOther;
-      }
-    });
-
-    clues.push({
-      id: `further_from_vase_than_${otherId}`,
-      role: 'relational',
-      family: 'rel_vase_dist',
-      targetId: otherId,
-      category: 'Sandwich',
-      weight: 14,
-      text: `Yo estaba **más lejos** del **sándwich** que **${SUSPECTS[otherId].name}**`,
-      evalFn: (st) => {
-        const dMe =
-          Math.abs(st.suspectRow[speakerId] - vasePos.r) +
-          Math.abs(st.suspectCol[speakerId] - vasePos.c);
-        const dOther =
-          Math.abs(st.suspectRow[otherId] - vasePos.r) +
-          Math.abs(st.suspectCol[otherId] - vasePos.c);
-        return dMe > dOther;
-      }
-    });
 
     clues.push({
       id: `other_same_line_vase_${otherId}`,
@@ -1884,9 +1893,22 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       targetId: otherId,
       category: 'Sandwich',
       weight: 15,
-      text: `**${SUSPECTS[otherId].name}** estaba en la **misma fila o columna** que el **sándwich**`,
+      text: `**${SUSPECTS[otherId].name}** compartía **fila o columna** con el **sándwich**`,
       evalFn: (st) =>
         st.suspectRow[otherId] === vasePos.r || st.suspectCol[otherId] === vasePos.c
+    });
+
+    clues.push({
+      id: `other_surrounding_vase_${otherId}`,
+      role: 'relational',
+      family: 'rel_vase_ring',
+      targetId: otherId,
+      category: 'Sandwich',
+      weight: 15,
+      text: `Vi a **${SUSPECTS[otherId].name}** en una casilla que **rodea al sándwich** (lado o diagonal)`,
+      evalFn: (st) =>
+        Math.abs(st.suspectRow[otherId] - vasePos.r) <= 1 &&
+        Math.abs(st.suspectCol[otherId] - vasePos.c) <= 1
     });
 
     clues.push({
@@ -1921,9 +1943,10 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     clues.push({
       id: `self_in_room_${rm}`,
       role: 'anchor',
+      isStrongAnchor: true,
       family: 'self_in_room_color',
       category: 'Despacho',
-      weight: 12,
+      weight: 13,
       text: `Yo estaba trabajando tranquilamente en el **despacho ${rmName}**`,
       evalFn: (st) => st.suspectRoom[speakerId] === rm
     });
@@ -1931,6 +1954,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     clues.push({
       id: `self_not_in_room_${rm}`,
       role: 'anchor',
+      isStrongAnchor: false,
       family: `self_not_room_${rm}`,
       category: 'Despacho',
       weight: 11,
@@ -2148,10 +2172,10 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
         }
       }
 
-      // GARANTÍA 1: Analista (sId === 0) necesita al menos una pista 'anchor' disponible
+      // GARANTÍA 1: Analista (sId === 0) necesita al menos una pista 'anchor' afirmativa (isStrongAnchor)
       if (
         filtered.length === 0 ||
-        (sId === 0 && !filtered.some((c) => c.role === 'anchor'))
+        (sId === 0 && !filtered.some((c) => c.role === 'anchor' && c.isStrongAnchor))
       ) {
         poolEmpty = true;
         break;
@@ -2171,7 +2195,6 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
     let chosenClues = null;
 
     for (let searchTry = 0; searchTry < 110; searchTry++) {
-      // Barajamos el orden de evaluación manteniendo siempre a Analista (0) restringida a 'anchor'
       const order = shuffle([0, 1, 2, 3, 4], rng);
       let survivors = Array.from({ length: N }, (_, i) => i);
       const pickBySuspect = new Array(5);
@@ -2196,11 +2219,17 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
 
           if (usedClueIds.has(cand.id)) continue;
 
-          // GARANTÍA 2: Analista (sId === 0) SIEMPRE lleva pista 'anchor'
-          if (sId === 0 && cand.role !== 'anchor') continue;
+          // GARANTÍA 2: Analista (sId === 0) SIEMPRE lleva pista 'anchor' afirmativa (isStrongAnchor)
+          if (sId === 0 && (cand.role !== 'anchor' || !cand.isStrongAnchor)) continue;
 
-          // El primer paso evaluado debe ser 'anchor' o 'board' para abrir camino deductivo
-          if (step === 0 && cand.role !== 'anchor' && cand.role !== 'board') continue;
+          // El primer paso evaluado también debe ser un ancla afirmativa o pista de tablero
+          if (
+            step === 0 &&
+            !(cand.role === 'anchor' && cand.isStrongAnchor) &&
+            cand.role !== 'board'
+          ) {
+            continue;
+          }
 
           // Máximo 3 pistas 'anchor' en total
           if (cand.role === 'anchor' && anchorCount >= 3) continue;
@@ -2246,7 +2275,6 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
           if (cand.family && usedFamilies.has(cand.family)) {
             score += 8;
           }
-          // Priorizar alcanzar al menos 2-3 anclas/tablero antes de cerrar
           if (cand.role === 'anchor' && anchorCount < 2) {
             score -= 10;
           } else if (cand.role === 'board' && anchorCount + boardCount < 3) {
@@ -2282,10 +2310,11 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
         survivors[0] === trueStateIdx
       ) {
         const minDistinct = Math.min(3, activeCatSet.size);
-        // GARANTÍA 3: Verificación final de que Analista (pickBySuspect[0]) lleva rol 'anchor'
+        // GARANTÍA 3: Verificación final de que Analista (pickBySuspect[0]) lleva un ancla afirmativa
         if (
           usedCategories.size >= minDistinct &&
           pickBySuspect[0].role === 'anchor' &&
+          pickBySuspect[0].isStrongAnchor &&
           anchorCount >= 2 &&
           anchorCount <= 3 &&
           anchorCount + boardCount >= 3
@@ -2939,7 +2968,7 @@ export default function App() {
       className={`h-dvh max-h-dvh overflow-hidden font-sans select-none flex flex-col items-center justify-between px-3 pt-[max(0.35rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] transition-colors duration-200 ${pageBgClass}`}
     >
       <div className="w-full max-w-[400px] h-full flex flex-col justify-between gap-1.5 min-h-0">
-        {/* 1. CABECERA CON TÍTULO SANDWICHCASE.IO */}
+        {/* 1. CABECERA CON TÍTULO DINÁMICO (RETO DIARIO FECHA / CASO #XXXXXX) */}
         <header className="grid grid-cols-[auto_1fr_auto] items-center gap-1.5 shrink-0 py-0.5">
           <button
             type="button"
@@ -2960,7 +2989,11 @@ export default function App() {
               alt="Sándwich"
               className="w-4 h-4 object-contain shrink-0"
             />
-            <span className="truncate">sandwichcase.io</span>
+            <span className="truncate">
+              {isDailyMode
+                ? `Reto diario ${dailyConfig.formattedDate}`
+                : `Caso #${level.caseNumber}`}
+            </span>
           </h1>
 
           <div className="flex items-center justify-end gap-1.5 shrink-0">
