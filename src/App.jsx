@@ -208,9 +208,9 @@ const CLUE_CATEGORIES = {
   Umbral: { id: 'Umbral', label: 'Umbral / Puertas' },
   Fachada: { id: 'Fachada', label: 'Fachada / Cardinal' },
   Claustrofobia: { id: 'Claustrofobia', label: 'Claustrofobia / Tamaño' },
-  Escenario: { id: 'Escenario', label: 'Contacto Escenario' },
-  Paranoia: { id: 'Paranoia', label: 'Paranoia Cruzada' },
-  Despacho: { id: 'Despacho', label: 'Despacho / Dieta' }
+  Escenario: { id: 'Escenario', label: 'Tabiques / Vecindad' },
+  Sandwich: { id: 'Sandwich', label: 'El Sándwich / Crimen' },
+  Despacho: { id: 'Despacho', label: 'Despacho / Género' }
 };
 
 const generatePermutations = (arr) => {
@@ -309,16 +309,16 @@ const shuffle = (array, rng = Math.random) => {
 };
 
 const COMPLEMENTARY_TRIO_PAIRS = [
-  [['Umbral', 'Fachada', 'Claustrofobia'], ['Escenario', 'Paranoia', 'Despacho']],
-  [['Umbral', 'Fachada', 'Escenario'],       ['Claustrofobia', 'Paranoia', 'Despacho']],
-  [['Umbral', 'Fachada', 'Paranoia'],        ['Claustrofobia', 'Escenario', 'Despacho']],
-  [['Umbral', 'Fachada', 'Despacho'],        ['Claustrofobia', 'Escenario', 'Paranoia']],
-  [['Umbral', 'Claustrofobia', 'Escenario'],['Fachada', 'Paranoia', 'Despacho']],
-  [['Umbral', 'Claustrofobia', 'Paranoia'],['Fachada', 'Escenario', 'Despacho']],
-  [['Umbral', 'Claustrofobia', 'Despacho'],['Fachada', 'Escenario', 'Paranoia']],
-  [['Umbral', 'Escenario', 'Paranoia'],      ['Fachada', 'Claustrofobia', 'Despacho']],
-  [['Umbral', 'Escenario', 'Despacho'],      ['Fachada', 'Claustrofobia', 'Paranoia']],
-  [['Umbral', 'Paranoia', 'Despacho'],       ['Fachada', 'Claustrofobia', 'Escenario']]
+  [['Umbral', 'Fachada', 'Claustrofobia'], ['Escenario', 'Sandwich', 'Despacho']],
+  [['Umbral', 'Fachada', 'Escenario'],     ['Claustrofobia', 'Sandwich', 'Despacho']],
+  [['Umbral', 'Fachada', 'Sandwich'],      ['Claustrofobia', 'Escenario', 'Despacho']],
+  [['Umbral', 'Fachada', 'Despacho'],      ['Claustrofobia', 'Escenario', 'Sandwich']],
+  [['Umbral', 'Claustrofobia', 'Escenario'],['Fachada', 'Sandwich', 'Despacho']],
+  [['Umbral', 'Claustrofobia', 'Sandwich'],['Fachada', 'Escenario', 'Despacho']],
+  [['Umbral', 'Claustrofobia', 'Despacho'],['Fachada', 'Escenario', 'Sandwich']],
+  [['Umbral', 'Escenario', 'Sandwich'],    ['Fachada', 'Claustrofobia', 'Despacho']],
+  [['Umbral', 'Escenario', 'Despacho'],    ['Fachada', 'Claustrofobia', 'Sandwich']],
+  [['Umbral', 'Sandwich', 'Despacho'],     ['Fachada', 'Claustrofobia', 'Escenario']]
 ];
 
 function getDailyConfig(date = new Date()) {
@@ -625,7 +625,7 @@ function analyzeMapTopology(grid, vasePos, doors) {
       for (const [dr, dc] of dirs) {
         const nr = r + dr;
         const nc = c + dc;
-        if (nr >= 0 && nr < 5 && nc >= 0 && nc >= 0 && nc < 5) {
+        if (nr >= 0 && nr < 5 && nc >= 0 && nc < 5) {
           const neighborRoom = grid[nr][nc];
           if (neighborRoom !== myRoom) {
             cellTouchesRoomWall[r][c].add(neighborRoom);
@@ -647,41 +647,60 @@ function analyzeMapTopology(grid, vasePos, doors) {
   };
 }
 
-// Clasifica cada pista según su rol deductivo para evitar el "efecto de los 3 ciegos":
+// Clasifica cada pista según su rol deductivo:
 // - 'anchor': El sospechoso habla de su propia posición/despacho respecto a elementos fijos del mapa.
 // - 'board': Observación global de huecos o géneros en el mapa (sin depender de otro sospechoso concreto).
-// - 'paranoia': Acusaciones, defensas o datos sobre el ladrón.
+// - 'paranoia': Acusaciones, defensas o datos directos sobre el ladrón.
 // - 'relational': Posición o despacho en función de otro sospechoso concreto (A respecto a B).
 function getClueRole(clue) {
-  if (clue.category === 'Paranoia') return 'paranoia';
+  if (clue.role) return clue.role;
   const id = clue.id;
+
+  if (
+    id.startsWith('accuse_') ||
+    id.startsWith('vouch_') ||
+    id.startsWith('thief_')
+  ) {
+    return 'paranoia';
+  }
 
   if (
     id.startsWith('self_') ||
     id.startsWith('room_') ||
     id.startsWith('facade_') ||
-    id === 'south_half_rows' ||
+    id.endsWith('_half_rows') ||
+    id.endsWith('_half_cols') ||
     id === 'central_axes' ||
     id === 'main_diagonals' ||
     id.startsWith('adj_to_vase_') ||
+    id === 'not_adj_to_vase_king' ||
     id === 'same_line_as_vase' ||
     id === 'no_line_as_vase' ||
     id === 'knight_to_vase' ||
+    id === 'same_diag_as_vase' ||
+    id === 'more_north_than_vase' ||
+    id === 'more_south_than_vase' ||
+    id === 'far_from_vase' ||
     id === 'touch_many_rooms' ||
+    id === 'touch_exactly_one_room' ||
     id === 'deep_inside_room' ||
-    id.startsWith('touch_wall_of_room_')
+    id === 'touch_crime_room_wall' ||
+    id.startsWith('touch_wall_of_room_') ||
+    id.startsWith('no_touch_wall_of_room_')
   ) {
     return 'anchor';
   }
 
   if (
-    id.startsWith('nobody_door_') ||
-    id.startsWith('someone_door_') ||
+    id.startsWith('nobody_') ||
+    id.startsWith('someone_') ||
     id.startsWith('carnivore_') ||
     id.startsWith('herbivore_') ||
     id === 'even_doors_empty' ||
     id === 'odd_doors_empty' ||
     id === 'two_doors_occupied' ||
+    id.startsWith('woman_') ||
+    id.startsWith('man_') ||
     id.startsWith('women_adj_')
   ) {
     return 'board';
@@ -690,6 +709,7 @@ function getClueRole(clue) {
   return 'relational';
 }
 
+// Genera exactamente 32 pistas por cada una de las 6 categorías (192 pistas por sospechoso)
 function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, doors, topo) {
   const clues = [];
   const speaker = SUSPECTS[speakerId];
@@ -705,10 +725,14 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     cellTouchesRoomWall
   } = topo;
 
-  // 1. UMBRAL / PUERTAS
+  // ==========================================================================
+  // 1. UMBRAL / PUERTAS (32 pistas: 11 anchor + 11 board + 8 relational + 2 paranoia)
+  // ==========================================================================
   for (let dNum = 1; dNum <= 4; dNum++) {
     clues.push({
       id: `self_door_${dNum}`,
+      role: 'anchor',
+      family: 'self_specific_door',
       category: 'Umbral',
       weight: 15,
       text: `Me quedé tomando un café junto a la **puerta ${dNum}**`,
@@ -717,57 +741,29 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
     clues.push({
       id: `nobody_door_${dNum}`,
+      role: 'board',
+      family: `door_status_${dNum}`,
       category: 'Umbral',
-      weight: 11,
+      weight: 12,
       text: `Por la **puerta ${dNum}** no había **nadie** vigilando`,
       evalFn: (st) => st.doorOccupant[dNum] === -1
     });
 
     clues.push({
       id: `someone_door_${dNum}`,
+      role: 'board',
+      family: `door_status_${dNum}`,
       category: 'Umbral',
-      weight: 11,
+      weight: 12,
       text: `Había **alguien** cotilleando junto a la **puerta ${dNum}**`,
       evalFn: (st) => st.doorOccupant[dNum] !== -1
     });
-
-    clues.push({
-      id: `carnivore_door_${dNum}`,
-      category: 'Umbral',
-      weight: 14,
-      text: `Había **una mujer** junto a la **puerta ${dNum}**`,
-      evalFn: (st) => {
-        const occ = st.doorOccupant[dNum];
-        return occ !== -1 && SUSPECTS[occ].isCarnivore;
-      }
-    });
-
-    clues.push({
-      id: `herbivore_door_${dNum}`,
-      category: 'Umbral',
-      weight: 13,
-      text: `Había **un hombre** plantado junto a la **puerta ${dNum}**`,
-      evalFn: (st) => {
-        const occ = st.doorOccupant[dNum];
-        return occ !== -1 && !SUSPECTS[occ].isCarnivore;
-      }
-    });
-
-    for (let otherId = 0; otherId < 5; otherId++) {
-      if (otherId === speakerId) continue;
-      const otherIsFem = SUSPECTS[otherId].isCarnivore;
-      clues.push({
-        id: `other_${otherId}_door_${dNum}`,
-        category: 'Umbral',
-        weight: 15,
-        text: `Pillé a **${SUSPECTS[otherId].name}** ${otherIsFem ? 'pegada' : 'pegado'} a la **puerta ${dNum}**`,
-        evalFn: (st) => st.doorOccupant[dNum] === otherId
-      });
-    }
   }
 
   clues.push({
     id: `self_even_door`,
+    role: 'anchor',
+    family: 'self_door_parity',
     category: 'Umbral',
     weight: 14,
     text: `Me quedé vigilando una **puerta par (2 o 4)**`,
@@ -776,6 +772,8 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
   clues.push({
     id: `self_odd_door`,
+    role: 'anchor',
+    family: 'self_door_parity',
     category: 'Umbral',
     weight: 14,
     text: `Estaba junto a una **puerta impar (1 o 3)**`,
@@ -784,6 +782,8 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
   clues.push({
     id: `self_no_door`,
+    role: 'anchor',
+    family: 'self_door_presence',
     category: 'Umbral',
     weight: 13,
     text: `Yo pasé de cotillear: **no estaba en ninguna puerta** numerada`,
@@ -791,32 +791,9 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   clues.push({
-    id: `even_doors_empty`,
-    category: 'Umbral',
-    weight: 15,
-    text: `Las **puertas pares (2 y 4)** estaban completamente **desiertas**`,
-    evalFn: (st) => st.doorOccupant[2] === -1 && st.doorOccupant[4] === -1
-  });
-
-  clues.push({
-    id: `odd_doors_empty`,
-    category: 'Umbral',
-    weight: 15,
-    text: `No había **nadie** vigilando las **puertas impares (1 y 3)**`,
-    evalFn: (st) => st.doorOccupant[1] === -1 && st.doorOccupant[3] === -1
-  });
-
-  clues.push({
-    id: `two_doors_occupied`,
-    category: 'Umbral',
-    weight: 14,
-    text: `En total había exactamente **2 puertas numeradas** con gente vigilando`,
-    evalFn: (st) =>
-      [1, 2, 3, 4].filter((d) => st.doorOccupant[d] !== -1).length === 2
-  });
-
-  clues.push({
     id: `room_dead_end`,
+    role: 'anchor',
+    family: 'room_door_count',
     category: 'Umbral',
     weight: 15,
     text: `Mi despacho es una ratonera: solo tiene **1 puerta numerada**`,
@@ -825,6 +802,8 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
   clues.push({
     id: `room_multi_doors`,
+    role: 'anchor',
+    family: 'room_door_count',
     category: 'Umbral',
     weight: 13,
     text: `Mi despacho parece un pasillo, tiene **al menos 2 puertas** numeradas`,
@@ -833,6 +812,8 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
   clues.push({
     id: `room_no_even_doors`,
+    role: 'anchor',
+    family: 'room_door_parity',
     category: 'Umbral',
     weight: 14,
     text: `En los muros de mi despacho **no hay ninguna puerta par**`,
@@ -844,6 +825,8 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
   clues.push({
     id: `room_no_odd_doors`,
+    role: 'anchor',
+    family: 'room_door_parity',
     category: 'Umbral',
     weight: 14,
     text: `En los muros de mi despacho **no hay ninguna puerta impar**`,
@@ -853,99 +836,144 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     }
   });
 
-  for (let dNum = 1; dNum <= 4; dNum++) {
-    const [rA, rB] = doorMap[dNum];
-    for (let otherId = 0; otherId < 5; otherId++) {
-      if (otherId === speakerId) continue;
-      clues.push({
-        id: `conn_${otherId}_door_${dNum}`,
-        category: 'Umbral',
-        weight: 14,
-        text: `La **puerta ${dNum}** conecta mi despacho con el de **${SUSPECTS[otherId].name}**`,
-        evalFn: (st) => {
-          const rm1 = st.suspectRoom[speakerId];
-          const rm2 = st.suspectRoom[otherId];
+  clues.push({
+    id: `even_doors_empty`,
+    role: 'board',
+    family: 'global_doors_parity',
+    category: 'Umbral',
+    weight: 15,
+    text: `Las **puertas pares (2 y 4)** estaban completamente **desiertas**`,
+    evalFn: (st) => st.doorOccupant[2] === -1 && st.doorOccupant[4] === -1
+  });
+
+  clues.push({
+    id: `odd_doors_empty`,
+    role: 'board',
+    family: 'global_doors_parity',
+    category: 'Umbral',
+    weight: 15,
+    text: `No había **nadie** vigilando las **puertas impares (1 y 3)**`,
+    evalFn: (st) => st.doorOccupant[1] === -1 && st.doorOccupant[3] === -1
+  });
+
+  clues.push({
+    id: `two_doors_occupied`,
+    role: 'board',
+    family: 'global_doors_count',
+    category: 'Umbral',
+    weight: 14,
+    text: `En total había exactamente **2 puertas numeradas** con gente vigilando`,
+    evalFn: (st) =>
+      [1, 2, 3, 4].filter((d) => st.doorOccupant[d] !== -1).length === 2
+  });
+
+  for (let otherId = 0; otherId < 5; otherId++) {
+    if (otherId === speakerId) continue;
+    clues.push({
+      id: `other_at_door_${otherId}`,
+      role: 'relational',
+      family: 'rel_other_door',
+      targetId: otherId,
+      category: 'Umbral',
+      weight: 14,
+      text: `Vi a **${SUSPECTS[otherId].name}** cotilleando junto a una **puerta numerada**`,
+      evalFn: (st) => st.suspectDoors[otherId].length > 0
+    });
+
+    clues.push({
+      id: `conn_any_door_${otherId}`,
+      role: 'relational',
+      family: 'rel_conn_door',
+      targetId: otherId,
+      category: 'Umbral',
+      weight: 15,
+      text: `Una **puerta numerada** conecta mi despacho con el de **${SUSPECTS[otherId].name}**`,
+      evalFn: (st) => {
+        const rm1 = st.suspectRoom[speakerId];
+        const rm2 = st.suspectRoom[otherId];
+        return [1, 2, 3, 4].some((dNum) => {
+          const [rA, rB] = doorMap[dNum];
           return (rm1 === rA && rm2 === rB) || (rm1 === rB && rm2 === rA);
-        }
-      });
-    }
+        });
+      }
+    });
   }
 
-  if (isFem) {
-    const otherCarnivore = SUSPECTS.find((s) => s.isCarnivore && s.id !== speakerId);
-    if (otherCarnivore) {
-      const otherCarnivoreId = otherCarnivore.id;
-      clues.push({
-        id: `other_carnivore_even_door`,
-        category: 'Umbral',
-        weight: 16,
-        text: `Una **puerta par** comunica mi despacho con el de la **otra mujer**`,
-        evalFn: (st) => {
-          const rm1 = st.suspectRoom[speakerId];
-          const rm2 = st.suspectRoom[otherCarnivoreId];
-          const [r2A, r2B] = doorMap[2];
-          const [r4A, r4B] = doorMap[4];
-          const via2 = (rm1 === r2A && rm2 === r2B) || (rm1 === r2B && rm2 === r2A);
-          const via4 = (rm1 === r4A && rm2 === r4B) || (rm1 === r4B && rm2 === r4A);
-          return via2 || via4;
-        }
-      });
-
-      clues.push({
-        id: `other_carnivore_odd_door`,
-        category: 'Umbral',
-        weight: 16,
-        text: `Una **puerta impar** comunica mi despacho con el de la **otra mujer**`,
-        evalFn: (st) => {
-          const rm1 = st.suspectRoom[speakerId];
-          const rm2 = st.suspectRoom[otherCarnivoreId];
-          const [r1A, r1B] = doorMap[1];
-          const [r3A, r3B] = doorMap[3];
-          const via1 = (rm1 === r1A && rm2 === r1B) || (rm1 === r1B && rm2 === r1A);
-          const via3 = (rm1 === r3A && rm2 === r3B) || (rm1 === r3B && rm2 === r3A);
-          return via1 || via3;
-        }
-      });
+  clues.push({
+    id: `thief_at_some_door`,
+    role: 'paranoia',
+    family: 'thief_doors',
+    category: 'Umbral',
+    weight: 15,
+    text: `El **ladrón** estaba apostado junto a una de las **4 puertas numeradas**`,
+    evalFn: (st) => {
+      const thiefInS = st.roomSuspect[vaseRoom];
+      return st.suspectDoors[thiefInS].length > 0;
     }
-  }
+  });
 
-  // 2. FACHADA / CARDINAL
+  clues.push({
+    id: `thief_at_no_door`,
+    role: 'paranoia',
+    family: 'thief_doors',
+    category: 'Umbral',
+    weight: 14,
+    text: `El **ladrón** evitó ponerse junto a las **puertas numeradas**`,
+    evalFn: (st) => {
+      const thiefInS = st.roomSuspect[vaseRoom];
+      return st.suspectDoors[thiefInS].length === 0;
+    }
+  });
+
+  // ==========================================================================
+  // 2. FACHADA / CARDINAL (32 pistas: 12 anchor + 4 board + 12 relational + 4 paranoia)
+  // ==========================================================================
   clues.push({
     id: `facade_north`,
+    role: 'anchor',
+    family: 'self_facade_edge',
     category: 'Fachada',
-    weight: 16,
+    weight: 15,
     text: `Estaba ${isFem ? 'pegada' : 'pegado'} al ventanal **Norte** de la oficina`,
     evalFn: (st) => st.suspectRow[speakerId] === 0
   });
 
   clues.push({
     id: `facade_south`,
+    role: 'anchor',
+    family: 'self_facade_edge',
     category: 'Fachada',
-    weight: 16,
+    weight: 15,
     text: `Me quedé junto a la fachada **Sur** del edificio`,
     evalFn: (st) => st.suspectRow[speakerId] === 4
   });
 
   clues.push({
     id: `facade_west`,
+    role: 'anchor',
+    family: 'self_facade_edge',
     category: 'Fachada',
-    weight: 16,
+    weight: 15,
     text: `Me encontraba junto a la fachada **Oeste** de la oficina`,
     evalFn: (st) => st.suspectCol[speakerId] === 0
   });
 
   clues.push({
     id: `facade_east`,
+    role: 'anchor',
+    family: 'self_facade_edge',
     category: 'Fachada',
-    weight: 16,
+    weight: 15,
     text: `Estaba junto a la fachada **Este**, donde da el sol`,
     evalFn: (st) => st.suspectCol[speakerId] === 4
   });
 
   clues.push({
     id: `facade_corner`,
+    role: 'anchor',
+    family: 'self_facade_zone',
     category: 'Fachada',
-    weight: 17,
+    weight: 16,
     text: `Me escaqueé en una de las **4 esquinas exteriores** de la planta`,
     evalFn: (st) =>
       (st.suspectRow[speakerId] === 0 || st.suspectRow[speakerId] === 4) &&
@@ -954,6 +982,8 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
   clues.push({
     id: `facade_interior`,
+    role: 'anchor',
+    family: 'self_facade_zone',
     category: 'Fachada',
     weight: 15,
     text: `Estaba en el **interior de la oficina**, sin tocar ninguna fachada exterior`,
@@ -965,7 +995,19 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   clues.push({
+    id: `north_half_rows`,
+    role: 'anchor',
+    family: 'self_half_zone',
+    category: 'Fachada',
+    weight: 14,
+    text: `Estaba ${isFem ? 'sentada' : 'sentado'} en las **2 primeras filas del Norte**`,
+    evalFn: (st) => st.suspectRow[speakerId] <= 1
+  });
+
+  clues.push({
     id: `south_half_rows`,
+    role: 'anchor',
+    family: 'self_half_zone',
     category: 'Fachada',
     weight: 14,
     text: `Estaba ${isFem ? 'sentada' : 'sentado'} en las **2 últimas filas del Sur**`,
@@ -973,7 +1015,29 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   clues.push({
+    id: `west_half_cols`,
+    role: 'anchor',
+    family: 'self_half_zone',
+    category: 'Fachada',
+    weight: 14,
+    text: `Mi sitio estaba en las **2 primeras columnas del Oeste**`,
+    evalFn: (st) => st.suspectCol[speakerId] <= 1
+  });
+
+  clues.push({
+    id: `east_half_cols`,
+    role: 'anchor',
+    family: 'self_half_zone',
+    category: 'Fachada',
+    weight: 14,
+    text: `Mi sitio estaba en las **2 últimas columnas del Este**`,
+    evalFn: (st) => st.suspectCol[speakerId] >= 3
+  });
+
+  clues.push({
     id: `central_axes`,
+    role: 'anchor',
+    family: 'self_axes',
     category: 'Fachada',
     weight: 15,
     text: `Mi mesa estaba en el **pasillo central** (**fila o columna del medio**)`,
@@ -982,6 +1046,8 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
   clues.push({
     id: `main_diagonals`,
+    role: 'anchor',
+    family: 'self_diagonals',
     category: 'Fachada',
     weight: 15,
     text: `Estaba ${isFem ? 'situada' : 'situado'} en una de las **dos diagonales principales** del plano`,
@@ -992,12 +1058,75 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     }
   });
 
+  clues.push({
+    id: `woman_on_north_south`,
+    role: 'board',
+    family: 'board_facade_gender',
+    category: 'Fachada',
+    weight: 13,
+    text: `Había **una mujer** junto a la fachada **Norte o Sur**`,
+    evalFn: (st) =>
+      SUSPECTS.some(
+        (s) => s.isCarnivore && (st.suspectRow[s.id] === 0 || st.suspectRow[s.id] === 4)
+      )
+  });
+
+  clues.push({
+    id: `woman_on_east_west`,
+    role: 'board',
+    family: 'board_facade_gender',
+    category: 'Fachada',
+    weight: 13,
+    text: `Había **una mujer** junto a la fachada **Este u Oeste**`,
+    evalFn: (st) =>
+      SUSPECTS.some(
+        (s) => s.isCarnivore && (st.suspectCol[s.id] === 0 || st.suspectCol[s.id] === 4)
+      )
+  });
+
+  clues.push({
+    id: `woman_in_interior`,
+    role: 'board',
+    family: 'board_facade_zone',
+    category: 'Fachada',
+    weight: 13,
+    text: `Había **una mujer** en el **interior de la oficina**, lejos de las fachadas`,
+    evalFn: (st) =>
+      SUSPECTS.some(
+        (s) =>
+          s.isCarnivore &&
+          st.suspectRow[s.id] > 0 &&
+          st.suspectRow[s.id] < 4 &&
+          st.suspectCol[s.id] > 0 &&
+          st.suspectCol[s.id] < 4
+      )
+  });
+
+  clues.push({
+    id: `man_in_corner`,
+    role: 'board',
+    family: 'board_facade_zone',
+    category: 'Fachada',
+    weight: 14,
+    text: `Había **un hombre** en una de las **4 esquinas exteriores** de la planta`,
+    evalFn: (st) =>
+      SUSPECTS.some(
+        (s) =>
+          !s.isCarnivore &&
+          (st.suspectRow[s.id] === 0 || st.suspectRow[s.id] === 4) &&
+          (st.suspectCol[s.id] === 0 || st.suspectCol[s.id] === 4)
+      )
+  });
+
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
     const otherIsFem = SUSPECTS[otherId].isCarnivore;
 
     clues.push({
       id: `more_north_than_${otherId}`,
+      role: 'relational',
+      family: 'rel_north_south',
+      targetId: otherId,
       category: 'Fachada',
       weight: 14,
       text: `Yo estaba ${isFem ? 'situada' : 'situado'} más al **Norte** que **${SUSPECTS[otherId].name}**`,
@@ -1006,6 +1135,9 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
     clues.push({
       id: `more_west_than_${otherId}`,
+      role: 'relational',
+      family: 'rel_east_west',
+      targetId: otherId,
       category: 'Fachada',
       weight: 14,
       text: `Mi sitio estaba más al **Oeste** que el de **${SUSPECTS[otherId].name}**`,
@@ -1014,6 +1146,9 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
     clues.push({
       id: `other_on_border_${otherId}`,
+      role: 'relational',
+      family: `other_border_${otherId}`,
+      targetId: otherId,
       category: 'Fachada',
       weight: 14,
       text: `Vi a **${SUSPECTS[otherId].name}** ${otherIsFem ? 'pegada' : 'pegado'} a una **fachada exterior** de la oficina`,
@@ -1025,244 +1160,32 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     });
   }
 
-  // 3. CLAUSTROFOBIA / TAMAÑO
-  if (largestRooms.length === 1) {
-    clues.push({
-      id: `self_largest_room`,
-      category: 'Claustrofobia',
-      weight: 16,
-      text: `Me instalé en el **despacho más grande** de todos (**${maxSize} casillas**)`,
-      evalFn: (st) => st.suspectRoom[speakerId] === largestRooms[0]
-    });
-  }
-
-  if (smallestRooms.length === 1) {
-    clues.push({
-      id: `self_smallest_room`,
-      category: 'Claustrofobia',
-      weight: 16,
-      text: `Me encerraron en el **despacho más pequeño** de la oficina (**${minSize} casillas**)`,
-      evalFn: (st) => st.suspectRoom[speakerId] === smallestRooms[0]
-    });
-  }
-
-  const uniqueSizes = Array.from(new Set(roomSizes));
-  for (const sz of uniqueSizes) {
-    clues.push({
-      id: `self_room_size_${sz}`,
-      category: 'Claustrofobia',
-      weight: 15,
-      text: `Mi despacho mide exactamente **${sz} casillas**, las conté`,
-      evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] === sz
-    });
-  }
-
-  clues.push({
-    id: `self_room_even_size`,
-    category: 'Claustrofobia',
-    weight: 13,
-    text: `Mi despacho tiene un **número par de casillas**`,
-    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] % 2 === 0
-  });
-
-  clues.push({
-    id: `self_room_odd_size`,
-    category: 'Claustrofobia',
-    weight: 13,
-    text: `Mi despacho tiene un **número impar de casillas**`,
-    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] % 2 !== 0
-  });
-
-  for (let otherId = 0; otherId < 5; otherId++) {
-    if (otherId === speakerId) continue;
-    clues.push({
-      id: `bigger_room_than_${otherId}`,
-      category: 'Claustrofobia',
-      weight: 14,
-      text: `Mi despacho tiene **más casillas** que el de **${SUSPECTS[otherId].name}**`,
-      evalFn: (st) =>
-        roomSizes[st.suspectRoom[speakerId]] > roomSizes[st.suspectRoom[otherId]]
-    });
-
-    clues.push({
-      id: `same_room_size_as_${otherId}`,
-      category: 'Claustrofobia',
-      weight: 15,
-      text: `Mi despacho mide **exactamente las mismas casillas** que el de **${SUSPECTS[otherId].name}**`,
-      evalFn: (st) =>
-        roomSizes[st.suspectRoom[speakerId]] === roomSizes[st.suspectRoom[otherId]]
-    });
-  }
-
-  // 4. CONTACTO CON ESCENARIO
-  clues.push({
-    id: `adj_to_vase_orth`,
-    category: 'Escenario',
-    weight: 18,
-    text: `Tenía el mismísimo **sándwich** directamente en uno de mis cuatro costados`,
-    evalFn: (st) =>
-      Math.abs(st.suspectRow[speakerId] - vasePos.r) +
-        Math.abs(st.suspectCol[speakerId] - vasePos.c) ===
-      1
-  });
-
-  clues.push({
-    id: `adj_to_vase_king`,
-    category: 'Escenario',
-    weight: 17,
-    text: `Podía oler el **sándwich** desde mi sitio, estaba a un paso`,
-    evalFn: (st) =>
-      Math.abs(st.suspectRow[speakerId] - vasePos.r) <= 1 &&
-      Math.abs(st.suspectCol[speakerId] - vasePos.c) <= 1
-  });
-
-  clues.push({
-    id: `same_line_as_vase`,
-    category: 'Escenario',
-    weight: 16,
-    text: `Desde mi silla veía el **sándwich** en mi **misma fila o columna**`,
-    evalFn: (st) =>
-      st.suspectRow[speakerId] === vasePos.r || st.suspectCol[speakerId] === vasePos.c
-  });
-
-  clues.push({
-    id: `no_line_as_vase`,
-    category: 'Escenario',
-    weight: 13,
-    text: `El **sándwich** no estaba **ni en mi fila ni en mi columna**`,
-    evalFn: (st) =>
-      st.suspectRow[speakerId] !== vasePos.r && st.suspectCol[speakerId] !== vasePos.c
-  });
-
-  clues.push({
-    id: `knight_to_vase`,
-    category: 'Escenario',
-    weight: 17,
-    text: `Mi silla estaba a un **salto de caballo (en L)** del **sándwich**`,
-    evalFn: (st) => {
-      const dr = Math.abs(st.suspectRow[speakerId] - vasePos.r);
-      const dc = Math.abs(st.suspectCol[speakerId] - vasePos.c);
-      return (dr === 2 && dc === 1) || (dr === 1 && dc === 2);
-    }
-  });
-
-  clues.push({
-    id: `touch_many_rooms`,
-    category: 'Escenario',
-    weight: 15,
-    text: `Desde mi casilla tocaba los tabiques de **al menos 2 despachos ajenos**`,
-    evalFn: (st) => {
-      const r = st.suspectRow[speakerId];
-      const c = st.suspectCol[speakerId];
-      return cellTouchesRoomWall[r][c].size >= 2;
-    }
-  });
-
-  clues.push({
-    id: `deep_inside_room`,
-    category: 'Escenario',
-    weight: 16,
-    text: `En mi casilla estaba ${isFem ? 'aislada' : 'aislado'}: **no tocaba el tabique** de ningún otro despacho`,
-    evalFn: (st) => {
-      const r = st.suspectRow[speakerId];
-      const c = st.suspectCol[speakerId];
-      return cellTouchesRoomWall[r][c].size === 0;
-    }
-  });
-
-  for (let rm = 0; rm < 5; rm++) {
-    const rmName = ROOMS[rm].name.toLowerCase();
-    clues.push({
-      id: `touch_wall_of_room_${rm}`,
-      category: 'Escenario',
-      weight: 16,
-      text: `Estaba fuera del **despacho ${rmName}**, junto a su pared`,
-      evalFn: (st) => {
-        const r = st.suspectRow[speakerId];
-        const c = st.suspectCol[speakerId];
-        return cellTouchesRoomWall[r][c].has(rm);
-      }
-    });
-  }
-
-  // 5. PARANOIA CRUZADA
-  for (let otherId = 0; otherId < 5; otherId++) {
-    if (otherId === speakerId) continue;
-    clues.push({
-      id: `accuse_${otherId}`,
-      category: 'Paranoia',
-      weight: 15,
-      text: `¡**${SUSPECTS[otherId].name}** **miente** descaradamente, tiene migas en la ropa!`,
-      evalFn: (st) => st.suspectRoom[otherId] === vaseRoom
-    });
-
-    clues.push({
-      id: `vouch_${otherId}`,
-      category: 'Paranoia',
-      weight: 13,
-      text: `Pongo la mano en el fuego por **${SUSPECTS[otherId].name}**: **dice la verdad**`,
-      evalFn: (st) => st.suspectRoom[otherId] !== vaseRoom
-    });
-  }
-
-  clues.push({
-    id: `thief_is_carnivore`,
-    category: 'Paranoia',
-    weight: 16,
-    text: `El **ladrón** del almuerzo es **una mujer**, la vi abrir el tupper`,
-    evalFn: (st) => SUSPECTS[st.roomSuspect[vaseRoom]].isCarnivore
-  });
-
-  clues.push({
-    id: `thief_is_herbivore`,
-    category: 'Paranoia',
-    weight: 15,
-    text: `Quien se zampó el **sándwich** es **un hombre**`,
-    evalFn: (st) => !SUSPECTS[st.roomSuspect[vaseRoom]].isCarnivore
-  });
-
   clues.push({
     id: `thief_on_north_half`,
-    category: 'Paranoia',
-    weight: 16,
+    role: 'paranoia',
+    family: 'thief_facade',
+    category: 'Fachada',
+    weight: 15,
     text: `El **ladrón** se esconde en las **2 primeras filas del Norte**`,
     evalFn: (st) => st.suspectRow[st.roomSuspect[vaseRoom]] <= 1
   });
 
   clues.push({
     id: `thief_on_south_half`,
-    category: 'Paranoia',
-    weight: 16,
+    role: 'paranoia',
+    family: 'thief_facade',
+    category: 'Fachada',
+    weight: 15,
     text: `El **ladrón** se esconde en las **2 últimas filas del Sur**`,
     evalFn: (st) => st.suspectRow[st.roomSuspect[vaseRoom]] >= 3
   });
 
   clues.push({
-    id: `thief_at_some_door`,
-    category: 'Paranoia',
-    weight: 16,
-    text: `El **ladrón** estaba apostado junto a una de las **4 puertas numeradas**`,
-    evalFn: (st) => {
-      const thiefInS = st.roomSuspect[vaseRoom];
-      return st.suspectDoors[thiefInS].length > 0;
-    }
-  });
-
-  clues.push({
-    id: `thief_at_no_door`,
-    category: 'Paranoia',
-    weight: 15,
-    text: `El **ladrón** evitó ponerse junto a las **puertas numeradas**`,
-    evalFn: (st) => {
-      const thiefInS = st.roomSuspect[vaseRoom];
-      return st.suspectDoors[thiefInS].length === 0;
-    }
-  });
-
-  clues.push({
     id: `thief_on_perimeter`,
-    category: 'Paranoia',
-    weight: 15,
+    role: 'paranoia',
+    family: 'thief_facade',
+    category: 'Fachada',
+    weight: 14,
     text: `El **ladrón** estaba junto a una **fachada exterior** del edificio`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
@@ -1274,8 +1197,10 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
   clues.push({
     id: `thief_in_interior`,
-    category: 'Paranoia',
-    weight: 16,
+    role: 'paranoia',
+    family: 'thief_facade',
+    category: 'Fachada',
+    weight: 15,
     text: `El **ladrón** actuó desde el **interior de la planta**, lejos de las fachadas`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
@@ -1285,50 +1210,761 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     }
   });
 
-  // 6. DESPACHO / DIETA
+  // ==========================================================================
+  // 3. CLAUSTROFOBIA / TAMAÑO (32 pistas: 12 anchor + 4 board + 12 relational + 4 paranoia)
+  // ==========================================================================
+  clues.push({
+    id: `self_largest_room`,
+    role: 'anchor',
+    family: 'self_room_extreme',
+    category: 'Claustrofobia',
+    weight: 15,
+    text:
+      largestRooms.length === 1
+        ? `Me instalé en el **despacho más grande** de todos (**${maxSize} casillas**)`
+        : `Estaba en uno de los **despachos más grandes** (**${maxSize} casillas**)`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] === maxSize
+  });
+
+  clues.push({
+    id: `self_smallest_room`,
+    role: 'anchor',
+    family: 'self_room_extreme',
+    category: 'Claustrofobia',
+    weight: 15,
+    text:
+      smallestRooms.length === 1
+        ? `Me encerraron en el **despacho más pequeño** de la oficina (**${minSize} casillas**)`
+        : `Estaba en uno de los **despachos más pequeños** (**${minSize} casillas**)`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] === minSize
+  });
+
+  clues.push({
+    id: `self_not_largest_room`,
+    role: 'anchor',
+    family: 'self_room_extreme',
+    category: 'Claustrofobia',
+    weight: 13,
+    text: `Mi despacho **no es el más grande** de la planta`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] < maxSize
+  });
+
+  clues.push({
+    id: `self_not_smallest_room`,
+    role: 'anchor',
+    family: 'self_room_extreme',
+    category: 'Claustrofobia',
+    weight: 13,
+    text: `Mi despacho **no es el más pequeño** de la oficina`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] > minSize
+  });
+
+  clues.push({
+    id: `self_room_size_3`,
+    role: 'anchor',
+    family: 'self_exact_size',
+    category: 'Claustrofobia',
+    weight: 15,
+    text: `Mi despacho mide exactamente **3 casillas**, las conté`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] === 3
+  });
+
+  clues.push({
+    id: `self_room_size_4`,
+    role: 'anchor',
+    family: 'self_exact_size',
+    category: 'Claustrofobia',
+    weight: 15,
+    text: `Mi despacho mide exactamente **4 casillas**, las conté`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] === 4
+  });
+
+  clues.push({
+    id: `self_room_size_5`,
+    role: 'anchor',
+    family: 'self_exact_size',
+    category: 'Claustrofobia',
+    weight: 15,
+    text: `Mi despacho mide exactamente **5 casillas**, las conté`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] === 5
+  });
+
+  clues.push({
+    id: `self_room_size_6_plus`,
+    role: 'anchor',
+    family: 'self_exact_size',
+    category: 'Claustrofobia',
+    weight: 15,
+    text: `Mi despacho es enorme: mide **6 o más casillas**`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] >= 6
+  });
+
+  clues.push({
+    id: `self_room_at_least_5`,
+    role: 'anchor',
+    family: 'self_size_threshold',
+    category: 'Claustrofobia',
+    weight: 13,
+    text: `Mi despacho es amplio, tiene **5 o más casillas**`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] >= 5
+  });
+
+  clues.push({
+    id: `self_room_at_most_4`,
+    role: 'anchor',
+    family: 'self_size_threshold',
+    category: 'Claustrofobia',
+    weight: 13,
+    text: `Mi despacho es compacto, tiene **4 casillas o menos**`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] <= 4
+  });
+
+  clues.push({
+    id: `self_room_even_size`,
+    role: 'anchor',
+    family: 'self_size_parity',
+    category: 'Claustrofobia',
+    weight: 13,
+    text: `Mi despacho tiene un **número par de casillas**`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] % 2 === 0
+  });
+
+  clues.push({
+    id: `self_room_odd_size`,
+    role: 'anchor',
+    family: 'self_size_parity',
+    category: 'Claustrofobia',
+    weight: 13,
+    text: `Mi despacho tiene un **número impar de casillas**`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] % 2 !== 0
+  });
+
+  clues.push({
+    id: `carnivore_largest_room`,
+    role: 'board',
+    family: 'board_size_gender',
+    category: 'Claustrofobia',
+    weight: 14,
+    text: `Había **una mujer** en un despacho de **${maxSize} casillas** (el tamaño máximo)`,
+    evalFn: (st) =>
+      largestRooms.some((rm) => SUSPECTS[st.roomSuspect[rm]].isCarnivore)
+  });
+
+  clues.push({
+    id: `herbivore_largest_room`,
+    role: 'board',
+    family: 'board_size_gender',
+    category: 'Claustrofobia',
+    weight: 13,
+    text: `Había **un hombre** en un despacho de **${maxSize} casillas** (el tamaño máximo)`,
+    evalFn: (st) =>
+      largestRooms.some((rm) => !SUSPECTS[st.roomSuspect[rm]].isCarnivore)
+  });
+
+  clues.push({
+    id: `carnivore_smallest_room`,
+    role: 'board',
+    family: 'board_size_gender',
+    category: 'Claustrofobia',
+    weight: 14,
+    text: `Había **una mujer** en un despacho de **${minSize} casillas** (el tamaño mínimo)`,
+    evalFn: (st) =>
+      smallestRooms.some((rm) => SUSPECTS[st.roomSuspect[rm]].isCarnivore)
+  });
+
+  clues.push({
+    id: `herbivore_smallest_room`,
+    role: 'board',
+    family: 'board_size_gender',
+    category: 'Claustrofobia',
+    weight: 13,
+    text: `Había **un hombre** en un despacho de **${minSize} casillas** (el tamaño mínimo)`,
+    evalFn: (st) =>
+      smallestRooms.some((rm) => !SUSPECTS[st.roomSuspect[rm]].isCarnivore)
+  });
+
+  for (let otherId = 0; otherId < 5; otherId++) {
+    if (otherId === speakerId) continue;
+    clues.push({
+      id: `bigger_room_than_${otherId}`,
+      role: 'relational',
+      family: 'rel_room_size',
+      targetId: otherId,
+      category: 'Claustrofobia',
+      weight: 14,
+      text: `Mi despacho tiene **más casillas** que el de **${SUSPECTS[otherId].name}**`,
+      evalFn: (st) =>
+        roomSizes[st.suspectRoom[speakerId]] > roomSizes[st.suspectRoom[otherId]]
+    });
+
+    clues.push({
+      id: `smaller_room_than_${otherId}`,
+      role: 'relational',
+      family: 'rel_room_size',
+      targetId: otherId,
+      category: 'Claustrofobia',
+      weight: 14,
+      text: `Mi despacho tiene **menos casillas** que el de **${SUSPECTS[otherId].name}**`,
+      evalFn: (st) =>
+        roomSizes[st.suspectRoom[speakerId]] < roomSizes[st.suspectRoom[otherId]]
+    });
+
+    clues.push({
+      id: `same_room_size_as_${otherId}`,
+      role: 'relational',
+      family: 'rel_room_same_size',
+      targetId: otherId,
+      category: 'Claustrofobia',
+      weight: 15,
+      text: `Mi despacho mide **exactamente las mismas casillas** que el de **${SUSPECTS[otherId].name}**`,
+      evalFn: (st) =>
+        roomSizes[st.suspectRoom[speakerId]] === roomSizes[st.suspectRoom[otherId]]
+    });
+  }
+
+  clues.push({
+    id: `thief_room_even_size`,
+    role: 'paranoia',
+    family: 'thief_room_size',
+    category: 'Claustrofobia',
+    weight: 14,
+    text: `El despacho del **ladrón** tiene un **número par de casillas**`,
+    evalFn: (st) => roomSizes[vaseRoom] % 2 === 0
+  });
+
+  clues.push({
+    id: `thief_room_odd_size`,
+    role: 'paranoia',
+    family: 'thief_room_size',
+    category: 'Claustrofobia',
+    weight: 14,
+    text: `El despacho del **ladrón** tiene un **número impar de casillas**`,
+    evalFn: (st) => roomSizes[vaseRoom] % 2 !== 0
+  });
+
+  clues.push({
+    id: `thief_room_at_least_5`,
+    role: 'paranoia',
+    family: 'thief_room_size',
+    category: 'Claustrofobia',
+    weight: 14,
+    text: `El **ladrón** actuó desde un despacho amplio de **5 o más casillas**`,
+    evalFn: (st) => roomSizes[vaseRoom] >= 5
+  });
+
+  clues.push({
+    id: `thief_room_at_most_4`,
+    role: 'paranoia',
+    family: 'thief_room_size',
+    category: 'Claustrofobia',
+    weight: 14,
+    text: `El **ladrón** actuó desde un despacho pequeño de **4 casillas o menos**`,
+    evalFn: (st) => roomSizes[vaseRoom] <= 4
+  });
+
+  // ==========================================================================
+  // 4. ESCENARIO / TABIQUES (32 pistas: 14 anchor + 2 board + 12 relational + 4 paranoia)
+  // ==========================================================================
+  clues.push({
+    id: `touch_many_rooms`,
+    role: 'anchor',
+    family: 'self_wall_count',
+    category: 'Escenario',
+    weight: 15,
+    text: `Desde mi casilla tocaba los tabiques de **al menos 2 despachos ajenos**`,
+    evalFn: (st) => {
+      const r = st.suspectRow[speakerId];
+      const c = st.suspectCol[speakerId];
+      return cellTouchesRoomWall[r][c].size >= 2;
+    }
+  });
+
+  clues.push({
+    id: `touch_exactly_one_room`,
+    role: 'anchor',
+    family: 'self_wall_count',
+    category: 'Escenario',
+    weight: 14,
+    text: `Desde mi casilla tocaba el tabique de **exactamente 1 despacho ajeno**`,
+    evalFn: (st) => {
+      const r = st.suspectRow[speakerId];
+      const c = st.suspectCol[speakerId];
+      return cellTouchesRoomWall[r][c].size === 1;
+    }
+  });
+
+  clues.push({
+    id: `deep_inside_room`,
+    role: 'anchor',
+    family: 'self_wall_count',
+    category: 'Escenario',
+    weight: 15,
+    text: `En mi casilla estaba ${isFem ? 'aislada' : 'aislado'}: **no tocaba el tabique** de ningún otro despacho`,
+    evalFn: (st) => {
+      const r = st.suspectRow[speakerId];
+      const c = st.suspectCol[speakerId];
+      return cellTouchesRoomWall[r][c].size === 0;
+    }
+  });
+
+  clues.push({
+    id: `touch_crime_room_wall`,
+    role: 'anchor',
+    family: 'self_touch_crime_wall',
+    category: 'Escenario',
+    weight: 15,
+    text: `Estaba fuera del despacho del **sándwich**, pero **tocando su pared**`,
+    evalFn: (st) => {
+      const r = st.suspectRow[speakerId];
+      const c = st.suspectCol[speakerId];
+      return cellTouchesRoomWall[r][c].has(vaseRoom);
+    }
+  });
+
+  for (let rm = 0; rm < 5; rm++) {
+    const rmName = ROOMS[rm].name.toLowerCase();
+    clues.push({
+      id: `touch_wall_of_room_${rm}`,
+      role: 'anchor',
+      family: 'self_touch_color_wall',
+      category: 'Escenario',
+      weight: 15,
+      text: `Estaba fuera del **despacho ${rmName}**, junto a su pared`,
+      evalFn: (st) => {
+        const r = st.suspectRow[speakerId];
+        const c = st.suspectCol[speakerId];
+        return cellTouchesRoomWall[r][c].has(rm);
+      }
+    });
+
+    clues.push({
+      id: `no_touch_wall_of_room_${rm}`,
+      role: 'anchor',
+      family: `no_touch_wall_${rm}`,
+      category: 'Escenario',
+      weight: 13,
+      text: `Estaba fuera del **despacho ${rmName}** y **sin tocar su pared**`,
+      evalFn: (st) => {
+        const r = st.suspectRow[speakerId];
+        const c = st.suspectCol[speakerId];
+        return st.suspectRoom[speakerId] !== rm && !cellTouchesRoomWall[r][c].has(rm);
+      }
+    });
+  }
+
+  clues.push({
+    id: `woman_touches_many_rooms`,
+    role: 'board',
+    family: 'board_walls',
+    category: 'Escenario',
+    weight: 14,
+    text: `Había **una mujer** cuya casilla tocaba **al menos 2 despachos ajenos**`,
+    evalFn: (st) =>
+      SUSPECTS.some(
+        (s) =>
+          s.isCarnivore &&
+          cellTouchesRoomWall[st.suspectRow[s.id]][st.suspectCol[s.id]].size >= 2
+      )
+  });
+
+  clues.push({
+    id: `someone_deep_inside`,
+    role: 'board',
+    family: 'board_walls',
+    category: 'Escenario',
+    weight: 14,
+    text: `Había **alguien** en su despacho que **no tocaba tabiques** de otros despachos`,
+    evalFn: (st) =>
+      SUSPECTS.some(
+        (s) => cellTouchesRoomWall[st.suspectRow[s.id]][st.suspectCol[s.id]].size === 0
+      )
+  });
+
+  for (let otherId = 0; otherId < 5; otherId++) {
+    if (otherId === speakerId) continue;
+    clues.push({
+      id: `touch_suspect_room_wall_${otherId}`,
+      role: 'relational',
+      family: 'rel_touch_wall',
+      targetId: otherId,
+      category: 'Escenario',
+      weight: 15,
+      text: `Desde mi sitio tocaba el tabique del despacho de **${SUSPECTS[otherId].name}**`,
+      evalFn: (st) => {
+        const r = st.suspectRow[speakerId];
+        const c = st.suspectCol[speakerId];
+        return cellTouchesRoomWall[r][c].has(st.suspectRoom[otherId]);
+      }
+    });
+
+    clues.push({
+      id: `other_touches_my_room_wall_${otherId}`,
+      role: 'relational',
+      family: 'rel_touch_wall',
+      targetId: otherId,
+      category: 'Escenario',
+      weight: 15,
+      text: `La casilla de **${SUSPECTS[otherId].name}** tocaba por fuera el tabique de **mi despacho**`,
+      evalFn: (st) => {
+        const or = st.suspectRow[otherId];
+        const oc = st.suspectCol[otherId];
+        return cellTouchesRoomWall[or][oc].has(st.suspectRoom[speakerId]);
+      }
+    });
+
+    clues.push({
+      id: `other_touches_many_rooms_${otherId}`,
+      role: 'relational',
+      family: 'rel_other_walls',
+      targetId: otherId,
+      category: 'Escenario',
+      weight: 14,
+      text: `Desde su sitio, **${SUSPECTS[otherId].name}** tocaba los tabiques de **al menos 2 despachos ajenos**`,
+      evalFn: (st) => {
+        const or = st.suspectRow[otherId];
+        const oc = st.suspectCol[otherId];
+        return cellTouchesRoomWall[or][oc].size >= 2;
+      }
+    });
+  }
+
+  clues.push({
+    id: `thief_touches_many_rooms`,
+    role: 'paranoia',
+    family: 'thief_walls',
+    category: 'Escenario',
+    weight: 15,
+    text: `El **ladrón** tocaba desde su sitio los tabiques de **al menos 2 despachos ajenos**`,
+    evalFn: (st) => {
+      const thief = st.roomSuspect[vaseRoom];
+      return cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]].size >= 2;
+    }
+  });
+
+  clues.push({
+    id: `thief_touches_at_most_one`,
+    role: 'paranoia',
+    family: 'thief_walls',
+    category: 'Escenario',
+    weight: 14,
+    text: `El **ladrón** tocaba como mucho **1 tabique** de otro despacho desde su casilla`,
+    evalFn: (st) => {
+      const thief = st.roomSuspect[vaseRoom];
+      return cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]].size <= 1;
+    }
+  });
+
+  clues.push({
+    id: `thief_not_touching_my_room`,
+    role: 'paranoia',
+    family: 'thief_walls_me',
+    category: 'Escenario',
+    weight: 14,
+    text: `Desde su casilla, el **ladrón** **no tocaba el tabique** de mi despacho`,
+    evalFn: (st) => {
+      const thief = st.roomSuspect[vaseRoom];
+      return !cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]].has(
+        st.suspectRoom[speakerId]
+      );
+    }
+  });
+
+  clues.push({
+    id: `thief_touches_my_room`,
+    role: 'paranoia',
+    family: 'thief_walls_me',
+    category: 'Escenario',
+    weight: 15,
+    text: `La casilla del **ladrón** tocaba directamente el tabique de **mi despacho**`,
+    evalFn: (st) => {
+      const thief = st.roomSuspect[vaseRoom];
+      return cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]].has(
+        st.suspectRoom[speakerId]
+      );
+    }
+  });
+
+  // ==========================================================================
+  // 5. SANDWICH / CRIMEN (32 pistas: 10 anchor + 2 board + 12 relational + 8 paranoia)
+  // ==========================================================================
+  clues.push({
+    id: `adj_to_vase_orth`,
+    role: 'anchor',
+    family: 'self_vase_dist',
+    category: 'Sandwich',
+    weight: 16,
+    text: `Tenía el mismísimo **sándwich** directamente en uno de mis cuatro costados`,
+    evalFn: (st) =>
+      Math.abs(st.suspectRow[speakerId] - vasePos.r) +
+        Math.abs(st.suspectCol[speakerId] - vasePos.c) ===
+      1
+  });
+
+  clues.push({
+    id: `adj_to_vase_king`,
+    role: 'anchor',
+    family: 'self_vase_dist',
+    category: 'Sandwich',
+    weight: 15,
+    text: `Podía oler el **sándwich** desde mi sitio, estaba a un paso`,
+    evalFn: (st) =>
+      Math.abs(st.suspectRow[speakerId] - vasePos.r) <= 1 &&
+      Math.abs(st.suspectCol[speakerId] - vasePos.c) <= 1
+  });
+
+  clues.push({
+    id: `not_adj_to_vase_king`,
+    role: 'anchor',
+    family: 'self_vase_dist',
+    category: 'Sandwich',
+    weight: 13,
+    text: `Yo estaba lejos del tupper: **no estaba a un paso** del **sándwich**`,
+    evalFn: (st) =>
+      Math.abs(st.suspectRow[speakerId] - vasePos.r) > 1 ||
+      Math.abs(st.suspectCol[speakerId] - vasePos.c) > 1
+  });
+
+  clues.push({
+    id: `same_line_as_vase`,
+    role: 'anchor',
+    family: 'self_vase_line',
+    category: 'Sandwich',
+    weight: 15,
+    text: `Desde mi silla veía el **sándwich** en mi **misma fila o columna**`,
+    evalFn: (st) =>
+      st.suspectRow[speakerId] === vasePos.r || st.suspectCol[speakerId] === vasePos.c
+  });
+
+  clues.push({
+    id: `no_line_as_vase`,
+    role: 'anchor',
+    family: 'self_vase_line',
+    category: 'Sandwich',
+    weight: 13,
+    text: `El **sándwich** no estaba **ni en mi fila ni en mi columna**`,
+    evalFn: (st) =>
+      st.suspectRow[speakerId] !== vasePos.r && st.suspectCol[speakerId] !== vasePos.c
+  });
+
+  clues.push({
+    id: `knight_to_vase`,
+    role: 'anchor',
+    family: 'self_vase_dist',
+    category: 'Sandwich',
+    weight: 16,
+    text: `Mi silla estaba a un **salto de caballo (en L)** del **sándwich**`,
+    evalFn: (st) => {
+      const dr = Math.abs(st.suspectRow[speakerId] - vasePos.r);
+      const dc = Math.abs(st.suspectCol[speakerId] - vasePos.c);
+      return (dr === 2 && dc === 1) || (dr === 1 && dc === 2);
+    }
+  });
+
+  clues.push({
+    id: `same_diag_as_vase`,
+    role: 'anchor',
+    family: 'self_vase_line',
+    category: 'Sandwich',
+    weight: 15,
+    text: `El **sándwich** estaba en mi **misma línea diagonal**`,
+    evalFn: (st) =>
+      Math.abs(st.suspectRow[speakerId] - vasePos.r) ===
+      Math.abs(st.suspectCol[speakerId] - vasePos.c)
+  });
+
+  clues.push({
+    id: `more_north_than_vase`,
+    role: 'anchor',
+    family: 'self_vase_dir',
+    category: 'Sandwich',
+    weight: 14,
+    text: `Yo estaba ${isFem ? 'sentada' : 'sentado'} en una fila **más al Norte** que el **sándwich**`,
+    evalFn: (st) => st.suspectRow[speakerId] < vasePos.r
+  });
+
+  clues.push({
+    id: `more_south_than_vase`,
+    role: 'anchor',
+    family: 'self_vase_dir',
+    category: 'Sandwich',
+    weight: 14,
+    text: `Yo estaba ${isFem ? 'sentada' : 'sentado'} en una fila **más al Sur** que el **sándwich**`,
+    evalFn: (st) => st.suspectRow[speakerId] > vasePos.r
+  });
+
+  clues.push({
+    id: `far_from_vase`,
+    role: 'anchor',
+    family: 'self_vase_dist',
+    category: 'Sandwich',
+    weight: 14,
+    text: `Estaba en la otra punta: a **4 o más pasos** del **sándwich**`,
+    evalFn: (st) =>
+      Math.abs(st.suspectRow[speakerId] - vasePos.r) +
+        Math.abs(st.suspectCol[speakerId] - vasePos.c) >=
+      4
+  });
+
+  clues.push({
+    id: `carnivore_same_line_vase`,
+    role: 'board',
+    family: 'board_vase',
+    category: 'Sandwich',
+    weight: 14,
+    text: `Había **una mujer** en la **misma fila o columna** que el **sándwich**`,
+    evalFn: (st) =>
+      SUSPECTS.some(
+        (s) =>
+          s.isCarnivore &&
+          (st.suspectRow[s.id] === vasePos.r || st.suspectCol[s.id] === vasePos.c)
+      )
+  });
+
+  clues.push({
+    id: `someone_adj_vase_orth`,
+    role: 'board',
+    family: 'board_vase',
+    category: 'Sandwich',
+    weight: 14,
+    text: `Había **alguien** sentado directamente en uno de los costados del **sándwich**`,
+    evalFn: (st) =>
+      SUSPECTS.some(
+        (s) =>
+          Math.abs(st.suspectRow[s.id] - vasePos.r) +
+            Math.abs(st.suspectCol[s.id] - vasePos.c) ===
+          1
+      )
+  });
+
+  for (let otherId = 0; otherId < 5; otherId++) {
+    if (otherId === speakerId) continue;
+
+    clues.push({
+      id: `closer_to_vase_than_${otherId}`,
+      role: 'relational',
+      family: 'rel_vase_dist',
+      targetId: otherId,
+      category: 'Sandwich',
+      weight: 14,
+      text: `Yo estaba **más cerca** del **sándwich** que **${SUSPECTS[otherId].name}**`,
+      evalFn: (st) => {
+        const dMe =
+          Math.abs(st.suspectRow[speakerId] - vasePos.r) +
+          Math.abs(st.suspectCol[speakerId] - vasePos.c);
+        const dOther =
+          Math.abs(st.suspectRow[otherId] - vasePos.r) +
+          Math.abs(st.suspectCol[otherId] - vasePos.c);
+        return dMe < dOther;
+      }
+    });
+
+    clues.push({
+      id: `further_from_vase_than_${otherId}`,
+      role: 'relational',
+      family: 'rel_vase_dist',
+      targetId: otherId,
+      category: 'Sandwich',
+      weight: 14,
+      text: `Yo estaba **más lejos** del **sándwich** que **${SUSPECTS[otherId].name}**`,
+      evalFn: (st) => {
+        const dMe =
+          Math.abs(st.suspectRow[speakerId] - vasePos.r) +
+          Math.abs(st.suspectCol[speakerId] - vasePos.c);
+        const dOther =
+          Math.abs(st.suspectRow[otherId] - vasePos.r) +
+          Math.abs(st.suspectCol[otherId] - vasePos.c);
+        return dMe > dOther;
+      }
+    });
+
+    clues.push({
+      id: `other_same_line_vase_${otherId}`,
+      role: 'relational',
+      family: 'rel_vase_line',
+      targetId: otherId,
+      category: 'Sandwich',
+      weight: 15,
+      text: `**${SUSPECTS[otherId].name}** estaba en la **misma fila o columna** que el **sándwich**`,
+      evalFn: (st) =>
+        st.suspectRow[otherId] === vasePos.r || st.suspectCol[otherId] === vasePos.c
+    });
+
+    clues.push({
+      id: `accuse_${otherId}`,
+      role: 'paranoia',
+      family: 'paranoia_accuse',
+      targetId: otherId,
+      category: 'Sandwich',
+      weight: 15,
+      text: `¡**${SUSPECTS[otherId].name}** **miente** descaradamente, tiene migas de **sándwich**!`,
+      evalFn: (st) => st.suspectRoom[otherId] === vaseRoom
+    });
+
+    clues.push({
+      id: `vouch_${otherId}`,
+      role: 'paranoia',
+      family: 'paranoia_vouch',
+      targetId: otherId,
+      category: 'Sandwich',
+      weight: 13,
+      text: `Pongo la mano en el fuego por **${SUSPECTS[otherId].name}**: **dice la verdad**`,
+      evalFn: (st) => st.suspectRoom[otherId] !== vaseRoom
+    });
+  }
+
+  // ==========================================================================
+  // 6. DESPACHO / GÉNERO (32 pistas: 10 anchor + 12 board + 8 relational + 2 paranoia)
+  // ==========================================================================
   for (let rm = 0; rm < 5; rm++) {
     const rmName = ROOMS[rm].name.toLowerCase();
 
     clues.push({
       id: `self_in_room_${rm}`,
+      role: 'anchor',
+      family: 'self_in_room_color',
       category: 'Despacho',
-      weight: 9,
+      weight: 12,
       text: `Yo estaba trabajando tranquilamente en el **despacho ${rmName}**`,
       evalFn: (st) => st.suspectRoom[speakerId] === rm
     });
 
     clues.push({
-      id: `carnivore_in_room_${rm}`,
+      id: `self_not_in_room_${rm}`,
+      role: 'anchor',
+      family: `self_not_room_${rm}`,
       category: 'Despacho',
       weight: 11,
+      text: `Yo **no pisé** el **despacho ${rmName}** en toda la mañana`,
+      evalFn: (st) => st.suspectRoom[speakerId] !== rm
+    });
+
+    clues.push({
+      id: `carnivore_in_room_${rm}`,
+      role: 'board',
+      family: `room_gender_${rm}`,
+      category: 'Despacho',
+      weight: 13,
       text: `El **despacho ${rmName}** lo ocupaba **una mujer**`,
       evalFn: (st) => SUSPECTS[st.roomSuspect[rm]].isCarnivore
     });
 
     clues.push({
       id: `herbivore_in_room_${rm}`,
+      role: 'board',
+      family: `room_gender_${rm}`,
       category: 'Despacho',
-      weight: 9,
+      weight: 12,
       text: `El **despacho ${rmName}** lo ocupaba **un hombre**`,
       evalFn: (st) => !SUSPECTS[st.roomSuspect[rm]].isCarnivore
     });
-
-    for (let otherId = 0; otherId < 5; otherId++) {
-      if (otherId === speakerId) continue;
-      clues.push({
-        id: `other_${otherId}_in_room_${rm}`,
-        category: 'Despacho',
-        weight: 11,
-        text: `Vi a **${SUSPECTS[otherId].name}** dentro del **despacho ${rmName}**`,
-        evalFn: (st) => st.suspectRoom[otherId] === rm
-      });
-    }
   }
 
   clues.push({
     id: `women_adj_rows`,
+    role: 'board',
+    family: 'women_adj',
     category: 'Despacho',
-    weight: 13,
+    weight: 14,
     text: isFem
       ? `Las **dos mujeres** de la oficina estábamos en **filas vecinas**`
       : `Las **dos mujeres** de la oficina estaban en **filas vecinas**`,
@@ -1340,8 +1976,10 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
 
   clues.push({
     id: `women_adj_cols`,
+    role: 'board',
+    family: 'women_adj',
     category: 'Despacho',
-    weight: 13,
+    weight: 14,
     text: isFem
       ? `Las **dos mujeres** ocupábamos **columnas vecinas**`
       : `Las **dos mujeres** ocupaban **columnas vecinas**`,
@@ -1349,6 +1987,51 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       const women = SUSPECTS.filter((s) => s.isCarnivore).map((s) => s.id);
       return Math.abs(st.suspectCol[women[0]] - st.suspectCol[women[1]]) === 1;
     }
+  });
+
+  for (let otherId = 0; otherId < 5; otherId++) {
+    if (otherId === speakerId) continue;
+    clues.push({
+      id: `adj_row_with_${otherId}`,
+      role: 'relational',
+      family: 'rel_adj_row',
+      targetId: otherId,
+      category: 'Despacho',
+      weight: 14,
+      text: `Mi fila era **vecina** a la fila donde estaba **${SUSPECTS[otherId].name}**`,
+      evalFn: (st) => Math.abs(st.suspectRow[speakerId] - st.suspectRow[otherId]) === 1
+    });
+
+    clues.push({
+      id: `adj_col_with_${otherId}`,
+      role: 'relational',
+      family: 'rel_adj_col',
+      targetId: otherId,
+      category: 'Despacho',
+      weight: 14,
+      text: `Mi columna era **vecina** a la columna de **${SUSPECTS[otherId].name}**`,
+      evalFn: (st) => Math.abs(st.suspectCol[speakerId] - st.suspectCol[otherId]) === 1
+    });
+  }
+
+  clues.push({
+    id: `thief_is_carnivore`,
+    role: 'paranoia',
+    family: 'thief_gender',
+    category: 'Despacho',
+    weight: 15,
+    text: `El **ladrón** del almuerzo es **una mujer**, la vi abrir el tupper`,
+    evalFn: (st) => SUSPECTS[st.roomSuspect[vaseRoom]].isCarnivore
+  });
+
+  clues.push({
+    id: `thief_is_herbivore`,
+    role: 'paranoia',
+    family: 'thief_gender',
+    category: 'Despacho',
+    weight: 14,
+    text: `Quien se zampó el **sándwich** es **un hombre**`,
+    evalFn: (st) => !SUSPECTS[st.roomSuspect[vaseRoom]].isCarnivore
   });
 
   return clues.map((c) => ({
@@ -1418,7 +2101,6 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
 
     const validPools = [];
     let poolEmpty = false;
-    let anySuspectHasAnchor = false;
 
     for (let sId = 0; sId < 5; sId++) {
       const rawClues = generateCandidateCluesForSuspect(
@@ -1454,54 +2136,48 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
           }
         }
 
-        // Evita que el ladrón use mentiras físicamente imposibles en el mapa actual
+        // Evita que el ladrón diga mentiras geométricamente imposibles en el mapa
         if (trueWhenInnocentCount === 0) continue;
 
         if (compatIndices.length >= 2 && compatIndices.length < N * 0.88) {
           filtered.push({
             ...clue,
             compatSet: new Set(compatIndices),
-            compatCount: compatIndices.length,
-            sortScore: (compatIndices.length / clue.weight) * (0.85 + rng() * 0.3)
+            compatCount: compatIndices.length
           });
         }
       }
 
-      if (filtered.length === 0) {
+      // GARANTÍA 1: Analista (sId === 0) necesita al menos una pista 'anchor' disponible
+      if (
+        filtered.length === 0 ||
+        (sId === 0 && !filtered.some((c) => c.role === 'anchor'))
+      ) {
         poolEmpty = true;
         break;
       }
 
-      if (filtered.some((c) => c.role === 'anchor')) {
-        anySuspectHasAnchor = true;
-      }
-
       validPools.push(
-        shuffle(filtered, rng).sort((a, b) => a.sortScore - b.sortScore)
+        shuffle(filtered, rng).sort(
+          (a, b) =>
+            (a.compatCount / a.weight) * (0.85 + rng() * 0.3) -
+            (b.compatCount / b.weight) * (0.85 + rng() * 0.3)
+        )
       );
     }
 
-    if (poolEmpty || !anySuspectHasAnchor) continue;
+    if (poolEmpty) continue;
 
     let chosenClues = null;
 
     for (let searchTry = 0; searchTry < 110; searchTry++) {
-      // Cualquier sospechoso con pistas 'anchor' puede abrir la deducción (desencajona a la Analista)
-      const anchorCapableSuspects = [0, 1, 2, 3, 4].filter((sId) =>
-        validPools[sId].some((c) => c.role === 'anchor')
-      );
-      const firstSuspect =
-        anchorCapableSuspects[Math.floor(rng() * anchorCapableSuspects.length)];
-      const remainingSuspects = shuffle(
-        [0, 1, 2, 3, 4].filter((sId) => sId !== firstSuspect),
-        rng
-      );
-      const order = [firstSuspect, ...remainingSuspects];
-
+      // Barajamos el orden de evaluación manteniendo siempre a Analista (0) restringida a 'anchor'
+      const order = shuffle([0, 1, 2, 3, 4], rng);
       let survivors = Array.from({ length: N }, (_, i) => i);
       const pickBySuspect = new Array(5);
       const usedCategories = new Set();
       const usedClueIds = new Set();
+      const usedFamilies = new Set();
 
       let anchorCount = 0;
       let boardCount = 0;
@@ -1518,24 +2194,39 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
         for (let k = 0; k < sampleLimit; k++) {
           const cand = pool[k];
 
-          // Evitar que dos sospechosos repitan exactamente la misma coartada
           if (usedClueIds.has(cand.id)) continue;
 
-          // 1. El primer sospechoso evaluado SIEMPRE lleva pista 'anchor'
-          if (step === 0 && cand.role !== 'anchor') continue;
+          // GARANTÍA 2: Analista (sId === 0) SIEMPRE lleva pista 'anchor'
+          if (sId === 0 && cand.role !== 'anchor') continue;
 
-          // 2. Máximo 3 pistas 'anchor' en total
+          // El primer paso evaluado debe ser 'anchor' o 'board' para abrir camino deductivo
+          if (step === 0 && cand.role !== 'anchor' && cand.role !== 'board') continue;
+
+          // Máximo 3 pistas 'anchor' en total
           if (cand.role === 'anchor' && anchorCount >= 3) continue;
 
-          // 3. Máximo 1 pista de 'paranoia' por partida
+          // Máximo 1 pista de 'paranoia' por partida
           if (cand.role === 'paranoia' && paranoiaCount >= 1) continue;
 
-          // 4. Evitar el "efecto de los 3 ciegos": máximo 2 pistas relacionales/paranoia en total
+          // Evitar el "efecto de los 3 ciegos": máximo 2 pistas relacionales/paranoia en total
           if (
             (cand.role === 'relational' || cand.role === 'paranoia') &&
             relationalCount + paranoiaCount >= 2
           ) {
             continue;
+          }
+
+          // Evitar círculos ciegos (A habla de B y B habla de A) y asegurar cadena deductiva
+          if (cand.targetId !== undefined) {
+            const targetClue = pickBySuspect[cand.targetId];
+            if (targetClue && targetClue.targetId === sId) continue;
+            if (
+              cand.role === 'relational' &&
+              targetClue &&
+              targetClue.role !== 'anchor'
+            ) {
+              continue;
+            }
           }
 
           let nextCount = 0;
@@ -1545,27 +2236,24 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
             }
           }
 
-          if (nextCount === 0) continue;
-
           let score = nextCount;
-          // Evitar cerrar el puzle antes del 5.º sospechoso (step < 4)
-          if (step < 4 && nextCount === 1) {
+          if (step < 3 && nextCount === 1) {
             score += 65;
           }
           if (!usedCategories.has(cand.category)) {
-            score -= 12;
+            score -= 14;
           }
-          if (cand.category !== 'Despacho') {
-            score -= 3;
+          if (cand.family && usedFamilies.has(cand.family)) {
+            score += 8;
           }
-          // Priorizar alcanzar al menos 2 anclas y 1 pista de tablero sin saturar el último turno
+          // Priorizar alcanzar al menos 2-3 anclas/tablero antes de cerrar
           if (cand.role === 'anchor' && anchorCount < 2) {
-            score -= 8;
-          } else if (cand.role === 'board' && boardCount < 1) {
-            score -= 5;
+            score -= 10;
+          } else if (cand.role === 'board' && anchorCount + boardCount < 3) {
+            score -= 6;
           }
 
-          const jitter = Math.max(6, survivors.length * 0.18);
+          const jitter = Math.max(4, survivors.length * 0.14);
           score += rng() * jitter;
 
           if (score < bestScore) {
@@ -1578,6 +2266,7 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
         pickBySuspect[sId] = bestClue;
         usedCategories.add(bestClue.category);
         usedClueIds.add(bestClue.id);
+        if (bestClue.family) usedFamilies.add(bestClue.family);
 
         if (bestClue.role === 'anchor') anchorCount++;
         else if (bestClue.role === 'board') boardCount++;
@@ -1593,9 +2282,10 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
         survivors[0] === trueStateIdx
       ) {
         const minDistinct = Math.min(3, activeCatSet.size);
+        // GARANTÍA 3: Verificación final de que Analista (pickBySuspect[0]) lleva rol 'anchor'
         if (
           usedCategories.size >= minDistinct &&
-          pickBySuspect[firstSuspect].role === 'anchor' &&
+          pickBySuspect[0].role === 'anchor' &&
           anchorCount >= 2 &&
           anchorCount <= 3 &&
           anchorCount + boardCount >= 3
@@ -1608,4 +2298,1798 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
 
     if (chosenClues) {
       let runningSurvivors = Array.from({ length: N }, (_, i) => i);
-      const
+      const clueCascade = [];
+      for (let sId = 0; sId < 5; sId++) {
+        runningSurvivors = runningSurvivors.filter((idx) =>
+          chosenClues[sId].compatSet.has(idx)
+        );
+        clueCascade.push({
+          suspectId: sId,
+          remainingStates: runningSurvivors.length
+        });
+      }
+
+      const clueImpact = [];
+      for (let sId = 0; sId < 5; sId++) {
+        let withoutThis = Array.from({ length: N }, (_, i) => i);
+        for (let other = 0; other < 5; other++) {
+          if (other === sId) continue;
+          withoutThis = withoutThis.filter((idx) =>
+            chosenClues[other].compatSet.has(idx)
+          );
+        }
+        clueImpact.push(withoutThis.length);
+      }
+
+      const elapsedMs = Math.max(1, Math.round(performance.now() - startTime));
+
+      return {
+        seed: actualSeed,
+        caseNumber: actualSeed,
+        elapsedMs,
+        mapAttempts,
+        categories: categoriesToUse,
+        grid,
+        roomSizes: topo.roomSizes,
+        vasePos,
+        vaseRoom,
+        doors,
+        solGeoIdx,
+        solGeo,
+        trueState,
+        thiefId,
+        survivingGeos,
+        totalStates: N,
+        clues: chosenClues.map((c, sId) => ({
+          id: c.id,
+          role: c.role,
+          suspectId: sId,
+          category: c.category,
+          text: c.text,
+          evalFn: c.evalFn,
+          statesWithoutThisClue: clueImpact[sId]
+        })),
+        clueCascade
+      };
+    }
+  }
+
+  return null;
+}
+
+// ============================================================================
+// 4. COMPONENTE PRINCIPAL DE LA APLICACIÓN
+// ============================================================================
+
+export default function App() {
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+    return true;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (e) => setIsDark(e.matches);
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', handleChange);
+      return () => mediaQuery.removeEventListener('change', handleChange);
+    } else if (mediaQuery.addListener) {
+      mediaQuery.addListener(handleChange);
+      return () => mediaQuery.removeListener(handleChange);
+    }
+  }, []);
+
+  const dailyConfig = useMemo(() => getDailyConfig(), []);
+  const yesterdayConfig = useMemo(() => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    return getDailyConfig(yesterday);
+  }, []);
+
+  const dailyStorageKey = `sandwich_daily_state_${dailyConfig.seed}`;
+
+  const initialDailySaved = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem(dailyStorageKey);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_e) {
+      return null;
+    }
+  }, [dailyStorageKey]);
+
+  // Si la URL incluye ?caso=123456, arrancamos directamente en ese nivel compartido
+  const initialUrlSeed = useMemo(() => getSeedFromUrl(), []);
+
+  const [isDailyMode, setIsDailyMode] = useState(() => initialUrlSeed === null);
+
+  const [level, setLevel] = useState(() => {
+    if (initialUrlSeed !== null) {
+      const sharedLevel = generateCompleteLevel(null, initialUrlSeed);
+      if (sharedLevel) return sharedLevel;
+    }
+    return generateCompleteLevel(dailyConfig.categories, dailyConfig.seed);
+  });
+
+  const [placements, setPlacements] = useState(() =>
+    initialUrlSeed !== null ? {} : initialDailySaved?.placements || {}
+  );
+  const [activeSuspect, setActiveSuspect] = useState(0);
+  const [suspectedLiar, setSuspectedLiar] = useState(() =>
+    initialUrlSeed !== null
+      ? null
+      : initialDailySaved?.completed
+      ? level?.thiefId ?? null
+      : initialDailySaved?.suspectedLiar ?? null
+  );
+  const [seconds, setSeconds] = useState(() =>
+    initialUrlSeed !== null ? 0 : initialDailySaved?.seconds || 0
+  );
+
+  const [isSolved, setIsSolved] = useState(() =>
+    initialUrlSeed !== null ? false : Boolean(initialDailySaved?.completed)
+  );
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [isModeModalOpen, setIsModeModalOpen] = useState(false);
+
+  // Abrir «Reglas» automáticamente el primer día
+  const [isHelpModalOpen, setIsHelpModalOpen] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const seen = localStorage.getItem('sandwich_rules_seen');
+      if (!seen) {
+        localStorage.setItem('sandwich_rules_seen', 'true');
+        return true;
+      }
+      return false;
+    } catch (_e) {
+      return false;
+    }
+  });
+
+  const [copiedShare, setCopiedShare] = useState(false);
+
+  // --- ESTADOS DEL RANKING DIARIO (HOY Y AYER) ---
+  const [modalTab, setModalTab] = useState('share'); // 'share' | 'leaderboard'
+  const [leaderboardDay, setLeaderboardDay] = useState('today'); // 'today' | 'yesterday'
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [isLoadingBoard, setIsLoadingBoard] = useState(false);
+  const [playerName, setPlayerName] = useState(() => {
+    if (typeof window === 'undefined') return '';
+    return localStorage.getItem('sandwich_detective_name') || '';
+  });
+  const [isSubmittingScore, setIsSubmittingScore] = useState(false);
+  const [scoreSubmitted, setScoreSubmitted] = useState(() =>
+    Boolean(initialDailySaved?.scoreSubmitted)
+  );
+  const [submittedEntryId, setSubmittedEntryId] = useState(
+    () => initialDailySaved?.submittedEntryId || null
+  );
+  const [submitError, setSubmitError] = useState('');
+
+  const [countdown, setCountdown] = useState(() => getTimeUntilMidnight());
+
+  const isAnyModalOpen = isHelpModalOpen || isModeModalOpen || isShareModalOpen;
+
+  // Sincroniza el color de fondo de html/body y theme-color (incluyendo sombra de popups en barras del navegador)
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const baseBg = isDark ? '#14161B' : '#F3F4F6';
+    const modalBg = isDark ? '#050608' : '#3D3F45';
+    const activeColor = isAnyModalOpen ? modalBg : baseBg;
+
+    document.documentElement.style.backgroundColor = activeColor;
+    document.body.style.backgroundColor = activeColor;
+
+    let metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (!metaTheme) {
+      metaTheme = document.createElement('meta');
+      metaTheme.name = 'theme-color';
+      document.head.appendChild(metaTheme);
+    }
+    metaTheme.setAttribute('content', activeColor);
+  }, [isDark, isAnyModalOpen]);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown(getTimeUntilMidnight());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!isDailyMode || typeof window === 'undefined') return;
+    try {
+      const existingRaw = localStorage.getItem(dailyStorageKey);
+      const existing = existingRaw ? JSON.parse(existingRaw) : null;
+
+      if (existing?.completed && !isSolved) return;
+
+      const payload = {
+        completed: isSolved,
+        seconds: existing?.completed ? existing.seconds : seconds,
+        placements: existing?.completed ? existing.placements : placements,
+        suspectedLiar: isSolved ? level?.thiefId ?? suspectedLiar : suspectedLiar,
+        scoreSubmitted: existing?.scoreSubmitted || scoreSubmitted,
+        submittedEntryId: existing?.submittedEntryId || submittedEntryId
+      };
+      localStorage.setItem(dailyStorageKey, JSON.stringify(payload));
+    } catch (_e) {
+      // Ignorar errores de almacenamiento
+    }
+  }, [
+    isDailyMode,
+    isSolved,
+    seconds,
+    placements,
+    suspectedLiar,
+    scoreSubmitted,
+    submittedEntryId,
+    dailyStorageKey,
+    level?.thiefId
+  ]);
+
+  const targetBoardSeed =
+    leaderboardDay === 'today' ? dailyConfig.seed : yesterdayConfig.seed;
+
+  const fetchLeaderboard = useCallback(async () => {
+    if (!supabase) return;
+    setIsLoadingBoard(true);
+    const { data, error } = await supabase
+      .from('daily_leaderboard')
+      .select('id, player_name, seconds, created_at')
+      .eq('seed', targetBoardSeed)
+      .order('seconds', { ascending: true })
+      .limit(50);
+
+    if (!error && data) {
+      setLeaderboard(data);
+    }
+    setIsLoadingBoard(false);
+  }, [targetBoardSeed]);
+
+  useEffect(() => {
+    if (isShareModalOpen && isDailyMode && isSolved) {
+      fetchLeaderboard();
+    }
+  }, [isShareModalOpen, isDailyMode, isSolved, fetchLeaderboard]);
+
+  const handleSubmitScore = async (e) => {
+    e.preventDefault();
+    if (!supabase || scoreSubmitted || isSubmittingScore) return;
+
+    const cleanName = sanitizeText(playerName);
+
+    if (cleanName.length < 2) {
+      setSubmitError('Pon un apodo de al menos 2 letras.');
+      return;
+    }
+
+    setIsSubmittingScore(true);
+    setSubmitError('');
+
+    const finalName = cleanName.slice(0, 18);
+    const finalSeconds = Math.max(3, seconds);
+
+    const { data, error } = await supabase
+      .from('daily_leaderboard')
+      .insert([
+        {
+          seed: dailyConfig.seed,
+          player_name: finalName,
+          comment: '',
+          seconds: finalSeconds,
+          thief_id: level.thiefId
+        }
+      ])
+      .select('id')
+      .single();
+
+    setIsSubmittingScore(false);
+
+    if (error) {
+      setSubmitError('No se pudo guardar en el ranking. Revisa tu conexión.');
+      return;
+    }
+
+    try {
+      localStorage.setItem('sandwich_detective_name', finalName);
+    } catch (_e) {
+      // Ignorar
+    }
+    setPlayerName(finalName);
+    if (data?.id) {
+      setSubmittedEntryId(data.id);
+    }
+    setScoreSubmitted(true);
+    setLeaderboardDay('today');
+    fetchLeaderboard();
+  };
+
+  const handleLoadDaily = useCallback(() => {
+    if (isDailyMode) {
+      setIsModeModalOpen(false);
+      return;
+    }
+
+    const nextLevel = generateCompleteLevel(dailyConfig.categories, dailyConfig.seed);
+    if (!nextLevel) return;
+
+    // Limpia el parámetro ?caso=... de la URL al volver al reto diario
+    if (typeof window !== 'undefined') {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    setIsDailyMode(true);
+    setLevel(nextLevel);
+    setActiveSuspect(0);
+    setIsModeModalOpen(false);
+    setCopiedShare(false);
+
+    try {
+      const raw = localStorage.getItem(dailyStorageKey);
+      const saved = raw ? JSON.parse(raw) : null;
+      if (saved) {
+        setPlacements(saved.placements || {});
+        setSuspectedLiar(
+          saved.completed ? nextLevel.thiefId : saved.suspectedLiar ?? null
+        );
+        setSeconds(saved.seconds || 0);
+        setIsSolved(Boolean(saved.completed));
+        setScoreSubmitted(Boolean(saved.scoreSubmitted));
+        setSubmittedEntryId(saved.submittedEntryId || null);
+        return;
+      }
+    } catch (_e) {
+      // Fallback
+    }
+
+    setPlacements({});
+    setSuspectedLiar(null);
+    setSeconds(0);
+    setIsSolved(false);
+    setScoreSubmitted(false);
+    setSubmittedEntryId(null);
+  }, [isDailyMode, dailyConfig, dailyStorageKey]);
+
+  const handleNewRandomLevel = useCallback(() => {
+    const nextLevel = generateCompleteLevel();
+    if (nextLevel) {
+      // Actualiza la URL con el código del caso aleatorio actual
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(
+          {},
+          '',
+          `${window.location.pathname}?caso=${nextLevel.seed}`
+        );
+      }
+
+      setIsDailyMode(false);
+      setLevel(nextLevel);
+      setPlacements({});
+      setSuspectedLiar(null);
+      setActiveSuspect(0);
+      setSeconds(0);
+      setIsSolved(false);
+      setIsShareModalOpen(false);
+      setIsModeModalOpen(false);
+      setCopiedShare(false);
+      setModalTab('share');
+    }
+  }, []);
+
+  const handleClearBoard = useCallback(() => {
+    if (isSolved) return;
+    setPlacements({});
+    setSuspectedLiar(null);
+  }, [isSolved]);
+
+  const suspectPositions = useMemo(() => {
+    const map = {};
+    Object.entries(placements).forEach(([key, sId]) => {
+      const [r, c] = key.split(',').map(Number);
+      map[sId] = { r, c };
+    });
+    return map;
+  }, [placements]);
+
+  const invalidatedCells = useMemo(() => {
+    const set = new Set();
+    if (!level) return set;
+
+    Object.entries(placements).forEach(([key]) => {
+      const [sr, sc] = key.split(',').map(Number);
+      const sRoom = level.grid[sr][sc];
+
+      for (let r = 0; r < 5; r++) {
+        for (let c = 0; c < 5; c++) {
+          if (r === sr && c === sc) continue;
+          if (r === level.vasePos.r && c === level.vasePos.c) continue;
+          const cellKey = `${r},${c}`;
+          if (placements[cellKey] !== undefined) continue;
+
+          const sameRow = r === sr;
+          const sameCol = c === sc;
+          const sameRoom = level.grid[r][c] === sRoom;
+          const kingTouch = Math.abs(r - sr) <= 1 && Math.abs(c - sc) <= 1;
+
+          if (sameRow || sameCol || sameRoom || kingTouch) {
+            set.add(cellKey);
+          }
+        }
+      }
+    });
+
+    return set;
+  }, [level, placements]);
+
+  const validation = useMemo(() => {
+    if (!level) return null;
+    const conflicts = new Set();
+
+    const entries = Object.entries(placements).map(([key, sId]) => {
+      const [r, c] = key.split(',').map(Number);
+      return { key, r, c, sId, room: level.grid[r][c] };
+    });
+
+    for (let i = 0; i < entries.length; i++) {
+      for (let j = i + 1; j < entries.length; j++) {
+        const a = entries[i];
+        const b = entries[j];
+        if (
+          a.r === b.r ||
+          a.c === b.c ||
+          a.room === b.room ||
+          (Math.abs(a.r - b.r) <= 1 && Math.abs(a.c - b.c) <= 1)
+        ) {
+          conflicts.add(a.key);
+          conflicts.add(b.key);
+        }
+      }
+    }
+
+    let clueResults = null;
+    let allCluesValid = false;
+
+    if (entries.length === 5 && conflicts.size === 0) {
+      const playerGeo = new Array(5);
+      const playerPerm = new Array(5);
+      entries.forEach(({ r, c, sId }) => {
+        playerGeo[r] = c;
+        playerPerm[r] = sId;
+      });
+
+      const playerState = buildStateObject(
+        -1,
+        playerGeo,
+        playerPerm,
+        level.grid,
+        level.doors
+      );
+
+      clueResults = {};
+      allCluesValid = true;
+
+      level.clues.forEach((clue) => {
+        const sId = clue.suspectId;
+        const isInVaseRoom = playerState.suspectRoom[sId] === level.vaseRoom;
+        const statementTruth = clue.evalFn(playerState);
+        const isConsistent = statementTruth === !isInVaseRoom;
+        clueResults[sId] = {
+          statementTruth,
+          isInVaseRoom,
+          isConsistent
+        };
+        if (!isConsistent) {
+          allCluesValid = false;
+        }
+      });
+    }
+
+    return {
+      conflicts,
+      clueResults,
+      allCluesValid,
+      placedCount: entries.length
+    };
+  }, [level, placements]);
+
+  const gameWon = isSolved || Boolean(validation?.allCluesValid);
+  const hasClueMismatch =
+    validation?.placedCount === 5 &&
+    validation?.conflicts.size === 0 &&
+    !validation?.allCluesValid;
+
+  // Si el nivel está resuelto, el mentiroso marcado pasa a ser automáticamente el ladrón real y queda fijo
+  const effectiveSuspectedLiar =
+    gameWon && level ? level.thiefId : suspectedLiar;
+
+  useEffect(() => {
+    if (validation?.allCluesValid && !isSolved) {
+      setIsSolved(true);
+      if (level) {
+        setSuspectedLiar(level.thiefId);
+      }
+      setModalTab('share');
+      setLeaderboardDay('today');
+      setIsShareModalOpen(true);
+    }
+  }, [validation, isSolved, level]);
+
+  // El cronómetro se pausa si el caso está resuelto o si hay algún popup abierto
+  useEffect(() => {
+    if (gameWon || isAnyModalOpen) return;
+    const timer = setInterval(() => {
+      setSeconds((s) => s + 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [gameWon, isAnyModalOpen]);
+
+  const handleCellClick = (r, c) => {
+    if (!level || gameWon) return;
+    if (r === level.vasePos.r && c === level.vasePos.c) return;
+
+    const key = `${r},${c}`;
+
+    if (placements[key] !== undefined) {
+      const removedSuspect = placements[key];
+      const nextPlacements = { ...placements };
+      delete nextPlacements[key];
+      setPlacements(nextPlacements);
+      setActiveSuspect(removedSuspect);
+      return;
+    }
+
+    const nextPlacements = {};
+    Object.entries(placements).forEach(([k, sId]) => {
+      if (sId !== activeSuspect) {
+        nextPlacements[k] = sId;
+      }
+    });
+    nextPlacements[key] = activeSuspect;
+    setPlacements(nextPlacements);
+  };
+
+  const formatTime = (secs) => {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  const shareText = useMemo(() => {
+    const modeLabel = isDailyMode
+      ? `Expediente diario (${dailyConfig.formattedDate})`
+      : `Expediente nº ${level?.caseNumber ?? ''}`;
+
+    const shareUrl = isDailyMode
+      ? 'https://www.sandwichcase.io'
+      : `https://www.sandwichcase.io/?caso=${level?.seed ?? ''}`;
+
+    return `¡Alguien ha robado mi sándwich en la oficina!\n📂 ${modeLabel}\n🥪 Culpable cazado en ${formatTime(seconds)}\n\n¿Lo resuelves más rápido que yo? 👇\n${shareUrl}`;
+  }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, level?.seed, seconds]);
+
+  const handleCopyShareText = () => {
+    navigator.clipboard?.writeText(shareText);
+    setCopiedShare(true);
+    setTimeout(() => setCopiedShare(false), 2500);
+  };
+
+  const handleNativeOrWhatsAppShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ text: shareText });
+        return;
+      } catch (_err) {
+        // Fallback
+      }
+    }
+    handleCopyShareText();
+    window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank');
+  };
+
+  // Identifica cuál es la fila del jugador en el Ranking para resaltarla
+  const highlightedEntryId = useMemo(() => {
+    if (!leaderboard.length) return null;
+    if (submittedEntryId && leaderboard.some((e) => e.id === submittedEntryId)) {
+      return submittedEntryId;
+    }
+    const cleanCurrentName = sanitizeText(playerName).slice(0, 18).toLowerCase();
+    if (!cleanCurrentName) return null;
+
+    if (leaderboardDay === 'today' && scoreSubmitted) {
+      const exactMatch = leaderboard.find(
+        (e) =>
+          e.player_name?.toLowerCase() === cleanCurrentName &&
+          e.seconds === Math.max(3, seconds)
+      );
+      if (exactMatch) return exactMatch.id;
+    }
+
+    const nameMatch = leaderboard.find(
+      (e) => e.player_name?.toLowerCase() === cleanCurrentName
+    );
+    return nameMatch ? nameMatch.id : null;
+  }, [leaderboard, submittedEntryId, playerName, leaderboardDay, scoreSubmitted, seconds]);
+
+  const currentSuspect = SUSPECTS[activeSuspect];
+  const currentClue = level?.clues.find((c) => c.suspectId === activeSuspect);
+
+  if (!level) return null;
+
+  const hasPlacements = Object.keys(placements).length > 0;
+
+  // Paleta Grafito Oscuro (#14161B / #1E2026) vs Modo Claro
+  const pageBgClass = isDark
+    ? 'bg-[#14161B] text-neutral-100'
+    : 'bg-[#F3F4F6] text-neutral-900';
+  const cardBgClass = isDark
+    ? 'bg-[#1E2026] border-[#2C303A]'
+    : 'bg-white border-neutral-200/90';
+  const subTextClass = isDark ? 'text-neutral-400' : 'text-neutral-500';
+  const primaryActionBtnClass = isDark
+    ? 'bg-white hover:bg-neutral-200 text-neutral-950'
+    : 'bg-neutral-900 hover:bg-neutral-800 text-white';
+
+  return (
+    <div
+      className={`h-dvh max-h-dvh overflow-hidden font-sans select-none flex flex-col items-center justify-between px-3 pt-[max(0.35rem,env(safe-area-inset-top))] pb-[max(0.5rem,env(safe-area-inset-bottom))] transition-colors duration-200 ${pageBgClass}`}
+    >
+      <div className="w-full max-w-[400px] h-full flex flex-col justify-between gap-1.5 min-h-0">
+        {/* 1. CABECERA CON TÍTULO SANDWICHCASE.IO */}
+        <header className="grid grid-cols-[auto_1fr_auto] items-center gap-1.5 shrink-0 py-0.5">
+          <button
+            type="button"
+            onClick={() => setIsModeModalOpen(true)}
+            title="Menú y reglas del juego"
+            className={`w-9 h-9 rounded-xl border transition cursor-pointer shrink-0 flex items-center justify-center ${
+              isDark
+                ? 'bg-[#1E2026] border-[#2C303A] hover:border-neutral-600 text-neutral-200'
+                : 'bg-white border-neutral-200 hover:border-neutral-400 text-neutral-800 shadow-2xs'
+            }`}
+          >
+            <Menu className="w-4 h-4" />
+          </button>
+
+          <h1 className="font-sans text-[clamp(0.82rem,3.8vw,1rem)] font-black tracking-tight leading-tight flex items-center justify-center gap-1.5 min-w-0 text-center px-0.5">
+            <img
+              src={sandwichSvg}
+              alt="Sándwich"
+              className="w-4 h-4 object-contain shrink-0"
+            />
+            <span className="truncate">sandwichcase.io</span>
+          </h1>
+
+          <div className="flex items-center justify-end gap-1.5 shrink-0">
+            {/* 1º Botón Compartir */}
+            {gameWon && (
+              <button
+                type="button"
+                onClick={() => {
+                  setModalTab('share');
+                  setIsShareModalOpen(true);
+                }}
+                title="Compartir resultado"
+                className={`p-1.5 rounded-lg font-black text-[10px] flex items-center justify-center transition cursor-pointer ${primaryActionBtnClass}`}
+              >
+                <Share2 className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            {/* 2º Botón del Ranking */}
+            {isDailyMode && gameWon && (
+              <button
+                type="button"
+                onClick={() => {
+                  setLeaderboardDay('today');
+                  setModalTab('leaderboard');
+                  setIsShareModalOpen(true);
+                }}
+                title="Ver Ranking"
+                className="p-1.5 rounded-lg border border-amber-400 bg-amber-400 hover:bg-amber-500 text-white transition cursor-pointer flex items-center justify-center shadow-2xs"
+              >
+                <Trophy className="w-3.5 h-3.5 text-white" />
+              </button>
+            )}
+
+            <div
+              className={`flex items-center gap-1.5 font-mono font-bold text-xs px-2 py-1 rounded-lg border ${
+                isDark
+                  ? 'bg-[#1E2026] border-[#2C303A] text-neutral-200'
+                  : 'bg-white border-neutral-200 text-neutral-800'
+              }`}
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  gameWon
+                    ? isDark
+                      ? 'bg-white'
+                      : 'bg-neutral-900'
+                    : isAnyModalOpen
+                    ? 'bg-amber-400'
+                    : 'bg-emerald-500 animate-pulse'
+                }`}
+              />
+              <span>{formatTime(seconds)}</span>
+            </div>
+          </div>
+        </header>
+
+        {/* 2. TABLERO 5x5 LIMPIO CON FACHADAS Y PUERTAS */}
+        <div
+          className={`flex-1 min-h-0 w-full border rounded-2xl p-2 shadow-xs flex flex-col justify-between gap-1.5 ${cardBgClass}`}
+        >
+          <div
+            className="flex-1 min-h-0 w-full flex items-center justify-center"
+            style={{ containerType: 'size' }}
+          >
+            <div
+              className="relative aspect-square max-w-full max-h-full pt-4 pb-4 px-4"
+              style={{
+                width: 'min(100cqw, 100cqh)',
+                height: 'min(100cqw, 100cqh)'
+              }}
+            >
+              {/* FACHADA NORTE */}
+              <div className="absolute top-0 inset-x-0 h-4 flex items-center justify-center pointer-events-none">
+                <span
+                  className={`text-[9px] font-black uppercase tracking-widest ${
+                    isDark ? 'text-neutral-400' : 'text-neutral-500'
+                  }`}
+                >
+                  FACHADA NORTE
+                </span>
+              </div>
+
+              {/* FACHADA SUR */}
+              <div className="absolute bottom-0 inset-x-0 h-4 flex items-center justify-center pointer-events-none">
+                <span
+                  className={`text-[9px] font-black uppercase tracking-widest ${
+                    isDark ? 'text-neutral-400' : 'text-neutral-500'
+                  }`}
+                >
+                  FACHADA SUR
+                </span>
+              </div>
+
+              {/* FACHADA OESTE */}
+              <div className="absolute left-0 inset-y-0 w-4 flex items-center justify-center pointer-events-none">
+                <span
+                  className={`text-[9px] font-black uppercase tracking-widest [writing-mode:vertical-lr] rotate-180 ${
+                    isDark ? 'text-neutral-400' : 'text-neutral-500'
+                  }`}
+                >
+                  FACHADA OESTE
+                </span>
+              </div>
+
+              {/* FACHADA ESTE */}
+              <div className="absolute right-0 inset-y-0 w-4 flex items-center justify-center pointer-events-none">
+                <span
+                  className={`text-[9px] font-black uppercase tracking-widest [writing-mode:vertical-lr] ${
+                    isDark ? 'text-neutral-400' : 'text-neutral-500'
+                  }`}
+                >
+                  FACHADA ESTE
+                </span>
+              </div>
+
+              {/* CUADRÍCULA 5x5 */}
+              <div className="relative w-full h-full">
+                <div className="w-full h-full grid grid-cols-5 grid-rows-5 border-[3px] border-[#181A20] rounded-xl overflow-hidden bg-[#181A20] shadow-inner">
+                  {Array.from({ length: 5 }).map((_, r) =>
+                    Array.from({ length: 5 }).map((__, c) => {
+                      const key = `${r},${c}`;
+                      const roomId = level.grid[r][c];
+                      const roomObj = ROOMS[roomId];
+                      const isVase = r === level.vasePos.r && c === level.vasePos.c;
+                      const placedSuspectId = placements[key];
+                      const placedSuspect =
+                        placedSuspectId !== undefined ? SUSPECTS[placedSuspectId] : null;
+                      const isInvalidated = invalidatedCells.has(key);
+                      const hasConflict = validation.conflicts.has(key);
+
+                      const topWall = r > 0 && level.grid[r - 1][c] !== roomId;
+                      const bottomWall = r < 4 && level.grid[r + 1][c] !== roomId;
+                      const leftWall = c > 0 && level.grid[r][c - 1] !== roomId;
+                      const rightWall = c < 4 && level.grid[r][c + 1] !== roomId;
+
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          onClick={() => handleCellClick(r, c)}
+                          style={{
+                            backgroundColor: roomObj.bgHex,
+                            borderTop: topWall
+                              ? '2.5px solid #181A20'
+                              : '1px solid rgba(24, 26, 32, 0.12)',
+                            borderBottom: bottomWall
+                              ? '2.5px solid #181A20'
+                              : '1px solid rgba(24, 26, 32, 0.12)',
+                            borderLeft: leftWall
+                              ? '2.5px solid #181A20'
+                              : '1px solid rgba(24, 26, 32, 0.12)',
+                            borderRight: rightWall
+                              ? '2.5px solid #181A20'
+                              : '1px solid rgba(24, 26, 32, 0.12)'
+                          }}
+                          className={`relative w-full h-full flex flex-col items-center justify-center p-0 overflow-hidden transition-colors duration-200 focus:outline-none ${
+                            gameWon ? 'cursor-default' : 'cursor-pointer'
+                          } ${hasConflict ? 'ring-3 ring-inset ring-rose-600 z-10' : ''}`}
+                        >
+                          {/* Marcador del Crimen compacto */}
+                          {isVase && (
+                            <div className="relative z-10 flex flex-col items-center justify-center leading-none pointer-events-none">
+                              <img
+                                src={sandwichSvg}
+                                alt="Sándwich robado"
+                                className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
+                              />
+                              <span className="text-[6.5px] font-black uppercase tracking-wider bg-[#181A20] text-white px-1 py-px rounded-xs -mt-0.5">
+                                CRIMEN
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Sospechoso colocado */}
+                          {!isVase && placedSuspect && (
+                            <div className="relative z-10 flex flex-col items-center justify-center leading-none pointer-events-none">
+                              <img
+                                src={placedSuspect.emoji}
+                                alt={placedSuspect.name}
+                                className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
+                              />
+                              <span
+                                className={`mt-0.5 px-1.5 py-px rounded text-[8.5px] font-black leading-tight ${
+                                  hasConflict
+                                    ? 'bg-rose-600 text-white'
+                                    : placedSuspect.id === activeSuspect
+                                    ? 'bg-white text-neutral-950 ring-1 ring-[#181A20] shadow-2xs'
+                                    : 'bg-[#181A20] text-white'
+                                }`}
+                              >
+                                {placedSuspect.code}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Crucecita de casilla descartada */}
+                          {!isVase && !placedSuspect && isInvalidated && (
+                            <span className="relative z-10 text-neutral-500/55 font-black text-base leading-none pointer-events-none">
+                              ✕
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+
+                {/* PUERTAS NUMERADAS (1, 2, 3, 4) */}
+                {level.doors.map((door) => {
+                  const leftPct =
+                    door.orientation === 'vertical'
+                      ? (door.c1 + 1) * 20
+                      : (door.c1 + 0.5) * 20;
+                  const topPct =
+                    door.orientation === 'horizontal'
+                      ? (door.r1 + 1) * 20
+                      : (door.r1 + 0.5) * 20;
+
+                  return (
+                    <div
+                      key={door.number}
+                      style={{
+                        left: `${leftPct}%`,
+                        top: `${topPct}%`
+                      }}
+                      className="absolute -translate-x-1/2 -translate-y-1/2 z-20 w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center font-black text-[10px] sm:text-[11px] pointer-events-none bg-[#181A20] text-white border-2 border-white shadow-md"
+                    >
+                      <span className="relative z-10">{door.number}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* BANNER INFERIOR AL COMPLETAR EL NIVEL */}
+          {gameWon && (
+            <div
+              className={`pt-1.5 border-t flex items-center justify-between gap-2 px-1 shrink-0 ${
+                isDark ? 'border-[#2C303A]' : 'border-neutral-200'
+              }`}
+            >
+              {isDailyMode ? (
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <Clock className={`w-3.5 h-3.5 ${subTextClass}`} />
+                  <span className={subTextClass}>Próximo en</span>
+                  <span className="font-mono font-black tracking-wider">
+                    {countdown}
+                  </span>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5 text-[11px]">
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                  <span className={`font-bold ${subTextClass}`}>
+                    ¡Caso #{level.caseNumber} resuelto!
+                  </span>
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={handleNewRandomLevel}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-black flex items-center gap-1 transition cursor-pointer ${primaryActionBtnClass}`}
+              >
+                <Shuffle className="w-3 h-3" />
+                <span>Otro robo</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* 3. BARRA DE REGLA ("Uno de ellos miente") + BOTÓN LIMPIAR MESA REDUCIDO */}
+        <div className="flex items-center justify-between gap-2 px-0.5 shrink-0">
+          <div className="flex items-center min-w-0">
+            {hasClueMismatch ? (
+              <span className="text-[clamp(0.85rem,3.7vw,0.98rem)] font-black leading-tight text-rose-500 truncate">
+                ¡Alguna coartada no cuadra!
+              </span>
+            ) : gameWon ? (
+              <span
+                className={`text-[clamp(0.85rem,3.7vw,0.98rem)] font-black leading-tight truncate ${
+                  isDark ? 'text-emerald-400' : 'text-emerald-600'
+                }`}
+              >
+                Caso resuelto
+              </span>
+            ) : (
+              <span
+                className={`text-[clamp(0.85rem,3.7vw,0.98rem)] font-bold leading-tight truncate ${
+                  isDark ? 'text-neutral-300' : 'text-neutral-700'
+                }`}
+              >
+                Uno de ellos{' '}
+                <strong
+                  className={`font-black ${
+                    isDark ? 'text-white' : 'text-neutral-950'
+                  }`}
+                >
+                  miente
+                </strong>
+              </span>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={handleClearBoard}
+            disabled={gameWon || !hasPlacements}
+            title="Limpiar mesa"
+            className={`h-7 px-2.5 py-0.5 rounded-full border flex items-center justify-center gap-1 text-[11px] font-bold transition shrink-0 ${
+              gameWon || !hasPlacements
+                ? isDark
+                  ? 'bg-[#1E2026]/50 border-[#2C303A] text-neutral-600 cursor-not-allowed'
+                  : 'bg-neutral-100 border-neutral-200 text-neutral-400 cursor-not-allowed'
+                : isDark
+                ? 'bg-[#1E2026] border-[#2C303A] text-neutral-200 hover:border-neutral-500 hover:text-white cursor-pointer active:scale-95'
+                : 'bg-white border-neutral-300 text-neutral-800 hover:bg-neutral-100 shadow-2xs cursor-pointer active:scale-95'
+            }`}
+          >
+            <RotateCcw className="w-3 h-3" />
+            <span>Limpiar mesa</span>
+          </button>
+        </div>
+
+        {/* 4. PÍLDORAS SELECTORAS DE SOSPECHOSOS (UN ÚNICO CÍRCULO POR PÍLDORA) */}
+        <div className="w-full grid grid-cols-5 gap-1.5 h-12 shrink-0">
+          {SUSPECTS.map((s) => {
+            const isSelected = activeSuspect === s.id;
+            const isPlaced = suspectPositions[s.id] !== undefined;
+            const evalRes = validation.clueResults ? validation.clueResults[s.id] : null;
+            const isInconsistent = Boolean(evalRes && !evalRes.isConsistent);
+
+            const baseBgAndText = isSelected
+              ? isDark
+                ? 'bg-white text-neutral-950 shadow-sm'
+                : 'bg-neutral-900 text-white shadow-sm'
+              : isPlaced
+              ? isDark
+                ? 'bg-[#282B34] text-white'
+                : 'bg-neutral-200/80 text-neutral-900'
+              : isDark
+              ? 'bg-[#1E2026] text-neutral-400 hover:bg-[#262932]'
+              : 'bg-white text-neutral-700 hover:bg-neutral-50';
+
+            const borderClass = isInconsistent
+              ? 'border-2 border-rose-500 ring-1 ring-rose-500/40'
+              : isSelected
+              ? isDark
+                ? 'border border-white'
+                : 'border border-neutral-900'
+              : isPlaced
+              ? isDark
+                ? 'border border-neutral-600'
+                : 'border border-neutral-400'
+              : isDark
+              ? 'border border-[#2C303A]'
+              : 'border border-neutral-200';
+
+            const hasLiarHypothesis = effectiveSuspectedLiar !== null;
+            const isMarkedAsLiar = effectiveSuspectedLiar === s.id;
+
+            let circleStyle = '';
+            if (hasLiarHypothesis) {
+              if (isMarkedAsLiar) {
+                circleStyle = isPlaced
+                  ? 'border-rose-500 bg-rose-500'
+                  : 'border-rose-500 bg-transparent';
+              } else {
+                circleStyle = isPlaced
+                  ? 'border-emerald-500 bg-emerald-500'
+                  : 'border-emerald-500 bg-transparent';
+              }
+            } else {
+              circleStyle = isPlaced
+                ? 'border-neutral-400 bg-neutral-400'
+                : isDark
+                ? 'border-neutral-600 bg-transparent'
+                : 'border-neutral-300 bg-transparent';
+            }
+
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setActiveSuspect(s.id)}
+                className={`relative h-full rounded-xl font-black transition-all flex flex-col items-center justify-center cursor-pointer ${baseBgAndText} ${borderClass}`}
+              >
+                {/* Único círculo indicador (relleno = colocado, color = hipótesis de mentiroso) */}
+                <span
+                  title={
+                    isPlaced ? 'Colocado en la mesa' : 'Sin colocar en la mesa'
+                  }
+                  className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-[1.5px] transition-colors duration-150 ${circleStyle}`}
+                />
+
+                <div className="flex items-center gap-1 leading-none">
+                  <span className="text-sm font-black">{s.code}</span>
+                  <img
+                    src={s.emoji}
+                    alt={s.name}
+                    className="w-5 h-5 object-contain"
+                  />
+                </div>
+                <span
+                  className={`text-[9px] font-bold mt-0.5 truncate max-w-full px-1 ${
+                    isSelected
+                      ? isDark
+                        ? 'text-neutral-800'
+                        : 'text-neutral-200'
+                      : isDark
+                      ? 'text-neutral-400'
+                      : 'text-neutral-500'
+                  }`}
+                >
+                  {s.name}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 5. TARJETA DE DECLARACIÓN CON CHECK "MENTIROSO" SIN PÍLDORA (FIJO SI ESTÁ RESUELTO) */}
+        <div
+          className={`w-full h-24 border rounded-2xl p-3 flex flex-col justify-between gap-1 shadow-xs shrink-0 overflow-hidden ${cardBgClass}`}
+        >
+          <div className="flex items-center justify-between gap-2 shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <span
+                className={`w-6 h-6 rounded-lg border flex items-center justify-center overflow-hidden shrink-0 ${
+                  isDark
+                    ? 'bg-[#14161B] border-[#2C303A]'
+                    : 'bg-neutral-100 border-neutral-200'
+                }`}
+              >
+                <img
+                  src={currentSuspect.emoji}
+                  alt={currentSuspect.name}
+                  className="w-5 h-5 object-contain"
+                />
+              </span>
+              <span
+                className={`font-black text-xs truncate ${
+                  isDark ? 'text-white' : 'text-neutral-900'
+                }`}
+              >
+                {currentSuspect.name}
+              </span>
+              <span
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
+                  isDark
+                    ? 'bg-[#14161B] text-neutral-300 border-[#2C303A]'
+                    : 'bg-neutral-100 text-neutral-700 border-neutral-300'
+                }`}
+              >
+                {currentSuspect.isCarnivore ? 'Mujer' : 'Hombre'}
+              </span>
+            </div>
+
+            {/* Check limpio de "Mentiroso" sin píldora (bloqueado cuando el caso está resuelto) */}
+            <button
+              type="button"
+              disabled={gameWon}
+              onClick={() => {
+                if (gameWon) return;
+                setSuspectedLiar((prev) =>
+                  prev === activeSuspect ? null : activeSuspect
+                );
+              }}
+              className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider transition shrink-0 ${
+                gameWon ? 'cursor-default' : 'cursor-pointer'
+              } ${
+                effectiveSuspectedLiar === activeSuspect
+                  ? isDark
+                    ? 'text-rose-400'
+                    : 'text-rose-600'
+                  : `${subTextClass} ${gameWon ? '' : 'hover:opacity-80'}`
+              }`}
+            >
+              <span
+                className={`w-3.5 h-3.5 rounded-xs border flex items-center justify-center transition ${
+                  effectiveSuspectedLiar === activeSuspect
+                    ? 'bg-rose-500 border-rose-500 text-white'
+                    : isDark
+                    ? 'border-neutral-500 bg-transparent'
+                    : 'border-neutral-400 bg-transparent'
+                }`}
+              >
+                {effectiveSuspectedLiar === activeSuspect && (
+                  <Check className="w-2.5 h-2.5 stroke-[3]" />
+                )}
+              </span>
+              <span>Mentiroso</span>
+            </button>
+          </div>
+
+          <div className="flex-1 min-h-0 flex items-center justify-center px-1">
+            <p
+              className={`w-full text-center font-sans text-[clamp(0.85rem,3.7vw,0.98rem)] font-normal leading-snug line-clamp-2 ${
+                isDark ? 'text-neutral-200' : 'text-neutral-700'
+              }`}
+            >
+              {renderFormattedClue(currentClue?.text, isDark)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 6. POPUP MODAL DE NORMAS / CÓMO SE JUEGA */}
+      {isHelpModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setIsHelpModalOpen(false)}
+        >
+          <div className="fixed -inset-20 bg-black/75 backdrop-blur-xs pointer-events-none" />
+
+          <div
+            className={`relative z-10 w-full max-w-sm rounded-3xl border p-6 shadow-2xl flex flex-col gap-4 ${
+              isDark
+                ? 'bg-[#1E2026] border-[#2C303A] text-neutral-100'
+                : 'bg-white border-neutral-200 text-neutral-900'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`w-10 h-10 rounded-2xl border flex items-center justify-center font-black text-base ${
+                    isDark
+                      ? 'bg-[#14161B] border-[#2C303A] text-white'
+                      : 'bg-neutral-100 border-neutral-200 text-neutral-900'
+                  }`}
+                >
+                  ?
+                </div>
+                <div>
+                  <h2 className="text-base font-black leading-tight">
+                    Protocolo Anti-Robos
+                  </h2>
+                  <p className={`text-xs mt-0.5 ${subTextClass}`}>
+                    Alguien ha asaltado tu tupper en la oficina
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsHelpModalOpen(false)}
+                className={`p-2 rounded-xl border transition cursor-pointer ${
+                  isDark
+                    ? 'bg-[#14161B] border-[#2C303A] text-neutral-400 hover:text-white'
+                    : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
+                }`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-3 text-xs leading-relaxed">
+              <div
+                className={`p-3 rounded-2xl border ${
+                  isDark
+                    ? 'bg-[#14161B] border-[#2C303A] text-neutral-300'
+                    : 'bg-neutral-50 border-neutral-200 text-neutral-700'
+                }`}
+              >
+                <span className="font-black block mb-0.5 text-current">
+                  1. Distancia social de oficina
+                </span>
+                Coloca a los 5 sospechosos en el plano: solo cabe{' '}
+                <strong>uno por fila, uno por columna y uno por despacho de color</strong>.
+                Además, no se aguantan: no pueden tocarse ni en diagonal.
+              </div>
+
+              <div
+                className={`p-3 rounded-2xl border ${
+                  isDark
+                    ? 'bg-[#14161B] border-[#2C303A] text-neutral-300'
+                    : 'bg-neutral-50 border-neutral-200 text-neutral-700'
+                }`}
+              >
+                <span className="font-black block mb-0.5 text-current">
+                  2. Uno de ellos miente
+                </span>
+                Los 4 inocentes dicen siempre la verdad. Quien esté dentro del{' '}
+                <strong>mismo despacho de color que el sándwich (CRIMEN)</strong> es el
+                ladrón y su coartada es <strong>falsa</strong>.
+              </div>
+
+              <div
+                className={`p-3 rounded-2xl border ${
+                  isDark
+                    ? 'bg-[#14161B] border-[#2C303A] text-neutral-300'
+                    : 'bg-neutral-50 border-neutral-200 text-neutral-700'
+                }`}
+              >
+                <span className="font-black block mb-0.5 text-current">
+                  3. Cotilleo en las puertas
+                </span>
+                Estar junto a una puerta significa ocupar cualquiera de las{' '}
+                <strong>dos casillas</strong> que conecta ese círculo numerado.
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setIsHelpModalOpen(false)}
+              className={`w-full py-2.5 px-4 rounded-xl font-black text-xs transition cursor-pointer ${primaryActionBtnClass}`}
+            >
+              ¡A interrogar!
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 7. POPUP MODAL DE HAMBURGUESA (MODO DE JUEGO + REGLAS) */}
+      {isModeModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setIsModeModalOpen(false)}
+        >
+          <div className="fixed -inset-20 bg-black/75 backdrop-blur-xs pointer-events-none" />
+
+          <div
+            className={`relative z-10 w-full max-w-sm rounded-3xl border p-6 shadow-2xl flex flex-col gap-4 ${
+              isDark
+                ? 'bg-[#1E2026] border-[#2C303A] text-neutral-100'
+                : 'bg-white border-neutral-200 text-neutral-900'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`w-11 h-11 rounded-2xl border flex items-center justify-center p-1.5 ${
+                    isDark
+                      ? 'bg-[#14161B] border-[#2C303A]'
+                      : 'bg-neutral-100 border-neutral-200'
+                  }`}
+                >
+                  <img
+                    src={sandwichSvg}
+                    alt="Sándwich"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div>
+                  <h2 className="text-base font-black leading-tight">
+                    Archivos de RR.HH.
+                  </h2>
+                  <p className={`text-xs mt-0.5 ${subTextClass}`}>
+                    ¿Qué robo de almuerzo investigamos ahora?
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModeModalOpen(false)}
+                className={`p-2 rounded-xl border transition cursor-pointer ${
+                  isDark
+                    ? 'bg-[#14161B] border-[#2C303A] text-neutral-400 hover:text-white'
+                    : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
+                }`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              <button
+                type="button"
+                onClick={handleLoadDaily}
+                className={`w-full p-3.5 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${
+                  isDailyMode
+                    ? isDark
+                      ? 'bg-white text-black border-white'
+                      : 'bg-neutral-900 text-white border-neutral-900'
+                    : isDark
+                    ? 'bg-[#14161B] hover:bg-neutral-800/80 text-neutral-200 border-[#2C303A]'
+                    : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border-neutral-200'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Calendar className="w-5 h-5 shrink-0" />
+                  <div>
+                    <div className="text-xs font-black">El Robo del Día</div>
+                    <div
+                      className={`text-[11px] ${
+                        isDailyMode
+                          ? isDark
+                            ? 'text-neutral-700'
+                            : 'text-neutral-300'
+                          : subTextClass
+                      }`}
+                    >
+                      El mismo misterio para toda la oficina ({dailyConfig.formattedDate})
+                    </div>
+                  </div>
+                </div>
+                {isDailyMode && (
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-500 text-white">
+                    Activo
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleNewRandomLevel}
+                className={`w-full p-3.5 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${
+                  !isDailyMode
+                    ? isDark
+                      ? 'bg-white text-black border-white'
+                      : 'bg-neutral-900 text-white border-neutral-900'
+                    : isDark
+                    ? 'bg-[#14161B] hover:bg-neutral-800/80 text-neutral-200 border-[#2C303A]'
+                    : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border-neutral-200'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Shuffle className="w-5 h-5 shrink-0" />
+                  <div>
+                    <div className="text-xs font-black">Horas Extra (Aleatorio)</div>
+                    <div
+                      className={`text-[11px] ${
+                        !isDailyMode
+                          ? isDark
+                            ? 'text-neutral-700'
+                            : 'text-neutral-300'
+                          : subTextClass
+                      }`}
+                    >
+                      Generar un nuevo drama de oficina al instante
+                    </div>
+                  </div>
+                </div>
+                {!isDailyMode && (
+                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-500 text-white">
+                    Activo
+                  </span>
+                )}
+              </button>
+
+              {/* Botón de Reglas / Cómo se juega trasladado al menú hamburguesa */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsModeModalOpen(false);
+                  setIsHelpModalOpen(true);
+                }}
+                className={`w-full p-3.5 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${
+                  isDark
+                    ? 'bg-[#14161B] hover:bg-neutral-800/80 text-neutral-200 border-[#2C303A]'
+                    : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border-neutral-200'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <HelpCircle className="w-5 h-5 shrink-0" />
+                  <div>
+                    <div className="text-xs font-black">Reglas / Cómo se juega</div>
+                    <div className={`text-[11px] ${subTextClass}`}>
+                      Repasa el protocolo anti-robos de la oficina
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8. POPUP MODAL DE COMPARTIR Y RANKING DIARIO */}
+      {isShareModalOpen && gameWon && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
+          onClick={() => setIsShareModalOpen(false)}
+        >
+          <div className="fixed -inset-20 bg-black/75 backdrop-blur-xs pointer-events-none" />
+
+          <div
+            className={`relative z-10 w-full max-w-sm max-h-[88dvh] rounded-3xl border p-5 shadow-2xl flex flex-col gap-3.5 overflow-hidden ${
+              isDark
+                ? 'bg-[#1E2026] border-[#2C303A] text-neutral-100'
+                : 'bg-white border-neutral-200 text-neutral-900'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Cabecera del Modal */}
+            <div className="flex items-start justify-between gap-2 shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`w-11 h-11 rounded-2xl border flex items-center justify-center p-1.5 shrink-0 ${
+                    isDark
+                      ? 'bg-[#14161B] border-[#2C303A]'
+                      : 'bg-neutral-100 border-neutral-200'
+                  }`}
+                >
+                  <img
+                    src={SUSPECTS[level.thiefId].emoji}
+                    alt={SUSPECTS[level.thiefId].name}
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                <div>
+                  <h2 className="text-base font-black leading-tight">
+                    ¡Pillas a {SUSPECTS[level.thiefId].name} masticando!
+                  </h2>
+                  <p className={`font-sans text-xs mt-0.5 italic ${subTextClass}`}>
+                    {cleanStatementText(SUSPECTS[level.thiefId].confession)}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setIsShareModalOpen(false)}
+                className={`p-2 rounded-xl border transition cursor-pointer shrink-0 ${
+                  isDark
+                    ? 'bg-[#14161B] border-[#2C303A] text-neutral-400 hover:text-white'
+                    : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
+                }`}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Selector de Pestañas: 1º Informe RR.HH. (Compartir) | 2º Ranking */}
+            {isDailyMode && (
+              <div
+                className={`grid grid-cols-2 p-1 rounded-xl border shrink-0 ${
+                  isDark
+                    ? 'bg-[#14161B] border-[#2C303A]'
+                    : 'bg-neutral-100 border-neutral-200'
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setModalTab('share')}
+                  className={`py-1.5 rounded-lg text-xs font-black transition cursor-pointer ${
+                    modalTab === 'share'
+                      ? isDark
+                        ? 'bg-[#282B34] text-white shadow-2xs'
+                        : 'bg-white text-neutral-900 shadow-2xs'
+                      : subTextClass
+                  }`}
+                >
+                  Informe RR.HH.
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalTab('leaderboard')}
+                  className={`py-1.5 rounded-lg text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                    modalTab === 'leaderboard'
+                      ? isDark
+                        ? 'bg-[#282B34] text-white shadow-2xs'
+                        : 'bg-white text-neutral-900 shadow-2xs'
+                      : subTextClass
+                  }`}
+                >
+                  <span className="w-4 h-4 rounded bg-amber-400 flex items-center justify-center shrink-0">
+                    <Trophy className="w-2.5 h-2.5 text-white" />
+                  </span>
+                  <span>Ranking</span>
+                </button>
+              </div>
+            )}
+
+            {/* PESTAÑA 1: COMPARTIR INFORME */}
+            {(!isDailyMode || modalTab === 'share') && (
+              <>
+                {isDailyMode && (
+                  <div
+                    className={`px-3.5 py-2.5 rounded-2xl border flex items-center justify-between text-xs ${
+                      isDark
+                        ? 'bg-[#14161B] border-[#2C303A]'
+                        : 'bg-neutral-100 border-neutral-200'
+                    }`}
+                  >
+                    <span className={`font-bold ${subTextClass}`}>
+                      Próximo robo diario:
+                    </span>
+                    <span className="font-mono font-black text-sm tracking-wider">
+                      {countdown}
+                    </span>
+                  </div>
+                )}
+
+                <div
+                  className={`rounded-2xl p-3.5 border text-xs font-mono whitespace-pre-line leading-relaxed ${
+                    isDark
+                      ? 'bg-[#14161B] border-[#2C303A] text-neutral-300'
+                      : 'bg-neutral-50 border-neutral-200 text-neutral-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <img
+                      src={sandwichSvg}
+                      alt="Sándwich"
+                      className="w-4 h-4 object-contain shrink-0"
+                    />
+                    <span className="font-bold">Informe oficial</span>
+                  </div>
+                  {shareText}
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <button
+                    type="button"
+                    onClick={handleNativeOrWhatsAppShare}
+                    className={`w-full py-2.5 px-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm ${primaryActionBtnClass}`}
+                  >
+                    <Share2 className="w-4 h-4" />
+                    <span>Presumir en el grupo</span>
+                  </button>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopyShareText}
+                      className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border transition cursor-pointer ${
+                        isDark
+                          ? 'bg-[#282B34] hover:bg-neutral-700 text-neutral-200 border-neutral-700'
+                          : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border-neutral-300'
+                      }`}
+                    >
+                      {copiedShare ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>¡Copiado!</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-3.5 h-3.5" />
+                          <span>Copiar informe</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleNewRandomLevel}
+                      className={`py-2.5 px-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 border transition cursor-pointer ${
+                        isDark
+                          ? 'bg-[#282B34] hover:bg-neutral-700 text-neutral-200 border-neutral-700'
+                          : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border-neutral-300'
+                      }`}
+                    >
+                      <Sparkles className="w-3.5 h-3.5" />
+                      <span>Otro robo</span>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* PESTAÑA 2: RANKING (CON SCROLL INTERNO Y FILA DEL JUGADOR RESALTADA) */}
+            {isDailyMode && modalTab === 'leaderboard' && (
+              <div className="flex flex-col gap-2.5 min-h-0 flex-1 overflow-hidden">
+                {/* Barra superior para alternar entre el Ranking de Hoy y el de Ayer */}
+                <div className="flex items-center justify-between gap-2 shrink-0">
+                  <span className={`text-[11px] font-bold ${subTextClass}`}>
+                    {leaderboardDay === 'today'
+                      ? `Hoy · ${dailyConfig.formattedDate}`
+                      : `Ayer · ${yesterdayConfig.formattedDate}`}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setLeaderboardDay((prev) =>
+                        prev === 'today' ? 'yesterday' : 'today'
+                      )
+                    }
+                    className={`px-2.5 py-1 rounded-lg border text-[11px] font-bold flex items-center gap-1.5 transition cursor-pointer ${
+                      isDark
+                        ? 'bg-[#14161B] border-[#2C303A] hover:border-neutral-600 text-neutral-200'
+                        : 'bg-neutral-100 border-neutral-200 hover:bg-neutral-200 text-neutral-800'
+                    }`}
+                  >
+                    <History className="w-3.5 h-3.5 text-amber-400" />
+                    <span>
+                      {leaderboardDay === 'today'
+                        ? 'Ver ranking de ayer'
+                        : 'Volver al ranking de hoy'}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Formulario (solo visible en el ranking de HOY si aún no se ha enviado) */}
+                {leaderboardDay === 'today' && !scoreSubmitted && (
+                  <form
+                    onSubmit={handleSubmitScore}
+                    className={`p-3 rounded-2xl border flex flex-col gap-2 shrink-0 ${
+                      isDark
+                        ? 'bg-[#14161B] border-[#2C303A]'
+                        : 'bg-neutral-50 border-neutral-200'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-black">
+                        Registra tu tiempo en el ranking
+                      </span>
+                      <span className="font-mono font-bold text-emerald-500">
+                        {formatTime(seconds)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 min-w-0">
+                      <input
+                        type="text"
+                        required
+                        maxLength={18}
+                        placeholder="Tu apodo"
+                        value={playerName}
+                        onChange={(e) => setPlayerName(e.target.value)}
+                        className={`flex-1 min-w-0 px-3 py-2 rounded-xl border text-xs font-bold focus:outline-none ${
+                          isDark
+                            ? 'bg-[#1E2026] border-[#2C303A] text-white placeholder:text-neutral-500'
+                            : 'bg-white border-neutral-300 text-neutral-900 placeholder:text-neutral-400'
+                        }`}
+                      />
+                      <button
+                        type="submit"
+                        disabled={isSubmittingScore}
+                        className={`px-3 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0 ${primaryActionBtnClass}`}
+                      >
+                        <Send className="w-3.5 h-3.5 shrink-0" />
+                        <span>
+                          {isSubmittingScore ? '...' : 'Guardar'}
+                        </span>
+                      </button>
+                    </div>
+
+                    {submitError && (
+                      <span className="text-[10px] text-rose-500 font-bold">
+                        {submitError}
+                      </span>
+                    )}
+                  </form>
+                )}
+
+                {/* Lista con scroll vertical automático de los mejores detectives */}
+                <div className="flex-1 min-h-0 overflow-y-auto pr-1 flex flex-col gap-1.5">
+                  {!supabase ? (
+                    <div className={`py-6 text-center text-xs ${subTextClass}`}>
+                      Falta configurar VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en Vercel.
+                    </div>
+                  ) : isLoadingBoard ? (
+                    <div className={`py-8 text-center text-xs ${subTextClass}`}>
+                      Cargando ranking...
+                    </div>
+                  ) : leaderboard.length === 0 ? (
+                    <div className={`py-8 text-center text-xs ${subTextClass}`}>
+                      {leaderboardDay === 'today'
+                        ? 'Nadie se ha apuntado hoy todavía. ¡Sé el primero!'
+                        : 'Ayer no quedaron tiempos registrados en el ranking.'}
+                    </div>
+                  ) : (
+                    leaderboard.map((entry, idx) => {
+                      const isCurrentUser = entry.id === highlightedEntryId;
+
+                      return (
+                        <div
+                          key={entry.id}
+                          className={`p-2.5 rounded-xl border flex items-center justify-between gap-2 transition ${
+                            isCurrentUser
+                              ? isDark
+                                ? 'bg-amber-400/15 border-amber-400/80 ring-1 ring-amber-400/30'
+                                : 'bg-amber-50 border-amber-400 ring-1 ring-amber-300/50'
+                              : isDark
+                              ? 'bg-[#14161B] border-[#2C303A]'
+                              : 'bg-neutral-50 border-neutral-200'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span
+                              className={`w-5 h-5 rounded-md text-[10px] font-black flex items-center justify-center shrink-0 ${
+                                idx === 0
+                                  ? 'bg-amber-400 text-neutral-950'
+                                  : idx === 1
+                                  ? 'bg-neutral-300 text-neutral-950'
+                                  : idx === 2
+                                  ? 'bg-amber-700 text-white'
+                                  : isDark
+                                  ? 'bg-[#282B34] text-neutral-400'
+                                  : 'bg-neutral-200 text-neutral-600'
+                              }`}
+                            >
+                              {idx + 1}
+                            </span>
+                            <span
+                              className={`font-black text-xs truncate ${
+                                isCurrentUser
+                                  ? isDark
+                                    ? 'text-amber-300'
+                                    : 'text-amber-900'
+                                  : ''
+                              }`}
+                            >
+                              {entry.player_name}
+                            </span>
+                            {isCurrentUser && (
+                              <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-400 text-neutral-950 shrink-0 leading-none">
+                                TÚ
+                              </span>
+                            )}
+                          </div>
+                          <span
+                            className={`font-mono font-black text-xs shrink-0 ${
+                              isCurrentUser
+                                ? isDark
+                                  ? 'text-amber-300'
+                                  : 'text-amber-900'
+                                : ''
+                            }`}
+                          >
+                            {formatTime(entry.seconds)}
+                          </span>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Analytics />
+    </div>
+  );
+}
