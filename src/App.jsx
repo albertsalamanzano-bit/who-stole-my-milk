@@ -16,6 +16,7 @@ import {
   SUSPECTS,
   sandwichSvg
 } from './constants/gameData';
+import { TRANSLATIONS } from './i18n/translations';
 import {
   supabase,
   sanitizeText,
@@ -46,7 +47,8 @@ function renderFormattedClue(text, isDark) {
       const lower = content.toLowerCase();
 
       const matchedSuspect = SUSPECTS.find(
-        (s) => s.name.toLowerCase() === lower
+        (s) =>
+          s.name.toLowerCase() === lower || s.nameEn.toLowerCase() === lower
       );
 
       if (matchedSuspect) {
@@ -60,7 +62,7 @@ function renderFormattedClue(text, isDark) {
               (
               <img
                 src={matchedSuspect.emoji}
-                alt={matchedSuspect.name}
+                alt={content}
                 className="w-3.5 h-3.5 object-contain inline-block align-middle -translate-y-[1.5px] mx-0.5"
               />
               )
@@ -69,12 +71,12 @@ function renderFormattedClue(text, isDark) {
         );
       }
 
-      const matchedColor = Object.keys(ROOM_TEXT_STYLES).find((colorKey) =>
-        lower.includes(colorKey)
+      const matchedColorKey = Object.keys(ROOM_TEXT_STYLES).find((colorKey) =>
+        ROOM_TEXT_STYLES[colorKey].keywords.some((kw) => lower.includes(kw))
       );
 
-      if (matchedColor) {
-        const styleObj = ROOM_TEXT_STYLES[matchedColor];
+      if (matchedColorKey) {
+        const styleObj = ROOM_TEXT_STYLES[matchedColorKey];
         const colorClasses = isDark ? styleObj.dark : styleObj.light;
         return (
           <strong key={idx} className={`font-bold ${colorClasses}`}>
@@ -94,7 +96,7 @@ function renderFormattedClue(text, isDark) {
               (
               <img
                 src={sandwichSvg}
-                alt="sándwich"
+                alt="sandwich"
                 className="w-3.5 h-3.5 object-contain inline-block align-middle -translate-y-[1.5px] mx-0.5"
               />
               )
@@ -117,6 +119,30 @@ function renderFormattedClue(text, isDark) {
 }
 
 export default function App() {
+  const [lang, setLang] = useState(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('sandwich_lang');
+        if (saved === 'es' || saved === 'en') return saved;
+        if (navigator.language?.toLowerCase().startsWith('en')) return 'en';
+      } catch (_e) {
+        // Ignorar
+      }
+    }
+    return 'es';
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.setItem('sandwich_lang', lang);
+    } catch (_e) {
+      // Ignorar
+    }
+  }, [lang]);
+
+  const t = TRANSLATIONS[lang] || TRANSLATIONS.es;
+
   const [themeMode, setThemeMode] = useState(() => {
     if (typeof window !== 'undefined') {
       try {
@@ -385,7 +411,7 @@ export default function App() {
     const cleanName = sanitizeText(playerName);
 
     if (cleanName.length < 2) {
-      setSubmitError('Pon un apodo de al menos 2 letras.');
+      setSubmitError(t.minNicknameError);
       return;
     }
 
@@ -412,7 +438,7 @@ export default function App() {
     setIsSubmittingScore(false);
 
     if (error) {
-      setSubmitError('No se pudo guardar en el ranking. Revisa tu conexión.');
+      setSubmitError(t.submitScoreError);
       return;
     }
 
@@ -670,16 +696,18 @@ export default function App() {
   };
 
   const shareText = useMemo(() => {
-    const modeLabel = isDailyMode
-      ? `Expediente diario (${dailyConfig.formattedDate})`
-      : `Expediente nº ${level?.caseNumber ?? ''}`;
-
     const shareUrl = isDailyMode
       ? 'https://www.sandwichcase.io'
       : `https://www.sandwichcase.io/?caso=${level?.seed ?? ''}`;
 
-    return `¡Alguien ha robado mi sándwich en la oficina!\n📂 ${modeLabel}\n🥪 Culpable cazado en ${formatTime(seconds)}\n\n¿Lo resuelves más rápido que yo? 👇\n${shareUrl}`;
-  }, [isDailyMode, dailyConfig.formattedDate, level?.caseNumber, level?.seed, seconds]);
+    return t.shareTextBuilder({
+      isDailyMode,
+      formattedDate: dailyConfig.formattedDate,
+      caseNumber: level?.caseNumber ?? '',
+      timeStr: formatTime(seconds),
+      shareUrl
+    });
+  }, [t, isDailyMode, dailyConfig.formattedDate, level?.caseNumber, level?.seed, seconds]);
 
   const handleCopyShareText = () => {
     navigator.clipboard?.writeText(shareText);
@@ -724,7 +752,13 @@ export default function App() {
   }, [leaderboard, submittedEntryId, playerName, leaderboardDay, scoreSubmitted, seconds]);
 
   const currentSuspect = SUSPECTS[activeSuspect];
+  const currentSuspectDisplayName =
+    lang === 'en' ? currentSuspect.nameEn : currentSuspect.name;
   const currentClue = level?.clues.find((c) => c.suspectId === activeSuspect);
+  const currentClueText =
+    lang === 'en'
+      ? currentClue?.textEn || currentClue?.text
+      : currentClue?.text;
 
   if (!level) return null;
 
@@ -751,7 +785,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setIsModeModalOpen(true)}
-            title="Menú y reglas del juego"
+            title={t.menuTitle}
             className={`w-9 h-9 rounded-xl border transition cursor-pointer shrink-0 flex items-center justify-center ${
               isDark
                 ? 'bg-[#1E2026] border-[#2C303A] hover:border-neutral-600 text-neutral-200'
@@ -770,12 +804,12 @@ export default function App() {
             <span className="truncate">
               {isDailyMode ? (
                 <>
-                  Reto diario{' '}
+                  {t.dailyChallenge}{' '}
                   <span className="font-normal">{dailyConfig.formattedDate}</span>
                 </>
               ) : (
                 <>
-                  Caso <span className="font-normal">#{level.caseNumber}</span>
+                  {t.caseLabel} <span className="font-normal">#{level.caseNumber}</span>
                 </>
               )}
             </span>
@@ -789,7 +823,7 @@ export default function App() {
                   setModalTab('share');
                   setIsShareModalOpen(true);
                 }}
-                title="Compartir resultado"
+                title={t.shareResult}
                 className={`p-1.5 rounded-lg font-black text-[10px] flex items-center justify-center transition cursor-pointer ${primaryActionBtnClass}`}
               >
                 <Share2 className="w-3.5 h-3.5" />
@@ -804,7 +838,7 @@ export default function App() {
                   setModalTab('leaderboard');
                   setIsShareModalOpen(true);
                 }}
-                title="Ver Ranking"
+                title={t.viewRanking}
                 className="p-1.5 rounded-lg border border-amber-400 bg-amber-400 hover:bg-amber-500 text-white transition cursor-pointer flex items-center justify-center shadow-2xs"
               >
                 <Trophy className="w-3.5 h-3.5 text-white" />
@@ -856,7 +890,7 @@ export default function App() {
                     isDark ? 'text-neutral-400' : 'text-neutral-500'
                   }`}
                 >
-                  FACHADA NORTE
+                  {t.facadeNorth}
                 </span>
               </div>
 
@@ -867,7 +901,7 @@ export default function App() {
                     isDark ? 'text-neutral-400' : 'text-neutral-500'
                   }`}
                 >
-                  FACHADA SUR
+                  {t.facadeSouth}
                 </span>
               </div>
 
@@ -878,7 +912,7 @@ export default function App() {
                     isDark ? 'text-neutral-400' : 'text-neutral-500'
                   }`}
                 >
-                  FACHADA OESTE
+                  {t.facadeWest}
                 </span>
               </div>
 
@@ -889,7 +923,7 @@ export default function App() {
                     isDark ? 'text-neutral-400' : 'text-neutral-500'
                   }`}
                 >
-                  FACHADA ESTE
+                  {t.facadeEast}
                 </span>
               </div>
 
@@ -941,11 +975,11 @@ export default function App() {
                             <div className="relative z-10 flex flex-col items-center justify-center leading-none pointer-events-none">
                               <img
                                 src={sandwichSvg}
-                                alt="Sándwich robado"
+                                alt={t.stolenSandwichAlt}
                                 className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
                               />
                               <span className="text-[6.5px] font-black uppercase tracking-wider bg-[#181A20] text-white px-1 py-px rounded-xs -mt-0.5">
-                                CRIMEN
+                                {t.crimeBadge}
                               </span>
                             </div>
                           )}
@@ -954,7 +988,7 @@ export default function App() {
                             <div className="relative z-10 flex flex-col items-center justify-center leading-none pointer-events-none">
                               <img
                                 src={placedSuspect.emoji}
-                                alt={placedSuspect.name}
+                                alt={lang === 'en' ? placedSuspect.nameEn : placedSuspect.name}
                                 className="w-6 h-6 sm:w-7 sm:h-7 object-contain"
                               />
                               <span
@@ -1019,7 +1053,7 @@ export default function App() {
               {isDailyMode ? (
                 <div className="flex items-center gap-1.5 text-[11px]">
                   <Clock className={`w-3.5 h-3.5 ${subTextClass}`} />
-                  <span className={subTextClass}>Próximo en</span>
+                  <span className={subTextClass}>{t.nextIn}</span>
                   <span className="font-mono font-black tracking-wider">
                     {countdown}
                   </span>
@@ -1028,7 +1062,7 @@ export default function App() {
                 <div className="flex items-center gap-1.5 text-[11px]">
                   <Check className="w-3.5 h-3.5 text-emerald-500" />
                   <span className={`font-bold ${subTextClass}`}>
-                    ¡Caso #{level.caseNumber} resuelto!
+                    {t.caseSolvedBanner(level.caseNumber)}
                   </span>
                 </div>
               )}
@@ -1039,7 +1073,7 @@ export default function App() {
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-black flex items-center gap-1 transition cursor-pointer ${primaryActionBtnClass}`}
               >
                 <Shuffle className="w-3 h-3" />
-                <span>Otro robo</span>
+                <span>{t.anotherHeist}</span>
               </button>
             </div>
           )}
@@ -1050,7 +1084,7 @@ export default function App() {
           <div className="flex items-center min-w-0">
             {hasClueMismatch ? (
               <span className="text-[clamp(0.85rem,3.7vw,0.98rem)] font-black leading-tight text-rose-500 truncate">
-                ¡Alguna coartada no cuadra!
+                {t.alibiMismatch}
               </span>
             ) : gameWon ? (
               <span
@@ -1058,7 +1092,7 @@ export default function App() {
                   isDark ? 'text-emerald-400' : 'text-emerald-600'
                 }`}
               >
-                Caso resuelto
+                {t.caseSolvedStatus}
               </span>
             ) : (
               <span
@@ -1066,20 +1100,20 @@ export default function App() {
                   isDark ? 'text-neutral-300' : 'text-neutral-700'
                 }`}
               >
-                Quien está en{' '}
+                {t.rulePrefix}{' '}
                 <strong
                   className={`font-black ${
                     isDark ? 'text-white' : 'text-neutral-950'
                   }`}
                 >
-                  CRIMEN
+                  {t.ruleCrime}
                 </strong>{' '}
                 <strong
                   className={`font-black ${
                     isDark ? 'text-white' : 'text-neutral-950'
                   }`}
                 >
-                  miente
+                  {t.ruleSuffix}
                 </strong>
               </span>
             )}
@@ -1089,7 +1123,7 @@ export default function App() {
             type="button"
             onClick={handleClearBoard}
             disabled={gameWon || !hasPlacements}
-            title="Limpiar mesa"
+            title={t.clearBoard}
             className={`h-7 px-2.5 py-0.5 rounded-full border flex items-center justify-center gap-1 text-[11px] font-bold transition shrink-0 ${
               gameWon || !hasPlacements
                 ? isDark
@@ -1101,7 +1135,7 @@ export default function App() {
             }`}
           >
             <RotateCcw className="w-3 h-3" />
-            <span>Limpiar mesa</span>
+            <span>{t.clearBoard}</span>
           </button>
         </div>
 
@@ -1112,6 +1146,7 @@ export default function App() {
             const isPlaced = suspectPositions[s.id] !== undefined;
             const evalRes = validation.clueResults ? validation.clueResults[s.id] : null;
             const isInconsistent = Boolean(evalRes && !evalRes.isConsistent);
+            const displayName = lang === 'en' ? s.nameEn : s.name;
 
             const baseBgAndText = isSelected
               ? isDark
@@ -1169,9 +1204,7 @@ export default function App() {
                 className={`relative h-full rounded-xl font-black transition-all flex flex-col items-center justify-center cursor-pointer ${baseBgAndText} ${borderClass}`}
               >
                 <span
-                  title={
-                    isPlaced ? 'Colocado en la mesa' : 'Sin colocar en la mesa'
-                  }
+                  title={isPlaced ? t.placedTooltip : t.unplacedTooltip}
                   className={`absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-[1.5px] transition-colors duration-150 ${circleStyle}`}
                 />
 
@@ -1179,7 +1212,7 @@ export default function App() {
                   <span className="text-sm font-black">{s.code}</span>
                   <img
                     src={s.emoji}
-                    alt={s.name}
+                    alt={displayName}
                     className="w-5 h-5 object-contain"
                   />
                 </div>
@@ -1194,7 +1227,7 @@ export default function App() {
                       : 'text-neutral-500'
                   }`}
                 >
-                  {s.name}
+                  {displayName}
                 </span>
               </button>
             );
@@ -1216,7 +1249,7 @@ export default function App() {
               >
                 <img
                   src={currentSuspect.emoji}
-                  alt={currentSuspect.name}
+                  alt={currentSuspectDisplayName}
                   className="w-5 h-5 object-contain"
                 />
               </span>
@@ -1225,7 +1258,7 @@ export default function App() {
                   isDark ? 'text-white' : 'text-neutral-900'
                 }`}
               >
-                {currentSuspect.name}
+                {currentSuspectDisplayName}
               </span>
               <span
                 className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${
@@ -1234,7 +1267,7 @@ export default function App() {
                     : 'bg-neutral-100 text-neutral-700 border-neutral-300'
                 }`}
               >
-                {currentSuspect.isCarnivore ? 'Mujer' : 'Hombre'}
+                {currentSuspect.isCarnivore ? t.woman : t.man}
               </span>
             </div>
 
@@ -1270,7 +1303,7 @@ export default function App() {
                   <Check className="w-2.5 h-2.5 stroke-[3]" />
                 )}
               </span>
-              <span>Mentiroso</span>
+              <span>{t.liarCheck}</span>
             </button>
           </div>
 
@@ -1280,7 +1313,7 @@ export default function App() {
                 isDark ? 'text-neutral-200' : 'text-neutral-700'
               }`}
             >
-              {renderFormattedClue(currentClue?.text, isDark)}
+              {renderFormattedClue(currentClueText, isDark)}
             </p>
           </div>
         </div>
@@ -1291,6 +1324,7 @@ export default function App() {
         isOpen={isHelpModalOpen}
         onClose={() => setIsHelpModalOpen(false)}
         isDark={isDark}
+        t={t}
         subTextClass={subTextClass}
         primaryActionBtnClass={primaryActionBtnClass}
       />
@@ -1308,6 +1342,9 @@ export default function App() {
         }}
         themeMode={themeMode}
         setThemeMode={setThemeMode}
+        lang={lang}
+        setLang={setLang}
+        t={t}
         subTextClass={subTextClass}
       />
 
@@ -1315,6 +1352,8 @@ export default function App() {
         isOpen={isShareModalOpen && gameWon}
         onClose={() => setIsShareModalOpen(false)}
         isDark={isDark}
+        lang={lang}
+        t={t}
         level={level}
         isDailyMode={isDailyMode}
         modalTab={modalTab}
