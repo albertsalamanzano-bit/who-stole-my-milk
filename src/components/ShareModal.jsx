@@ -16,6 +16,8 @@ export default function ShareModal({
   isOpen,
   onClose,
   isDark,
+  lang,
+  t,
   level,
   isDailyMode,
   modalTab,
@@ -45,6 +47,11 @@ export default function ShareModal({
 }) {
   if (!isOpen) return null;
 
+  const thief = SUSPECTS[level.thiefId];
+  const thiefName = lang === 'en' ? thief.nameEn : thief.name;
+  const thiefConfession =
+    lang === 'en' ? thief.confessionEn : thief.confession;
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fadeIn"
@@ -71,17 +78,17 @@ export default function ShareModal({
               }`}
             >
               <img
-                src={SUSPECTS[level.thiefId].emoji}
-                alt={SUSPECTS[level.thiefId].name}
+                src={thief.emoji}
+                alt={thiefName}
                 className="w-full h-full object-contain"
               />
             </div>
             <div>
               <h2 className="text-base font-black leading-tight">
-                ¡Pillas a {SUSPECTS[level.thiefId].name} masticando!
+                {t.caughtChewing(thiefName)}
               </h2>
               <p className={`font-sans text-xs mt-0.5 italic ${subTextClass}`}>
-                {cleanStatementText(SUSPECTS[level.thiefId].confession)}
+                {cleanStatementText(thiefConfession)}
               </p>
             </div>
           </div>
@@ -99,7 +106,7 @@ export default function ShareModal({
           </button>
         </div>
 
-        {/* Selector de Pestañas: 1º Informe RR.HH. | 2º Ranking */}
+        {/* Selector de Pestañas */}
         {isDailyMode && (
           <div
             className={`grid grid-cols-2 p-1 rounded-xl border shrink-0 ${
@@ -119,7 +126,7 @@ export default function ShareModal({
                   : subTextClass
               }`}
             >
-              Informe RR.HH.
+              {t.hrReportTab}
             </button>
             <button
               type="button"
@@ -135,7 +142,7 @@ export default function ShareModal({
               <span className="w-4 h-4 rounded bg-amber-400 flex items-center justify-center shrink-0">
                 <Trophy className="w-2.5 h-2.5 text-white" />
               </span>
-              <span>Ranking</span>
+              <span>{t.rankingTab}</span>
             </button>
           </div>
         )}
@@ -152,7 +159,7 @@ export default function ShareModal({
                 }`}
               >
                 <span className={`font-bold ${subTextClass}`}>
-                  Próximo robo diario:
+                  {t.nextDailyHeist}
                 </span>
                 <span className="font-mono font-black text-sm tracking-wider">
                   {countdown}
@@ -173,7 +180,7 @@ export default function ShareModal({
                   alt="Sándwich"
                   className="w-4 h-4 object-contain shrink-0"
                 />
-                <span className="font-bold">Informe oficial</span>
+                <span className="font-bold">{t.officialReport}</span>
               </div>
               {shareText}
             </div>
@@ -185,7 +192,7 @@ export default function ShareModal({
                 className={`w-full py-2.5 px-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm ${primaryActionBtnClass}`}
               >
                 <Share2 className="w-4 h-4" />
-                <span>Presumir en el grupo</span>
+                <span>{t.bragButton}</span>
               </button>
 
               <div className="grid grid-cols-2 gap-2">
@@ -201,12 +208,12 @@ export default function ShareModal({
                   {copiedShare ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-500" />
-                      <span>¡Copiado!</span>
+                      <span>{t.copiedButton}</span>
                     </>
                   ) : (
                     <>
                       <Copy className="w-3.5 h-3.5" />
-                      <span>Copiar informe</span>
+                      <span>{t.copyReportButton}</span>
                     </>
                   )}
                 </button>
@@ -221,14 +228,14 @@ export default function ShareModal({
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  <span>Otro robo</span>
+                  <span>{t.anotherHeist}</span>
                 </button>
               </div>
             </div>
           </>
         )}
 
-        {/* PESTAÑA 2: RANKING (REQUIERE REGISTRAR TIEMPO CON APODO PARA VERLO) */}
+        {/* PESTAÑA 2: RANKING */}
         {isDailyMode && modalTab === 'leaderboard' && (
           <div className="flex flex-col gap-2.5 min-h-0 flex-1 overflow-hidden">
             {!scoreSubmitted ? (
@@ -242,15 +249,13 @@ export default function ShareModal({
               >
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-black">
-                      Registra tu tiempo para ver el ranking
-                    </span>
+                    <span className="font-black">{t.registerTimeTitle}</span>
                     <span className="font-mono font-black text-emerald-500">
                       {formatTime(seconds)}
                     </span>
                   </div>
                   <p className={`text-[11px] leading-snug ${subTextClass}`}>
-                    Introduce tu apodo para guardar tu marca de hoy y desbloquear la clasificación.
+                    {t.registerTimeDesc}
                   </p>
                 </div>
 
@@ -259,7 +264,7 @@ export default function ShareModal({
                     type="text"
                     required
                     maxLength={18}
-                    placeholder="Tu apodo"
+                    placeholder={t.nicknamePlaceholder}
                     value={playerName}
                     onChange={(e) => setPlayerName(e.target.value)}
                     className={`flex-1 min-w-0 px-3 py-2 rounded-xl border text-xs font-bold focus:outline-none ${
@@ -275,7 +280,7 @@ export default function ShareModal({
                   >
                     <Send className="w-3.5 h-3.5 shrink-0" />
                     <span>
-                      {isSubmittingScore ? '...' : 'Ver ranking'}
+                      {isSubmittingScore ? '...' : t.viewRankingBtn}
                     </span>
                   </button>
                 </div>
@@ -291,8 +296,8 @@ export default function ShareModal({
                 <div className="flex items-center justify-between gap-2 shrink-0">
                   <span className={`text-[11px] font-bold ${subTextClass}`}>
                     {leaderboardDay === 'today'
-                      ? `Hoy · ${dailyConfig.formattedDate}`
-                      : `Ayer · ${yesterdayConfig.formattedDate}`}
+                      ? `${t.todayLabel} · ${dailyConfig.formattedDate}`
+                      : `${t.yesterdayLabel} · ${yesterdayConfig.formattedDate}`}
                   </span>
 
                   <button
@@ -311,8 +316,8 @@ export default function ShareModal({
                     <History className="w-3.5 h-3.5 text-amber-400" />
                     <span>
                       {leaderboardDay === 'today'
-                        ? 'Ver ranking de ayer'
-                        : 'Volver al ranking de hoy'}
+                        ? t.seeYesterdayRanking
+                        : t.backToTodayRanking}
                     </span>
                   </button>
                 </div>
@@ -320,17 +325,17 @@ export default function ShareModal({
                 <div className="flex-1 min-h-0 overflow-y-auto pr-1 flex flex-col gap-1.5">
                   {!supabase ? (
                     <div className={`py-6 text-center text-xs ${subTextClass}`}>
-                      Falta configurar VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en Vercel.
+                      {t.missingSupabase}
                     </div>
                   ) : isLoadingBoard ? (
                     <div className={`py-8 text-center text-xs ${subTextClass}`}>
-                      Cargando ranking...
+                      {t.loadingRanking}
                     </div>
                   ) : leaderboard.length === 0 ? (
                     <div className={`py-8 text-center text-xs ${subTextClass}`}>
                       {leaderboardDay === 'today'
-                        ? 'Nadie se ha apuntado hoy todavía. ¡Sé el primero!'
-                        : 'Ayer no quedaron tiempos registrados en el ranking.'}
+                        ? t.emptyTodayRanking
+                        : t.emptyYesterdayRanking}
                     </div>
                   ) : (
                     leaderboard.map((entry, idx) => {
@@ -372,7 +377,7 @@ export default function ShareModal({
                             </span>
                             {isCurrentUser && (
                               <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-400 text-neutral-950 shrink-0 leading-none">
-                                TÚ
+                                {t.youBadge}
                               </span>
                             )}
                           </div>
