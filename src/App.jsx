@@ -229,7 +229,7 @@ const generatePermutations = (arr) => {
 
 const PERMUTATIONS_120 = generatePermutations([0, 1, 2, 3, 4]);
 
-// Función auxiliar para resaltar palabras clave (**...**), colorear despachos, mostrar SVG de sospechosos entre paréntesis y el SVG del sándwich
+// Función auxiliar para resaltar palabras clave (**...**), colorear despachos y mostrar entre paréntesis el SVG de sospechosos y sándwich
 function renderFormattedClue(text, isDark) {
   if (!text) return null;
   const cleaned = cleanStatementText(text);
@@ -282,16 +282,18 @@ function renderFormattedClue(text, isDark) {
         return (
           <strong
             key={idx}
-            className={`font-bold whitespace-nowrap ${
-              isDark ? 'text-white' : 'text-neutral-950'
-            }`}
+            className={`font-bold ${isDark ? 'text-white' : 'text-neutral-950'}`}
           >
-            <span>{content}</span>
-            <img
-              src={sandwichSvg}
-              alt="sándwich"
-              className="w-3.5 h-3.5 object-contain inline-block align-middle -translate-y-[1.5px] ml-1"
-            />
+            {content}{' '}
+            <span className="whitespace-nowrap font-normal">
+              (
+              <img
+                src={sandwichSvg}
+                alt="sándwich"
+                className="w-3.5 h-3.5 object-contain inline-block align-middle -translate-y-[1.5px] mx-0.5"
+              />
+              )
+            </span>
           </strong>
         );
       }
@@ -1744,7 +1746,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'self_vase_touch',
     category: 'Sandwich',
     weight: 15,
-    text: `Estaba en una casilla que **rodea al sándwich** (por lado o diagonal)`,
+    text: `Estaba en una casilla que **rodea** al **sándwich** (por lado o diagonal)`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) <= 1 &&
       Math.abs(st.suspectCol[speakerId] - vasePos.c) <= 1
@@ -1886,7 +1888,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'board_vase_ring',
     category: 'Sandwich',
     weight: 14,
-    text: `Había **alguien** en las casillas que **rodean al sándwich** (lado o diagonal)`,
+    text: `Había **alguien** en las casillas que **rodean** al **sándwich** (lado o diagonal)`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) =>
@@ -1901,7 +1903,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     family: 'board_vase_ring',
     category: 'Sandwich',
     weight: 15,
-    text: `No había **nadie** en las casillas que **rodean al sándwich** (lado o diagonal)`,
+    text: `No había **nadie** en las casillas que **rodean** al **sándwich** (lado o diagonal)`,
     evalFn: (st) =>
       !SUSPECTS.some(
         (s) =>
@@ -1932,7 +1934,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       targetId: otherId,
       category: 'Sandwich',
       weight: 15,
-      text: `Vi a **${SUSPECTS[otherId].name}** en una casilla que **rodea al sándwich**`,
+      text: `Vi a **${SUSPECTS[otherId].name}** en una casilla que **rodea** al **sándwich**`,
       evalFn: (st) =>
         Math.abs(st.suspectRow[otherId] - vasePos.r) <= 1 &&
         Math.abs(st.suspectCol[otherId] - vasePos.c) <= 1
@@ -2107,7 +2109,7 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
 
   const activeCatSet = new Set(categoriesToUse);
 
-  while (mapAttempts < 500) {
+  while (mapAttempts < 600) {
     mapAttempts++;
 
     const solGeoIdx = Math.floor(rng() * BASE_GEOMETRIES.length);
@@ -2120,9 +2122,9 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
     const survivingGeos = getSurvivingGeometries(grid, vasePos);
     const K = survivingGeos.length;
 
-    // Reto Diario fijo en K = 3 (con fallback tras 350 intentos); Aleatorio entre 2 y 6
+    // Reto Diario en K = 3; Aleatorio entre 2 y 6
     if (isDaily) {
-      if (mapAttempts < 350 ? K !== 3 : K < 2 || K > 4) continue;
+      if (K !== 3) continue;
     } else {
       if (K < 2 || K > 6) continue;
     }
@@ -2206,7 +2208,7 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
         }
       }
 
-      // GARANTÍA 1: Analista (sId === 0) necesita al menos una pista 'anchor' afirmativa (isStrongAnchor)
+      // Analista (sId === 0) necesita al menos una pista 'anchor' afirmativa (isStrongAnchor)
       if (
         filtered.length === 0 ||
         (sId === 0 && !filtered.some((c) => c.role === 'anchor' && c.isStrongAnchor))
@@ -2226,10 +2228,52 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
 
     if (poolEmpty) continue;
 
+    // Verificación rápida: comprobar que el mapa tiene candidatos para los 4 roles antes de iterar
+    const hasSecondAnchor = [1, 2, 3, 4].some((id) =>
+      validPools[id].some((c) => c.role === 'anchor')
+    );
+    const hasBoard = [1, 2, 3, 4].some((id) =>
+      validPools[id].some((c) => c.role === 'board')
+    );
+    const hasRelational = [1, 2, 3, 4].some((id) =>
+      validPools[id].some((c) => c.role === 'relational')
+    );
+    const hasParanoia = [1, 2, 3, 4].some((id) =>
+      validPools[id].some((c) => c.role === 'paranoia')
+    );
+
+    if (!hasSecondAnchor || !hasBoard || !hasRelational || !hasParanoia) {
+      continue;
+    }
+
     let chosenClues = null;
 
-    for (let searchTry = 0; searchTry < 110; searchTry++) {
-      const order = shuffle([0, 1, 2, 3, 4], rng);
+    // FASE ÚNICA ESTRICTA: 2 anchor + 1 board + 1 relational (apuntando a un anchor) + 1 paranoia
+    for (let searchTry = 0; searchTry < 120; searchTry++) {
+      const otherSuspects = shuffle([1, 2, 3, 4], rng);
+      const secondAnchorId = otherSuspects[0];
+      const boardId = otherSuspects[1];
+      const relationalId = otherSuspects[2];
+      const paranoiaId = otherSuspects[3];
+
+      const anchorSuspects = new Set([0, secondAnchorId]);
+
+      const roleBySuspect = {
+        0: 'anchor',
+        [secondAnchorId]: 'anchor',
+        [boardId]: 'board',
+        [relationalId]: 'relational',
+        [paranoiaId]: 'paranoia'
+      };
+
+      // El primer paso evaluado es una de las dos anclas, seguido del resto en orden aleatorio
+      const firstId = rng() < 0.5 ? 0 : secondAnchorId;
+      const restIds = shuffle(
+        [0, 1, 2, 3, 4].filter((id) => id !== firstId),
+        rng
+      );
+      const order = [firstId, ...restIds];
+
       let survivors = Array.from({ length: N }, (_, i) => i);
       const pickBySuspect = new Array(5);
       const usedCategories = new Set();
@@ -2237,13 +2281,9 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
       const usedClueIds = new Set();
       const usedFamilies = new Set();
 
-      let anchorCount = 0;
-      let boardCount = 0;
-      let paranoiaCount = 0;
-      let relationalCount = 0;
-
       for (let step = 0; step < 5; step++) {
         const sId = order[step];
+        const requiredRole = roleBySuspect[sId];
         const pool = validPools[sId];
         let bestClue = null;
         let bestScore = Infinity;
@@ -2252,49 +2292,24 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
         for (let k = 0; k < sampleLimit; k++) {
           const cand = pool[k];
 
+          // Rol estricto asignado a este sospechoso (2 anchor + 1 board + 1 relational + 1 paranoia)
+          if (cand.role !== requiredRole) continue;
+
+          // Analista (sId === 0) siempre lleva un ancla afirmativa (isStrongAnchor)
+          if (sId === 0 && !cand.isStrongAnchor) continue;
+
+          // El puente (relational) debe apuntar obligatoriamente a uno de los 2 sospechosos con 'anchor'
+          if (
+            requiredRole === 'relational' &&
+            !anchorSuspects.has(cand.targetId)
+          ) {
+            continue;
+          }
+
           if (usedClueIds.has(cand.id)) continue;
 
-          // Fuerza un reparto equilibrado 3-2 entre las 2 categorías (ninguna supera 3 pistas)
+          // Fuerza un reparto equilibrado 3-2 entre las 2 categorías activas
           if ((categoryCounts[cand.category] || 0) >= 3) continue;
-
-          // GARANTÍA 2: Analista (sId === 0) SIEMPRE lleva pista 'anchor' afirmativa (isStrongAnchor)
-          if (sId === 0 && (cand.role !== 'anchor' || !cand.isStrongAnchor)) continue;
-
-          // El primer paso evaluado también debe ser un ancla afirmativa o pista de tablero
-          if (
-            step === 0 &&
-            !(cand.role === 'anchor' && cand.isStrongAnchor) &&
-            cand.role !== 'board'
-          ) {
-            continue;
-          }
-
-          // Máximo 3 pistas 'anchor' en total
-          if (cand.role === 'anchor' && anchorCount >= 3) continue;
-
-          // Máximo 1 pista de 'paranoia' por partida
-          if (cand.role === 'paranoia' && paranoiaCount >= 1) continue;
-
-          // Evitar el "efecto de los 3 ciegos": máximo 2 pistas relacionales/paranoia en total
-          if (
-            (cand.role === 'relational' || cand.role === 'paranoia') &&
-            relationalCount + paranoiaCount >= 2
-          ) {
-            continue;
-          }
-
-          // Evitar círculos ciegos (A habla de B y B habla de A) y asegurar cadena deductiva
-          if (cand.targetId !== undefined) {
-            const targetClue = pickBySuspect[cand.targetId];
-            if (targetClue && targetClue.targetId === sId) continue;
-            if (
-              cand.role === 'relational' &&
-              targetClue &&
-              targetClue.role !== 'anchor'
-            ) {
-              continue;
-            }
-          }
 
           let nextCount = 0;
           for (let idx = 0; idx < survivors.length; idx++) {
@@ -2314,11 +2329,6 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
           if (cand.family && usedFamilies.has(cand.family)) {
             score += Math.max(25, survivors.length * 0.35);
           }
-          if (cand.role === 'anchor' && anchorCount < 2) {
-            score -= 10;
-          } else if (cand.role === 'board' && anchorCount + boardCount < 3) {
-            score -= 6;
-          }
 
           const jitter = Math.max(4, survivors.length * 0.14);
           score += rng() * jitter;
@@ -2337,31 +2347,19 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
         usedClueIds.add(bestClue.id);
         if (bestClue.family) usedFamilies.add(bestClue.family);
 
-        if (bestClue.role === 'anchor') anchorCount++;
-        else if (bestClue.role === 'board') boardCount++;
-        else if (bestClue.role === 'paranoia') paranoiaCount++;
-        else relationalCount++;
-
         survivors = survivors.filter((idx) => bestClue.compatSet.has(idx));
       }
 
       if (
         !pickBySuspect.includes(undefined) &&
         survivors.length === 1 &&
-        survivors[0] === trueStateIdx
+        survivors[0] === trueStateIdx &&
+        usedCategories.size === 2 &&
+        pickBySuspect[0].role === 'anchor' &&
+        pickBySuspect[0].isStrongAnchor
       ) {
-        // GARANTÍA 3: Las 2 categorías elegidas están presentes (con reparto 3-2) y Analista lleva un ancla afirmativa
-        if (
-          usedCategories.size === 2 &&
-          pickBySuspect[0].role === 'anchor' &&
-          pickBySuspect[0].isStrongAnchor &&
-          anchorCount >= 2 &&
-          anchorCount <= 3 &&
-          anchorCount + boardCount >= 3
-        ) {
-          chosenClues = pickBySuspect;
-          break;
-        }
+        chosenClues = pickBySuspect;
+        break;
       }
     }
 
