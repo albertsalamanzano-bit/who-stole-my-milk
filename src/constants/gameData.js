@@ -28,6 +28,7 @@ export const ROOMS = [
   {
     id: 0,
     name: 'Azul',
+    nameEn: 'Blue',
     bgHex: '#D8E8FC',
     bgActive: '#B8D6FA',
     borderHex: '#2563EB'
@@ -35,6 +36,7 @@ export const ROOMS = [
   {
     id: 1,
     name: 'Rojo',
+    nameEn: 'Red',
     bgHex: '#FCDEDE',
     bgActive: '#F9BCTC',
     borderHex: '#DC2626'
@@ -42,6 +44,7 @@ export const ROOMS = [
   {
     id: 2,
     name: 'Verde',
+    nameEn: 'Green',
     bgHex: '#CCF5E2',
     bgActive: '#9EE8C8',
     borderHex: '#059669'
@@ -49,6 +52,7 @@ export const ROOMS = [
   {
     id: 3,
     name: 'Amarillo',
+    nameEn: 'Yellow',
     bgHex: '#FCF4BB',
     bgActive: '#F9E678',
     borderHex: '#CA8A04'
@@ -56,6 +60,7 @@ export const ROOMS = [
   {
     id: 4,
     name: 'Morado',
+    nameEn: 'Purple',
     bgHex: '#E8E2FC',
     bgActive: '#D2C5FA',
     borderHex: '#7C3AED'
@@ -64,22 +69,27 @@ export const ROOMS = [
 
 export const ROOM_TEXT_STYLES = {
   azul: {
+    keywords: ['azul', 'blue'],
     light: 'text-[#3B76C4]',
     dark: 'text-[#B8D8FA]'
   },
   rojo: {
+    keywords: ['rojo', 'red'],
     light: 'text-[#D64C4C]',
     dark: 'text-[#F9B4B4]'
   },
   verde: {
+    keywords: ['verde', 'green'],
     light: 'text-[#1E9E68]',
     dark: 'text-[#9CECC8]'
   },
   amarillo: {
+    keywords: ['amarillo', 'yellow'],
     light: 'text-[#B89214]',
     dark: 'text-[#F7EA92]'
   },
   morado: {
+    keywords: ['morado', 'purple'],
     light: 'text-[#7652D9]',
     dark: 'text-[#D5C7FA]'
   }
@@ -90,46 +100,56 @@ export const SUSPECTS = [
     id: 0,
     code: 'A',
     name: 'Analista',
+    nameEn: 'Analyst',
     emoji: consultorSvg,
     diet: 'Mujer',
     isCarnivore: true,
-    confession: 'Mis gráficas predecían que ese sándwich iba a caducar'
+    confession: 'Mis gráficas predecían que ese sándwich iba a caducar',
+    confessionEn: 'My charts predicted that sandwich was about to expire'
   },
   {
     id: 1,
     code: 'B',
     name: 'Becaria',
+    nameEn: 'Beginner',
     emoji: becarioSvg,
     diet: 'Mujer',
     isCarnivore: true,
-    confession: '¡Perdón! Pensé que era parte del catering de bienvenida'
+    confession: '¡Perdón! Pensé que era parte del catering de bienvenida',
+    confessionEn: 'Sorry! I thought it was part of the welcome catering'
   },
   {
     id: 2,
     code: 'C',
     name: 'Contable',
+    nameEn: 'Clerk',
     emoji: auditorSvg,
     diet: 'Hombre',
     isCarnivore: false,
-    confession: 'Solo apliqué una retención del 100% sobre tu almuerzo'
+    confession: 'Solo apliqué una retención del 100% sobre tu almuerzo',
+    confessionEn: 'I simply applied a 100% withholding tax on your lunch'
   },
   {
     id: 3,
     code: 'D',
     name: 'Director',
+    nameEn: 'Director',
     emoji: directorSvg,
     diet: 'Hombre',
     isCarnivore: false,
-    confession: 'Como jefe, consideré oportuno absorber tus recursos'
+    confession: 'Como jefe, consideré oportuno absorber tus recursos',
+    confessionEn: 'As boss, I deemed it appropriate to absorb your resources'
   },
   {
     id: 4,
     code: 'E',
     name: 'Enchufado',
+    nameEn: 'Employee',
     emoji: empleadoSvg,
     diet: 'Hombre',
     isCarnivore: false,
-    confession: 'Necesitaba carbohidratos urgentes para terminar el Excel'
+    confession: 'Necesitaba carbohidratos urgentes para terminar el Excel',
+    confessionEn: 'I needed urgent carbs to finish the Excel spreadsheet'
   }
 ];
 
