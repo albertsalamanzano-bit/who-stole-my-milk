@@ -5,6 +5,7 @@ export default function HelpModal({
   isOpen,
   onClose,
   isDark,
+  t,
   subTextClass,
   primaryActionBtnClass
 }) {
@@ -38,10 +39,10 @@ export default function HelpModal({
             </div>
             <div>
               <h2 className="text-base font-black leading-tight">
-                Protocolo Anti-Robos
+                {t.helpTitle}
               </h2>
               <p className={`text-xs mt-0.5 ${subTextClass}`}>
-                Alguien ha asaltado tu tupper en la oficina
+                {t.helpSubtitle}
               </p>
             </div>
           </div>
@@ -67,11 +68,10 @@ export default function HelpModal({
             }`}
           >
             <span className="font-black block mb-0.5 text-current">
-              1. Distancia social de oficina
+              {t.helpRule1Title}
             </span>
-            Coloca a los 5 sospechosos en el plano: solo cabe{' '}
-            <strong>uno por fila, uno por columna y uno por despacho de color</strong>.
-            Además, no se aguantan: no pueden tocarse ni en diagonal.
+            {t.helpRule1Body1} <strong>{t.helpRule1Bold}</strong>.{' '}
+            {t.helpRule1Body2}
           </div>
 
           <div
@@ -82,11 +82,10 @@ export default function HelpModal({
             }`}
           >
             <span className="font-black block mb-0.5 text-current">
-              2. Quien está en CRIMEN miente
+              {t.helpRule2Title}
             </span>
-            Los 4 inocentes dicen siempre la verdad. Quien esté dentro del{' '}
-            <strong>mismo despacho de color que el sándwich (CRIMEN)</strong> es el
-            ladrón y su coartada es <strong>falsa</strong>.
+            {t.helpRule2Body1} <strong>{t.helpRule2Bold1}</strong>{' '}
+            {t.helpRule2Body2} <strong>{t.helpRule2Bold2}</strong>.
           </div>
 
           <div
@@ -97,10 +96,10 @@ export default function HelpModal({
             }`}
           >
             <span className="font-black block mb-0.5 text-current">
-              3. Cotilleo en las puertas
+              {t.helpRule3Title}
             </span>
-            Estar junto a una puerta significa ocupar cualquiera de las{' '}
-            <strong>dos casillas</strong> que conecta ese círculo numerado.
+            {t.helpRule3Body1} <strong>{t.helpRule3Bold}</strong>{' '}
+            {t.helpRule3Body2}
           </div>
         </div>
 
@@ -109,7 +108,7 @@ export default function HelpModal({
           onClick={onClose}
           className={`w-full py-2.5 px-4 rounded-xl font-black text-xs transition cursor-pointer ${primaryActionBtnClass}`}
         >
-          ¡A interrogar!
+          {t.helpCta}
         </button>
       </div>
     </div>
