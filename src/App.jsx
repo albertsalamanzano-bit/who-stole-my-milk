@@ -735,7 +735,7 @@ function getClueRole(clue) {
   return 'relational';
 }
 
-// Genera exactamente 32 pistas por cada una de las 6 categorías (192 pistas por sospechoso)
+// Genera pistas compensadas por categoría (12 anchor, 6-10 board, 8 relational, 6 paranoia)
 function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, doors, topo) {
   const clues = [];
   const speaker = SUSPECTS[speakerId];
@@ -752,7 +752,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   } = topo;
 
   // ==========================================================================
-  // 1. UMBRAL / PUERTAS (32 pistas: 12 anchor + 10 board + 8 relational + 2 paranoia)
+  // 1. UMBRAL / PUERTAS (32 pistas: 12 anchor + 6 board + 8 relational + 6 paranoia)
   // ==========================================================================
   for (let dNum = 1; dNum <= 4; dNum++) {
     clues.push({
@@ -775,26 +775,6 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       weight: 14,
       text: `En los tabiques de mi despacho está la **puerta ${dNum}**`,
       evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].includes(dNum)
-    });
-
-    clues.push({
-      id: `nobody_door_${dNum}`,
-      role: 'board',
-      family: `door_status_${dNum}`,
-      category: 'Umbral',
-      weight: 12,
-      text: `Por la **puerta ${dNum}** no había **nadie** vigilando`,
-      evalFn: (st) => st.doorOccupant[dNum] === -1
-    });
-
-    clues.push({
-      id: `someone_door_${dNum}`,
-      role: 'board',
-      family: `door_status_${dNum}`,
-      category: 'Umbral',
-      weight: 12,
-      text: `Había **alguien** cotilleando junto a la **puerta ${dNum}**`,
-      evalFn: (st) => st.doorOccupant[dNum] !== -1
     });
   }
 
@@ -821,6 +801,17 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   clues.push({
+    id: `self_no_door`,
+    role: 'anchor',
+    isStrongAnchor: false,
+    family: 'self_door_presence',
+    category: 'Umbral',
+    weight: 13,
+    text: `Me coloqué **lejos de las 4 puertas**, sin vigilar ninguna`,
+    evalFn: (st) => st.suspectDoors[speakerId].length === 0
+  });
+
+  clues.push({
     id: `room_dead_end`,
     role: 'anchor',
     isStrongAnchor: true,
@@ -831,17 +822,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].length === 1
   });
 
-  clues.push({
-    id: `room_multi_doors`,
-    role: 'anchor',
-    isStrongAnchor: true,
-    family: 'room_door_count',
-    category: 'Umbral',
-    weight: 13,
-    text: `Mi despacho parece un pasillo, tiene **al menos 2 puertas** numeradas`,
-    evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].length >= 2
-  });
-
+  // Board (6)
   clues.push({
     id: `even_doors_empty`,
     role: 'board',
@@ -862,18 +843,53 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     evalFn: (st) => st.doorOccupant[1] === -1 && st.doorOccupant[3] === -1
   });
 
+  clues.push({
+    id: `woman_at_some_door`,
+    role: 'board',
+    family: 'global_doors_gender',
+    category: 'Umbral',
+    weight: 14,
+    text: `Había **al menos una mujer** cotilleando junto a una **puerta numerada**`,
+    evalFn: (st) =>
+      SUSPECTS.some((s) => s.isCarnivore && st.suspectDoors[s.id].length > 0)
+  });
+
+  clues.push({
+    id: `no_woman_at_doors`,
+    role: 'board',
+    family: 'global_doors_gender',
+    category: 'Umbral',
+    weight: 14,
+    text: `**Ninguna mujer** estaba vigilando las **puertas numeradas**`,
+    evalFn: (st) =>
+      SUSPECTS.every((s) => !s.isCarnivore || st.suspectDoors[s.id].length === 0)
+  });
+
+  clues.push({
+    id: `at_least_two_doors_occupied`,
+    role: 'board',
+    family: 'global_doors_count',
+    category: 'Umbral',
+    weight: 14,
+    text: `Había **al menos 2 puertas numeradas** vigiladas por alguien`,
+    evalFn: (st) =>
+      [1, 2, 3, 4].filter((dNum) => st.doorOccupant[dNum] !== -1).length >= 2
+  });
+
+  clues.push({
+    id: `at_most_one_door_occupied`,
+    role: 'board',
+    family: 'global_doors_count',
+    category: 'Umbral',
+    weight: 14,
+    text: `Como mucho había **1 puerta numerada** vigilada en toda la oficina`,
+    evalFn: (st) =>
+      [1, 2, 3, 4].filter((dNum) => st.doorOccupant[dNum] !== -1).length <= 1
+  });
+
+  // Relational (8: 2 puentes reales x 4 sospechosos)
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
-    clues.push({
-      id: `other_at_door_${otherId}`,
-      role: 'relational',
-      family: 'rel_other_door',
-      targetId: otherId,
-      category: 'Umbral',
-      weight: 14,
-      text: `Vi a **${SUSPECTS[otherId].name}** cotilleando junto a una **puerta numerada**`,
-      evalFn: (st) => st.suspectDoors[otherId].length > 0
-    });
 
     clues.push({
       id: `conn_any_door_${otherId}`,
@@ -892,8 +908,22 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
         });
       }
     });
+
+    clues.push({
+      id: `more_doors_than_${otherId}`,
+      role: 'relational',
+      family: 'rel_door_count',
+      targetId: otherId,
+      category: 'Umbral',
+      weight: 14,
+      text: `En mi despacho hay **más puertas numeradas** que en el de **${SUSPECTS[otherId].name}**`,
+      evalFn: (st) =>
+        roomDoors[st.suspectRoom[speakerId]].length >
+        roomDoors[st.suspectRoom[otherId]].length
+    });
   }
 
+  // Paranoia (6)
   clues.push({
     id: `thief_at_some_door`,
     role: 'paranoia',
@@ -902,8 +932,8 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     weight: 15,
     text: `El **ladrón** estaba apostado junto a una de las **4 puertas numeradas**`,
     evalFn: (st) => {
-      const thiefInS = st.roomSuspect[vaseRoom];
-      return st.suspectDoors[thiefInS].length > 0;
+      const thief = st.roomSuspect[vaseRoom];
+      return st.suspectDoors[thief].length > 0;
     }
   });
 
@@ -915,13 +945,72 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     weight: 14,
     text: `El **ladrón** evitó ponerse junto a las **puertas numeradas**`,
     evalFn: (st) => {
-      const thiefInS = st.roomSuspect[vaseRoom];
-      return st.suspectDoors[thiefInS].length === 0;
+      const thief = st.roomSuspect[vaseRoom];
+      return st.suspectDoors[thief].length === 0;
+    }
+  });
+
+  clues.push({
+    id: `thief_at_even_door`,
+    role: 'paranoia',
+    family: 'thief_door_parity',
+    category: 'Umbral',
+    weight: 15,
+    text: `El **ladrón** vigilaba una **puerta par (2 o 4)**`,
+    evalFn: (st) => {
+      const thief = st.roomSuspect[vaseRoom];
+      return st.doorOccupant[2] === thief || st.doorOccupant[4] === thief;
+    }
+  });
+
+  clues.push({
+    id: `thief_at_odd_door`,
+    role: 'paranoia',
+    family: 'thief_door_parity',
+    category: 'Umbral',
+    weight: 15,
+    text: `El **ladrón** vigilaba una **puerta impar (1 o 3)**`,
+    evalFn: (st) => {
+      const thief = st.roomSuspect[vaseRoom];
+      return st.doorOccupant[1] === thief || st.doorOccupant[3] === thief;
+    }
+  });
+
+  clues.push({
+    id: `thief_door_connects_me`,
+    role: 'paranoia',
+    family: 'thief_door_me',
+    category: 'Umbral',
+    weight: 15,
+    text: `Una **puerta numerada** conecta mi despacho con el del **ladrón**`,
+    evalFn: (st) => {
+      const myRoom = st.suspectRoom[speakerId];
+      return [1, 2, 3, 4].some((dNum) => {
+        const [rA, rB] = doorMap[dNum];
+        return (myRoom === rA && vaseRoom === rB) || (myRoom === rB && vaseRoom === rA);
+      });
+    }
+  });
+
+  clues.push({
+    id: `thief_no_door_connects_me`,
+    role: 'paranoia',
+    family: 'thief_door_me',
+    category: 'Umbral',
+    weight: 13,
+    text: `**Ninguna puerta numerada** conecta mi despacho con el del **ladrón**`,
+    evalFn: (st) => {
+      const myRoom = st.suspectRoom[speakerId];
+      if (myRoom === vaseRoom) return false;
+      return ![1, 2, 3, 4].some((dNum) => {
+        const [rA, rB] = doorMap[dNum];
+        return (myRoom === rA && vaseRoom === rB) || (myRoom === rB && vaseRoom === rA);
+      });
     }
   });
 
   // ==========================================================================
-  // 2. FACHADA / CARDINAL (32 pistas: 12 anchor + 4 board + 12 relational + 4 paranoia)
+  // 2. FACHADA / CARDINAL (32 pistas: 12 anchor + 6 board + 8 relational + 6 paranoia)
   // ==========================================================================
   clues.push({
     id: `facade_north`,
@@ -1065,6 +1154,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     }
   });
 
+  // Board (6)
   clues.push({
     id: `woman_on_north_south`,
     role: 'board',
@@ -1125,9 +1215,39 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       )
   });
 
+  clues.push({
+    id: `women_adj_rows`,
+    role: 'board',
+    family: 'women_adj',
+    category: 'Fachada',
+    weight: 14,
+    text: isFem
+      ? `Las **dos mujeres** de la oficina estábamos en **filas vecinas**`
+      : `Las **dos mujeres** de la oficina estaban en **filas vecinas**`,
+    evalFn: (st) => {
+      const women = SUSPECTS.filter((s) => s.isCarnivore).map((s) => s.id);
+      return Math.abs(st.suspectRow[women[0]] - st.suspectRow[women[1]]) === 1;
+    }
+  });
+
+  clues.push({
+    id: `women_adj_cols`,
+    role: 'board',
+    family: 'women_adj',
+    category: 'Fachada',
+    weight: 14,
+    text: isFem
+      ? `Las **dos mujeres** ocupábamos **columnas vecinas**`
+      : `Las **dos mujeres** ocupaban **columnas vecinas**`,
+    evalFn: (st) => {
+      const women = SUSPECTS.filter((s) => s.isCarnivore).map((s) => s.id);
+      return Math.abs(st.suspectCol[women[0]] - st.suspectCol[women[1]]) === 1;
+    }
+  });
+
+  // Relational (8: 2 puentes reales x 4 sospechosos)
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
-    const otherIsFem = SUSPECTS[otherId].isCarnivore;
 
     clues.push({
       id: `more_north_than_${otherId}`,
@@ -1150,23 +1270,9 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       text: `Mi sitio estaba más al **Oeste** que el de **${SUSPECTS[otherId].name}**`,
       evalFn: (st) => st.suspectCol[speakerId] < st.suspectCol[otherId]
     });
-
-    clues.push({
-      id: `other_on_border_${otherId}`,
-      role: 'relational',
-      family: `other_border_${otherId}`,
-      targetId: otherId,
-      category: 'Fachada',
-      weight: 14,
-      text: `Vi a **${SUSPECTS[otherId].name}** ${otherIsFem ? 'pegada' : 'pegado'} a una **fachada** de la oficina`,
-      evalFn: (st) => {
-        const r = st.suspectRow[otherId];
-        const c = st.suspectCol[otherId];
-        return r === 0 || r === 4 || c === 0 || c === 4;
-      }
-    });
   }
 
+  // Paranoia (6)
   clues.push({
     id: `thief_on_north_half`,
     role: 'paranoia',
@@ -1190,7 +1296,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `thief_on_perimeter`,
     role: 'paranoia',
-    family: 'thief_facade',
+    family: 'thief_facade_zone',
     category: 'Fachada',
     weight: 14,
     text: `El **ladrón** estaba junto a una **fachada** de la oficina`,
@@ -1205,7 +1311,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   clues.push({
     id: `thief_in_interior`,
     role: 'paranoia',
-    family: 'thief_facade',
+    family: 'thief_facade_zone',
     category: 'Fachada',
     weight: 15,
     text: `El **ladrón** actuó desde el **interior de la oficina**, lejos de las fachadas`,
@@ -1217,8 +1323,28 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     }
   });
 
+  clues.push({
+    id: `thief_more_north_than_me`,
+    role: 'paranoia',
+    family: 'thief_rel_dir',
+    category: 'Fachada',
+    weight: 14,
+    text: `El **ladrón** estaba en una fila más al **Norte** que la mía`,
+    evalFn: (st) => st.suspectRow[st.roomSuspect[vaseRoom]] < st.suspectRow[speakerId]
+  });
+
+  clues.push({
+    id: `thief_more_south_than_me`,
+    role: 'paranoia',
+    family: 'thief_rel_dir',
+    category: 'Fachada',
+    weight: 14,
+    text: `El **ladrón** estaba en una fila más al **Sur** que la mía`,
+    evalFn: (st) => st.suspectRow[st.roomSuspect[vaseRoom]] > st.suspectRow[speakerId]
+  });
+
   // ==========================================================================
-  // 3. CLAUSTROFOBIA / TAMAÑO (32 pistas: 12 anchor + 4 board + 12 relational + 4 paranoia)
+  // 3. CLAUSTROFOBIA / TAMAÑO (32 pistas: 12 anchor + 6 board + 8 relational + 6 paranoia)
   // ==========================================================================
   clues.push({
     id: `self_largest_room`,
@@ -1358,6 +1484,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] % 2 !== 0
   });
 
+  // Board (6)
   clues.push({
     id: `carnivore_largest_room`,
     role: 'board',
@@ -1402,8 +1529,36 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       smallestRooms.some((rm) => !SUSPECTS[st.roomSuspect[rm]].isCarnivore)
   });
 
+  clues.push({
+    id: `women_in_even_rooms`,
+    role: 'board',
+    family: 'board_women_parity_size',
+    category: 'Claustrofobia',
+    weight: 14,
+    text: `Las **dos mujeres** estaban en despachos con un **número par de casillas**`,
+    evalFn: (st) =>
+      SUSPECTS.filter((s) => s.isCarnivore).every(
+        (s) => roomSizes[st.suspectRoom[s.id]] % 2 === 0
+      )
+  });
+
+  clues.push({
+    id: `women_in_odd_rooms`,
+    role: 'board',
+    family: 'board_women_parity_size',
+    category: 'Claustrofobia',
+    weight: 14,
+    text: `Las **dos mujeres** estaban en despachos con un **número impar de casillas**`,
+    evalFn: (st) =>
+      SUSPECTS.filter((s) => s.isCarnivore).every(
+        (s) => roomSizes[st.suspectRoom[s.id]] % 2 !== 0
+      )
+  });
+
+  // Relational (8: 2 puentes reales x 4 sospechosos)
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
+
     clues.push({
       id: `bigger_room_than_${otherId}`,
       role: 'relational',
@@ -1414,18 +1569,6 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       text: `Mi despacho tiene **más casillas** que el de **${SUSPECTS[otherId].name}**`,
       evalFn: (st) =>
         roomSizes[st.suspectRoom[speakerId]] > roomSizes[st.suspectRoom[otherId]]
-    });
-
-    clues.push({
-      id: `smaller_room_than_${otherId}`,
-      role: 'relational',
-      family: 'rel_room_size',
-      targetId: otherId,
-      category: 'Claustrofobia',
-      weight: 14,
-      text: `Mi despacho tiene **menos casillas** que el de **${SUSPECTS[otherId].name}**`,
-      evalFn: (st) =>
-        roomSizes[st.suspectRoom[speakerId]] < roomSizes[st.suspectRoom[otherId]]
     });
 
     clues.push({
@@ -1441,48 +1584,83 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     });
   }
 
+  // Paranoia (6: ninguna es una constante visual del mapa)
   clues.push({
-    id: `thief_room_even_size`,
+    id: `my_room_bigger_than_thief`,
     role: 'paranoia',
-    family: 'thief_room_size',
+    family: 'thief_rel_room_size',
     category: 'Claustrofobia',
     weight: 14,
-    text: `El despacho del **ladrón** tiene un **número par de casillas**`,
-    evalFn: (st) => roomSizes[vaseRoom] % 2 === 0
+    text: `Mi despacho tiene **más casillas** que el despacho del **ladrón**`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] > roomSizes[vaseRoom]
   });
 
   clues.push({
-    id: `thief_room_odd_size`,
+    id: `my_room_smaller_than_thief`,
     role: 'paranoia',
-    family: 'thief_room_size',
+    family: 'thief_rel_room_size',
     category: 'Claustrofobia',
     weight: 14,
-    text: `El despacho del **ladrón** tiene un **número impar de casillas**`,
-    evalFn: (st) => roomSizes[vaseRoom] % 2 !== 0
+    text: `Mi despacho tiene **menos casillas** que el despacho del **ladrón**`,
+    evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] < roomSizes[vaseRoom]
   });
 
   clues.push({
-    id: `thief_room_at_least_5`,
+    id: `my_room_same_size_thief`,
     role: 'paranoia',
-    family: 'thief_room_size',
+    family: 'thief_rel_room_size',
     category: 'Claustrofobia',
-    weight: 14,
-    text: `El **ladrón** actuó desde un despacho amplio de **5 o más casillas**`,
-    evalFn: (st) => roomSizes[vaseRoom] >= 5
+    weight: 15,
+    text: `Mi despacho mide **las mismas casillas** que el despacho del **ladrón**`,
+    evalFn: (st) =>
+      st.suspectRoom[speakerId] !== vaseRoom &&
+      roomSizes[st.suspectRoom[speakerId]] === roomSizes[vaseRoom]
   });
 
   clues.push({
-    id: `thief_room_at_most_4`,
+    id: `thief_touches_larger_room`,
     role: 'paranoia',
-    family: 'thief_room_size',
+    family: 'thief_cell_touch_size',
     category: 'Claustrofobia',
-    weight: 14,
-    text: `El **ladrón** actuó desde un despacho pequeño de **4 casillas o menos**`,
-    evalFn: (st) => roomSizes[vaseRoom] <= 4
+    weight: 15,
+    text: `Desde su casilla, el **ladrón** tocaba el tabique de un despacho **más grande** que el suyo`,
+    evalFn: (st) => {
+      const thief = st.roomSuspect[vaseRoom];
+      const walls = cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]];
+      return Array.from(walls).some((rm) => roomSizes[rm] > roomSizes[vaseRoom]);
+    }
+  });
+
+  clues.push({
+    id: `thief_touches_smaller_room`,
+    role: 'paranoia',
+    family: 'thief_cell_touch_size',
+    category: 'Claustrofobia',
+    weight: 15,
+    text: `Desde su casilla, el **ladrón** tocaba el tabique de un despacho **más pequeño** que el suyo`,
+    evalFn: (st) => {
+      const thief = st.roomSuspect[vaseRoom];
+      const walls = cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]];
+      return Array.from(walls).some((rm) => roomSizes[rm] < roomSizes[vaseRoom]);
+    }
+  });
+
+  clues.push({
+    id: `thief_touches_smallest_room`,
+    role: 'paranoia',
+    family: 'thief_cell_touch_size',
+    category: 'Claustrofobia',
+    weight: 15,
+    text: `La casilla del **ladrón** tocaba el tabique de un despacho de **${minSize} casillas**`,
+    evalFn: (st) => {
+      const thief = st.roomSuspect[vaseRoom];
+      const walls = cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]];
+      return Array.from(walls).some((rm) => roomSizes[rm] === minSize);
+    }
   });
 
   // ==========================================================================
-  // 4. ESCENARIO / TABIQUES (32 pistas: 14 anchor + 2 board + 12 relational + 4 paranoia)
+  // 4. ESCENARIO / TABIQUES (32 pistas: 12 anchor + 6 board + 8 relational + 6 paranoia)
   // ==========================================================================
   clues.push({
     id: `touch_many_rooms`,
@@ -1544,6 +1722,51 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     }
   });
 
+  clues.push({
+    id: `no_touch_crime_room_wall`,
+    role: 'anchor',
+    isStrongAnchor: false,
+    family: 'self_touch_crime_wall',
+    category: 'Escenario',
+    weight: 12,
+    text: `Estaba fuera del despacho del **sándwich** y **sin tocar su tabique**`,
+    evalFn: (st) => {
+      const r = st.suspectRow[speakerId];
+      const c = st.suspectCol[speakerId];
+      return st.suspectRoom[speakerId] !== vaseRoom && !cellTouchesRoomWall[r][c].has(vaseRoom);
+    }
+  });
+
+  clues.push({
+    id: `touch_largest_room_wall`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_touch_extreme_wall',
+    category: 'Escenario',
+    weight: 14,
+    text: `Desde mi casilla tocaba el tabique de un despacho de **${maxSize} casillas**`,
+    evalFn: (st) => {
+      const r = st.suspectRow[speakerId];
+      const c = st.suspectCol[speakerId];
+      return Array.from(cellTouchesRoomWall[r][c]).some((rm) => roomSizes[rm] === maxSize);
+    }
+  });
+
+  clues.push({
+    id: `touch_smallest_room_wall`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_touch_extreme_wall',
+    category: 'Escenario',
+    weight: 14,
+    text: `Desde mi casilla tocaba el tabique de un despacho de **${minSize} casillas**`,
+    evalFn: (st) => {
+      const r = st.suspectRow[speakerId];
+      const c = st.suspectCol[speakerId];
+      return Array.from(cellTouchesRoomWall[r][c]).some((rm) => roomSizes[rm] === minSize);
+    }
+  });
+
   for (let rm = 0; rm < 5; rm++) {
     const rmName = ROOMS[rm].name.toLowerCase();
     clues.push({
@@ -1560,27 +1783,13 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
         return cellTouchesRoomWall[r][c].has(rm);
       }
     });
-
-    clues.push({
-      id: `no_touch_wall_of_room_${rm}`,
-      role: 'anchor',
-      isStrongAnchor: false,
-      family: `no_touch_wall_${rm}`,
-      category: 'Escenario',
-      weight: 12,
-      text: `Estaba fuera del **despacho ${rmName}** y **sin tocar su tabique**`,
-      evalFn: (st) => {
-        const r = st.suspectRow[speakerId];
-        const c = st.suspectCol[speakerId];
-        return st.suspectRoom[speakerId] !== rm && !cellTouchesRoomWall[r][c].has(rm);
-      }
-    });
   }
 
+  // Board (6)
   clues.push({
     id: `woman_touches_many_rooms`,
     role: 'board',
-    family: 'board_walls',
+    family: 'board_walls_gender',
     category: 'Escenario',
     weight: 14,
     text: `Había **una mujer** cuya casilla tocaba los tabiques de **al menos 2 despachos ajenos**`,
@@ -1593,9 +1802,24 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   clues.push({
+    id: `man_touches_many_rooms`,
+    role: 'board',
+    family: 'board_walls_gender',
+    category: 'Escenario',
+    weight: 14,
+    text: `Había **un hombre** cuya casilla tocaba los tabiques de **al menos 2 despachos ajenos**`,
+    evalFn: (st) =>
+      SUSPECTS.some(
+        (s) =>
+          !s.isCarnivore &&
+          cellTouchesRoomWall[st.suspectRow[s.id]][st.suspectCol[s.id]].size >= 2
+      )
+  });
+
+  clues.push({
     id: `someone_deep_inside`,
     role: 'board',
-    family: 'board_walls',
+    family: 'board_walls_isolation',
     category: 'Escenario',
     weight: 14,
     text: `Había **alguien** en su despacho que **no tocaba tabiques** de otros despachos`,
@@ -1605,8 +1829,49 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       )
   });
 
+  clues.push({
+    id: `nobody_deep_inside`,
+    role: 'board',
+    family: 'board_walls_isolation',
+    category: 'Escenario',
+    weight: 14,
+    text: `**Todos** tocábamos desde nuestra casilla el tabique de **al menos 1 despacho ajeno**`,
+    evalFn: (st) =>
+      SUSPECTS.every(
+        (s) => cellTouchesRoomWall[st.suspectRow[s.id]][st.suspectCol[s.id]].size >= 1
+      )
+  });
+
+  clues.push({
+    id: `someone_touches_crime_wall`,
+    role: 'board',
+    family: 'board_crime_wall',
+    category: 'Escenario',
+    weight: 14,
+    text: `Había **alguien** desde fuera tocando el tabique del despacho del **sándwich**`,
+    evalFn: (st) =>
+      SUSPECTS.some((s) =>
+        cellTouchesRoomWall[st.suspectRow[s.id]][st.suspectCol[s.id]].has(vaseRoom)
+      )
+  });
+
+  clues.push({
+    id: `nobody_touches_crime_wall`,
+    role: 'board',
+    family: 'board_crime_wall',
+    category: 'Escenario',
+    weight: 15,
+    text: `**Nadie** de los otros despachos tocaba el tabique del despacho del **sándwich**`,
+    evalFn: (st) =>
+      !SUSPECTS.some((s) =>
+        cellTouchesRoomWall[st.suspectRow[s.id]][st.suspectCol[s.id]].has(vaseRoom)
+      )
+  });
+
+  // Relational (8: 2 puentes reales x 4 sospechosos)
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
+
     clues.push({
       id: `touch_suspect_room_wall_${otherId}`,
       role: 'relational',
@@ -1636,23 +1901,9 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
         return cellTouchesRoomWall[or][oc].has(st.suspectRoom[speakerId]);
       }
     });
-
-    clues.push({
-      id: `other_touches_many_rooms_${otherId}`,
-      role: 'relational',
-      family: 'rel_other_walls',
-      targetId: otherId,
-      category: 'Escenario',
-      weight: 14,
-      text: `**${SUSPECTS[otherId].name}** tocaba los tabiques de **al menos 2 despachos ajenos**`,
-      evalFn: (st) => {
-        const or = st.suspectRow[otherId];
-        const oc = st.suspectCol[otherId];
-        return cellTouchesRoomWall[or][oc].size >= 2;
-      }
-    });
   }
 
+  // Paranoia (6)
   clues.push({
     id: `thief_touches_many_rooms`,
     role: 'paranoia',
@@ -1680,17 +1931,28 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   clues.push({
-    id: `thief_not_touching_my_room`,
+    id: `thief_deep_inside`,
     role: 'paranoia',
-    family: 'thief_walls_me',
+    family: 'thief_walls_isolation',
     category: 'Escenario',
-    weight: 14,
-    text: `Desde su casilla, el **ladrón** **no tocaba el tabique** de mi despacho`,
+    weight: 15,
+    text: `El **ladrón** estaba en el interior de su despacho, **sin tocar tabiques ajenos**`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
-      return !cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]].has(
-        st.suspectRoom[speakerId]
-      );
+      return cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]].size === 0;
+    }
+  });
+
+  clues.push({
+    id: `thief_touches_some_wall`,
+    role: 'paranoia',
+    family: 'thief_walls_isolation',
+    category: 'Escenario',
+    weight: 14,
+    text: `La casilla del **ladrón** estaba pegada al **tabique de otro despacho**`,
+    evalFn: (st) => {
+      const thief = st.roomSuspect[vaseRoom];
+      return cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]].size >= 1;
     }
   });
 
@@ -1709,8 +1971,23 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     }
   });
 
+  clues.push({
+    id: `thief_not_touching_my_room`,
+    role: 'paranoia',
+    family: 'thief_walls_me',
+    category: 'Escenario',
+    weight: 14,
+    text: `Desde su casilla, el **ladrón** **no tocaba el tabique** de mi despacho`,
+    evalFn: (st) => {
+      const thief = st.roomSuspect[vaseRoom];
+      return !cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]].has(
+        st.suspectRoom[speakerId]
+      );
+    }
+  });
+
   // ==========================================================================
-  // 5. SANDWICH / CRIMEN (32 pistas 100% visuales: 12 anchor + 4 board + 8 relational + 8 paranoia)
+  // 5. SANDWICH / CRIMEN (32 pistas: 12 anchor + 6 board + 8 relational + 6 paranoia)
   // ==========================================================================
   clues.push({
     id: `adj_to_vase_orth`,
@@ -1852,6 +2129,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     evalFn: (st) => st.suspectCol[speakerId] > vasePos.c
   });
 
+  // Board (6)
   clues.push({
     id: `carnivore_same_line_vase`,
     role: 'board',
@@ -1912,32 +2190,66 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       )
   });
 
+  clues.push({
+    id: `woman_surrounding_vase`,
+    role: 'board',
+    family: 'board_vase_ring_gender',
+    category: 'Sandwich',
+    weight: 14,
+    text: `Había **una mujer** en una de las casillas que **rodean** al **sándwich**`,
+    evalFn: (st) =>
+      SUSPECTS.some(
+        (s) =>
+          s.isCarnivore &&
+          Math.abs(st.suspectRow[s.id] - vasePos.r) <= 1 &&
+          Math.abs(st.suspectCol[s.id] - vasePos.c) <= 1
+      )
+  });
+
+  clues.push({
+    id: `man_surrounding_vase`,
+    role: 'board',
+    family: 'board_vase_ring_gender',
+    category: 'Sandwich',
+    weight: 14,
+    text: `Había **un hombre** en una de las casillas que **rodean** al **sándwich**`,
+    evalFn: (st) =>
+      SUSPECTS.some(
+        (s) =>
+          !s.isCarnivore &&
+          Math.abs(st.suspectRow[s.id] - vasePos.r) <= 1 &&
+          Math.abs(st.suspectCol[s.id] - vasePos.c) <= 1
+      )
+  });
+
+  // Relational (8: 2 puentes reales x 4 sospechosos comparando distancia de fila/columna al sándwich)
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
 
     clues.push({
-      id: `other_same_line_vase_${otherId}`,
+      id: `closer_row_to_vase_${otherId}`,
       role: 'relational',
-      family: 'rel_vase_line',
+      family: 'rel_vase_row_dist',
       targetId: otherId,
       category: 'Sandwich',
       weight: 15,
-      text: `**${SUSPECTS[otherId].name}** compartía **fila o columna** con el **sándwich**`,
+      text: `Mi fila estaba **más cerca del sándwich** que la fila de **${SUSPECTS[otherId].name}**`,
       evalFn: (st) =>
-        st.suspectRow[otherId] === vasePos.r || st.suspectCol[otherId] === vasePos.c
+        Math.abs(st.suspectRow[speakerId] - vasePos.r) <
+        Math.abs(st.suspectRow[otherId] - vasePos.r)
     });
 
     clues.push({
-      id: `other_surrounding_vase_${otherId}`,
+      id: `closer_col_to_vase_${otherId}`,
       role: 'relational',
-      family: 'rel_vase_ring',
+      family: 'rel_vase_col_dist',
       targetId: otherId,
       category: 'Sandwich',
       weight: 15,
-      text: `Vi a **${SUSPECTS[otherId].name}** en una casilla que **rodea** al **sándwich**`,
+      text: `Mi columna estaba **más cerca del sándwich** que la columna de **${SUSPECTS[otherId].name}**`,
       evalFn: (st) =>
-        Math.abs(st.suspectRow[otherId] - vasePos.r) <= 1 &&
-        Math.abs(st.suspectCol[otherId] - vasePos.c) <= 1
+        Math.abs(st.suspectCol[speakerId] - vasePos.c) <
+        Math.abs(st.suspectCol[otherId] - vasePos.c)
     });
 
     clues.push({
@@ -1950,21 +2262,42 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       text: `¡**${SUSPECTS[otherId].name}** **miente**, tiene migas de **sándwich**!`,
       evalFn: (st) => st.suspectRoom[otherId] === vaseRoom
     });
-
-    clues.push({
-      id: `vouch_${otherId}`,
-      role: 'paranoia',
-      family: 'paranoia_vouch',
-      targetId: otherId,
-      category: 'Sandwich',
-      weight: 13,
-      text: `Pongo la mano en el fuego por **${SUSPECTS[otherId].name}**: **dice la verdad**`,
-      evalFn: (st) => st.suspectRoom[otherId] !== vaseRoom
-    });
   }
 
+  // Paranoia adicionales de Sandwich (2 + 4 accuse = 6)
+  clues.push({
+    id: `thief_surrounding_vase`,
+    role: 'paranoia',
+    family: 'thief_vase_ring',
+    category: 'Sandwich',
+    weight: 15,
+    text: `El **ladrón** estaba en una casilla que **rodea** al **sándwich** (lado o diagonal)`,
+    evalFn: (st) => {
+      const thief = st.roomSuspect[vaseRoom];
+      return (
+        Math.abs(st.suspectRow[thief] - vasePos.r) <= 1 &&
+        Math.abs(st.suspectCol[thief] - vasePos.c) <= 1
+      );
+    }
+  });
+
+  clues.push({
+    id: `thief_same_line_vase`,
+    role: 'paranoia',
+    family: 'thief_vase_line',
+    category: 'Sandwich',
+    weight: 15,
+    text: `El **ladrón** compartía **fila o columna** con la casilla del **sándwich**`,
+    evalFn: (st) => {
+      const thief = st.roomSuspect[vaseRoom];
+      return (
+        st.suspectRow[thief] === vasePos.r || st.suspectCol[thief] === vasePos.c
+      );
+    }
+  });
+
   // ==========================================================================
-  // 6. DESPACHO / GÉNERO (32 pistas: 10 anchor + 12 board + 8 relational + 2 paranoia)
+  // 6. DESPACHO / GÉNERO (36 pistas: 12 anchor + 10 board + 8 relational + 6 paranoia)
   // ==========================================================================
   for (let rm = 0; rm < 5; rm++) {
     const rmName = ROOMS[rm].name.toLowerCase();
@@ -1986,7 +2319,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       isStrongAnchor: false,
       family: `self_not_room_${rm}`,
       category: 'Despacho',
-      weight: 11,
+      weight: 12,
       text: `Yo **no pisé** el **despacho ${rmName}** en toda la mañana`,
       evalFn: (st) => st.suspectRoom[speakerId] !== rm
     });
@@ -2013,37 +2346,34 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   }
 
   clues.push({
-    id: `women_adj_rows`,
-    role: 'board',
-    family: 'women_adj',
+    id: `self_in_warm_room`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_room_palette',
     category: 'Despacho',
     weight: 14,
-    text: isFem
-      ? `Las **dos mujeres** de la oficina estábamos en **filas vecinas**`
-      : `Las **dos mujeres** de la oficina estaban en **filas vecinas**`,
-    evalFn: (st) => {
-      const women = SUSPECTS.filter((s) => s.isCarnivore).map((s) => s.id);
-      return Math.abs(st.suspectRow[women[0]] - st.suspectRow[women[1]]) === 1;
-    }
+    text: `Yo estaba en un despacho de color cálido (**rojo** o **amarillo**)`,
+    evalFn: (st) =>
+      st.suspectRoom[speakerId] === 1 || st.suspectRoom[speakerId] === 3
   });
 
   clues.push({
-    id: `women_adj_cols`,
-    role: 'board',
-    family: 'women_adj',
+    id: `self_in_cool_room`,
+    role: 'anchor',
+    isStrongAnchor: true,
+    family: 'self_room_palette',
     category: 'Despacho',
-    weight: 14,
-    text: isFem
-      ? `Las **dos mujeres** ocupábamos **columnas vecinas**`
-      : `Las **dos mujeres** ocupaban **columnas vecinas**`,
-    evalFn: (st) => {
-      const women = SUSPECTS.filter((s) => s.isCarnivore).map((s) => s.id);
-      return Math.abs(st.suspectCol[women[0]] - st.suspectCol[women[1]]) === 1;
-    }
+    weight: 13,
+    text: `Yo estaba en un despacho de color frío (**azul**, **verde** o **morado**)`,
+    evalFn: (st) =>
+      st.suspectRoom[speakerId] === 0 ||
+      st.suspectRoom[speakerId] === 2 ||
+      st.suspectRoom[speakerId] === 4
   });
 
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
+
     clues.push({
       id: `adj_row_with_${otherId}`,
       role: 'relational',
@@ -2064,6 +2394,17 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       weight: 14,
       text: `Mi columna era **vecina** a la columna de **${SUSPECTS[otherId].name}**`,
       evalFn: (st) => Math.abs(st.suspectCol[speakerId] - st.suspectCol[otherId]) === 1
+    });
+
+    clues.push({
+      id: `vouch_${otherId}`,
+      role: 'paranoia',
+      family: 'paranoia_vouch',
+      targetId: otherId,
+      category: 'Despacho',
+      weight: 13,
+      text: `Pongo la mano en el fuego por **${SUSPECTS[otherId].name}**: **dice la verdad**`,
+      evalFn: (st) => st.suspectRoom[otherId] !== vaseRoom
     });
   }
 
@@ -2087,27 +2428,25 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     evalFn: (st) => !SUSPECTS[st.roomSuspect[vaseRoom]].isCarnivore
   });
 
-  return clues.map((c) => ({
-    ...c,
-    role: getClueRole(c)
-  }));
+  return clues;
 }
 
 function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = false) {
-  // Si no se pasa semilla (modo aleatorio), creamos una de 6 dígitos para poder compartirla
   const actualSeed =
     seed !== null ? seed : Math.floor(100000 + Math.random() * 900000);
   const rng = createPrng(actualSeed);
   const startTime = performance.now();
   let mapAttempts = 0;
 
-  // Tanto el modo diario como el modo aleatorio escogen siempre un par (2) de categorías de pistas
   const categoriesToUse =
     enabledCategories && enabledCategories.length === 2
       ? enabledCategories
       : ALL_CATEGORY_PAIRS[Math.floor(rng() * ALL_CATEGORY_PAIRS.length)];
 
   const activeCatSet = new Set(categoriesToUse);
+
+  // Proporción ideal de estados supervivientes tras cada paso (evita colapsar antes de la 5ª pista)
+  const STEP_TARGET_RATIOS = [0.42, 0.42, 0.42, 0.38, 0.0];
 
   while (mapAttempts < 600) {
     mapAttempts++;
@@ -2122,7 +2461,6 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
     const survivingGeos = getSurvivingGeometries(grid, vasePos);
     const K = survivingGeos.length;
 
-    // Reto Diario en K = 3; Aleatorio entre 2 y 6
     if (isDaily) {
       if (K !== 3) continue;
     } else {
@@ -2183,21 +2521,23 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
 
         const compatIndices = [];
         let trueWhenInnocentCount = 0;
+        let falseWhenInnocentCount = 0;
 
         for (let i = 0; i < N; i++) {
           const st = states[i];
           const isThiefInS = st.suspectRoom[sId] === vaseRoom;
           const evalRes = clue.evalFn(st);
-          if (!isThiefInS && evalRes) {
-            trueWhenInnocentCount++;
+          if (!isThiefInS) {
+            if (evalRes) trueWhenInnocentCount++;
+            else falseWhenInnocentCount++;
           }
           if (evalRes === !isThiefInS) {
             compatIndices.push(i);
           }
         }
 
-        // Evita que el ladrón diga mentiras geométricamente imposibles en el mapa
-        if (trueWhenInnocentCount === 0) continue;
+        // Descarta mentiras imposibles y tautologías visuales que no dependen del estado
+        if (trueWhenInnocentCount === 0 || falseWhenInnocentCount === 0) continue;
 
         if (compatIndices.length >= 2 && compatIndices.length < N * 0.88) {
           filtered.push({
@@ -2208,7 +2548,6 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
         }
       }
 
-      // Analista (sId === 0) necesita al menos una pista 'anchor' afirmativa (isStrongAnchor)
       if (
         filtered.length === 0 ||
         (sId === 0 && !filtered.some((c) => c.role === 'anchor' && c.isStrongAnchor))
@@ -2217,18 +2556,12 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
         break;
       }
 
-      validPools.push(
-        shuffle(filtered, rng).sort(
-          (a, b) =>
-            (a.compatCount / a.weight) * (0.85 + rng() * 0.3) -
-            (b.compatCount / b.weight) * (0.85 + rng() * 0.3)
-        )
-      );
+      // Barajado uniforme sin sesgar el orden por compatCount
+      validPools.push(shuffle(filtered, rng));
     }
 
     if (poolEmpty) continue;
 
-    // Verificación rápida: comprobar que el mapa tiene candidatos para los 4 roles antes de iterar
     const hasSecondAnchor = [1, 2, 3, 4].some((id) =>
       validPools[id].some((c) => c.role === 'anchor')
     );
@@ -2247,9 +2580,9 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
     }
 
     let chosenClues = null;
+    let fallbackClues = null;
 
-    // FASE ÚNICA ESTRICTA: 2 anchor + 1 board + 1 relational (apuntando a un anchor) + 1 paranoia
-    for (let searchTry = 0; searchTry < 120; searchTry++) {
+    for (let searchTry = 0; searchTry < 150; searchTry++) {
       const otherSuspects = shuffle([1, 2, 3, 4], rng);
       const secondAnchorId = otherSuspects[0];
       const boardId = otherSuspects[1];
@@ -2266,7 +2599,6 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
         [paranoiaId]: 'paranoia'
       };
 
-      // El primer paso evaluado es una de las dos anclas, seguido del resto en orden aleatorio
       const firstId = rng() < 0.5 ? 0 : secondAnchorId;
       const restIds = shuffle(
         [0, 1, 2, 3, 4].filter((id) => id !== firstId),
@@ -2288,27 +2620,21 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
         let bestClue = null;
         let bestScore = Infinity;
 
-        const sampleLimit = Math.min(pool.length, 48);
-        for (let k = 0; k < sampleLimit; k++) {
+        // Curva objetivo: busca reducir de forma gradual hasta llegar a 1 en el último paso
+        const targetNextCount =
+          step === 4
+            ? 1
+            : Math.max(2, Math.round(survivors.length * STEP_TARGET_RATIOS[step]));
+
+        for (let k = 0; k < pool.length; k++) {
           const cand = pool[k];
 
-          // Rol estricto asignado a este sospechoso (2 anchor + 1 board + 1 relational + 1 paranoia)
           if (cand.role !== requiredRole) continue;
-
-          // Analista (sId === 0) siempre lleva un ancla afirmativa (isStrongAnchor)
           if (sId === 0 && !cand.isStrongAnchor) continue;
-
-          // El puente (relational) debe apuntar obligatoriamente a uno de los 2 sospechosos con 'anchor'
-          if (
-            requiredRole === 'relational' &&
-            !anchorSuspects.has(cand.targetId)
-          ) {
+          if (requiredRole === 'relational' && !anchorSuspects.has(cand.targetId)) {
             continue;
           }
-
           if (usedClueIds.has(cand.id)) continue;
-
-          // Fuerza un reparto equilibrado 3-2 entre las 2 categorías activas
           if ((categoryCounts[cand.category] || 0) >= 3) continue;
 
           let nextCount = 0;
@@ -2318,20 +2644,30 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
             }
           }
 
-          let score = nextCount;
-          if (step < 3 && nextCount === 1) {
-            score += 65;
+          if (nextCount === 0) continue;
+          if (step === 4 && nextCount !== 1) continue;
+
+          // En lugar de premiar el menor nextCount bruto, premiamos acercarse al embudo gradual
+          let score = Math.abs(nextCount - targetNextCount);
+
+          // Evita que la solución quede única antes de la 5ª pista (haciendo redundantes las demás)
+          if (step < 4 && nextCount === 1) {
+            score += 120;
+          }
+          // Evita pistas que no filtran ningún estado en el paso actual
+          if (nextCount === survivors.length) {
+            score += 90;
           }
           if (!usedCategories.has(cand.category)) {
-            score -= 25;
+            score -= 20;
           }
-          // Penalización proporcional para evitar repetir la misma familia de frases en la misma partida
           if (cand.family && usedFamilies.has(cand.family)) {
-            score += Math.max(25, survivors.length * 0.35);
+            score += Math.max(30, survivors.length * 0.4);
           }
 
-          const jitter = Math.max(4, survivors.length * 0.14);
-          score += rng() * jitter;
+          // Jitter amplio para dar variedad real entre pistas de poder deductivo similar
+          const jitter = Math.max(8, survivors.length * 0.25);
+          score += rng() * jitter - cand.weight * 0.4;
 
           if (score < bestScore) {
             bestScore = score;
@@ -2358,17 +2694,36 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
         pickBySuspect[0].role === 'anchor' &&
         pickBySuspect[0].isStrongAnchor
       ) {
-        chosenClues = pickBySuspect;
-        break;
+        // Verifica cuántas pistas son estrictamente indispensables (sin ella quedan > 1 estados)
+        let essentialCount = 0;
+        for (let sId = 0; sId < 5; sId++) {
+          let withoutThis = Array.from({ length: N }, (_, i) => i);
+          for (let other = 0; other < 5; other++) {
+            if (other === sId) continue;
+            withoutThis = withoutThis.filter((idx) =>
+              pickBySuspect[other].compatSet.has(idx)
+            );
+          }
+          if (withoutThis.length > 1) essentialCount++;
+        }
+
+        if (essentialCount === 5) {
+          chosenClues = pickBySuspect;
+          break;
+        } else if (essentialCount >= 4 && !fallbackClues) {
+          fallbackClues = pickBySuspect;
+        }
       }
     }
 
-    if (chosenClues) {
+    const finalPick = chosenClues || fallbackClues;
+
+    if (finalPick) {
       let runningSurvivors = Array.from({ length: N }, (_, i) => i);
       const clueCascade = [];
       for (let sId = 0; sId < 5; sId++) {
         runningSurvivors = runningSurvivors.filter((idx) =>
-          chosenClues[sId].compatSet.has(idx)
+          finalPick[sId].compatSet.has(idx)
         );
         clueCascade.push({
           suspectId: sId,
@@ -2382,7 +2737,7 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
         for (let other = 0; other < 5; other++) {
           if (other === sId) continue;
           withoutThis = withoutThis.filter((idx) =>
-            chosenClues[other].compatSet.has(idx)
+            finalPick[other].compatSet.has(idx)
           );
         }
         clueImpact.push(withoutThis.length);
@@ -2407,7 +2762,7 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
         thiefId,
         survivingGeos,
         totalStates: N,
-        clues: chosenClues.map((c, sId) => ({
+        clues: finalPick.map((c, sId) => ({
           id: c.id,
           role: c.role,
           suspectId: sId,
@@ -2423,7 +2778,6 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
 
   return null;
 }
-
 // ============================================================================
 // 4. COMPONENTE PRINCIPAL DE LA APLICACIÓN
 // ============================================================================
