@@ -683,6 +683,7 @@ export function generateCompleteLevel(enabledCategories = null, seed = null, isD
           suspectId: sId,
           category: c.category,
           text: c.text,
+          textEn: c.textEn,
           evalFn: c.evalFn,
           statesWithoutThisClue: clueImpact[sId]
         })),
