@@ -65,7 +65,7 @@ export function generateCandidateCluesForSuspect(
 ) {
   const clues = [];
   const speaker = SUSPECTS[speakerId];
-  const isFem = speaker.isCarnivore; // true = Mujer (Analista, Becaria), false = Hombre
+  const isFem = speaker.isCarnivore;
   const {
     roomSizes,
     maxSize,
@@ -78,7 +78,7 @@ export function generateCandidateCluesForSuspect(
   } = topo;
 
   // ==========================================================================
-  // 1. UMBRAL / PUERTAS (12 anchor + 8 board + 8 relational + 6 paranoia)
+  // 1. UMBRAL / PUERTAS
   // ==========================================================================
   for (let dNum = 1; dNum <= 4; dNum++) {
     clues.push({
@@ -89,6 +89,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Umbral',
       weight: 15,
       text: `Me quedé tomando un café junto a la **puerta ${dNum}**`,
+      textEn: `I stayed having a coffee right by **door ${dNum}**`,
       evalFn: (st) => st.doorOccupant[dNum] === speakerId
     });
 
@@ -100,6 +101,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Umbral',
       weight: 14,
       text: `En los tabiques de mi despacho está la **puerta ${dNum}**`,
+      textEn: `**Door ${dNum}** is on the walls of my office`,
       evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].includes(dNum)
     });
   }
@@ -112,6 +114,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 14,
     text: `Me quedé vigilando una **puerta par (2 o 4)**`,
+    textEn: `I stayed watching an **even door (2 or 4)**`,
     evalFn: (st) => st.doorOccupant[2] === speakerId || st.doorOccupant[4] === speakerId
   });
 
@@ -123,6 +126,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 14,
     text: `Estaba junto a una **puerta impar (1 o 3)**`,
+    textEn: `I was next to an **odd door (1 or 3)**`,
     evalFn: (st) => st.doorOccupant[1] === speakerId || st.doorOccupant[3] === speakerId
   });
 
@@ -134,6 +138,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 13,
     text: `Me coloqué **lejos de las 4 puertas**, sin vigilar ninguna`,
+    textEn: `I stood **away from all 4 doors**, watching none`,
     evalFn: (st) => st.suspectDoors[speakerId].length === 0
   });
 
@@ -145,6 +150,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 15,
     text: `Mi despacho es una ratonera: solo tiene **1 puerta numerada**`,
+    textEn: `My office is a dead end: it only has **1 numbered door**`,
     evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].length === 1
   });
 
@@ -156,6 +162,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 15,
     text: `Las **puertas pares (2 y 4)** estaban completamente **desiertas**`,
+    textEn: `The **even doors (2 and 4)** were completely **deserted**`,
     evalFn: (st) => st.doorOccupant[2] === -1 && st.doorOccupant[4] === -1
   });
 
@@ -166,6 +173,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 15,
     text: `No había **nadie** vigilando las **puertas impares (1 y 3)**`,
+    textEn: `There was **nobody** watching the **odd doors (1 and 3)**`,
     evalFn: (st) => st.doorOccupant[1] === -1 && st.doorOccupant[3] === -1
   });
 
@@ -176,6 +184,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 14,
     text: `Había **al menos una mujer** cotilleando junto a una **puerta numerada**`,
+    textEn: `There was **at least one woman** gossiping by a **numbered door**`,
     evalFn: (st) =>
       SUSPECTS.some((s) => s.isCarnivore && st.suspectDoors[s.id].length > 0)
   });
@@ -187,6 +196,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 14,
     text: `**Ninguna mujer** estaba vigilando las **puertas numeradas**`,
+    textEn: `**No woman** was watching the **numbered doors**`,
     evalFn: (st) =>
       SUSPECTS.every((s) => !s.isCarnivore || st.suspectDoors[s.id].length === 0)
   });
@@ -198,6 +208,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 14,
     text: `Había **al menos 2 puertas numeradas** vigiladas por alguien`,
+    textEn: `There were **at least 2 numbered doors** being watched by someone`,
     evalFn: (st) =>
       [1, 2, 3, 4].filter((dNum) => st.doorOccupant[dNum] !== -1).length >= 2
   });
@@ -209,6 +220,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 14,
     text: `Como mucho había **1 puerta numerada** vigilada en toda la oficina`,
+    textEn: `At most **1 numbered door** was being watched in the whole office`,
     evalFn: (st) =>
       [1, 2, 3, 4].filter((dNum) => st.doorOccupant[dNum] !== -1).length <= 1
   });
@@ -220,6 +232,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 15,
     text: `Había **alguien** vigilando una puerta que da al despacho del **sándwich**`,
+    textEn: `**Someone** was watching a door leading to the **sandwich**'s office`,
     evalFn: (st) =>
       roomDoors[vaseRoom].some((dNum) => st.doorOccupant[dNum] !== -1)
   });
@@ -231,6 +244,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 15,
     text: `Las puertas que dan al despacho del **sándwich** estaban **desiertas**`,
+    textEn: `The doors leading to the **sandwich**'s office were **deserted**`,
     evalFn: (st) =>
       roomDoors[vaseRoom].every((dNum) => st.doorOccupant[dNum] === -1)
   });
@@ -247,6 +261,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Umbral',
       weight: 15,
       text: `Una **puerta numerada** conecta mi despacho con el de **${SUSPECTS[otherId].name}**`,
+      textEn: `A **numbered door** connects my office with **${SUSPECTS[otherId].nameEn}**'s`,
       evalFn: (st) => {
         const rm1 = st.suspectRoom[speakerId];
         const rm2 = st.suspectRoom[otherId];
@@ -265,6 +280,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Umbral',
       weight: 14,
       text: `En mi despacho hay **más puertas numeradas** que en el de **${SUSPECTS[otherId].name}**`,
+      textEn: `My office has **more numbered doors** than **${SUSPECTS[otherId].nameEn}**'s`,
       evalFn: (st) =>
         roomDoors[st.suspectRoom[speakerId]].length >
         roomDoors[st.suspectRoom[otherId]].length
@@ -279,6 +295,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 15,
     text: `El **ladrón** estaba apostado junto a una de las **4 puertas numeradas**`,
+    textEn: `The **thief** was stationed next to one of the **4 numbered doors**`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       return st.suspectDoors[thief].length > 0;
@@ -292,6 +309,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 14,
     text: `El **ladrón** evitó ponerse junto a las **puertas numeradas**`,
+    textEn: `The **thief** avoided standing next to the **numbered doors**`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       return st.suspectDoors[thief].length === 0;
@@ -305,6 +323,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 15,
     text: `El **ladrón** vigilaba una **puerta par (2 o 4)**`,
+    textEn: `The **thief** was watching an **even door (2 or 4)**`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       return st.doorOccupant[2] === thief || st.doorOccupant[4] === thief;
@@ -318,6 +337,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 15,
     text: `El **ladrón** vigilaba una **puerta impar (1 o 3)**`,
+    textEn: `The **thief** was watching an **odd door (1 or 3)**`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       return st.doorOccupant[1] === thief || st.doorOccupant[3] === thief;
@@ -331,6 +351,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 15,
     text: `Una **puerta numerada** conecta mi despacho con el del **ladrón**`,
+    textEn: `A **numbered door** connects my office with the **thief**'s`,
     evalFn: (st) => {
       const myRoom = st.suspectRoom[speakerId];
       return [1, 2, 3, 4].some((dNum) => {
@@ -347,6 +368,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Umbral',
     weight: 13,
     text: `**Ninguna puerta numerada** conecta mi despacho con el del **ladrón**`,
+    textEn: `**No numbered door** connects my office with the **thief**'s`,
     evalFn: (st) => {
       const myRoom = st.suspectRoom[speakerId];
       if (myRoom === vaseRoom) return false;
@@ -358,7 +380,7 @@ export function generateCandidateCluesForSuspect(
   });
 
   // ==========================================================================
-  // 2. FACHADA / CARDINAL (12 anchor + 6 board + 8 relational + 6 paranoia)
+  // 2. FACHADA / CARDINAL
   // ==========================================================================
   clues.push({
     id: `facade_north`,
@@ -368,6 +390,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 15,
     text: `Estaba ${isFem ? 'pegada' : 'pegado'} a la fachada **Norte** de la oficina`,
+    textEn: `I was right against the **North** facade of the office`,
     evalFn: (st) => st.suspectRow[speakerId] === 0
   });
 
@@ -379,6 +402,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 15,
     text: `Me quedé junto a la fachada **Sur** de la oficina`,
+    textEn: `I stayed next to the **South** facade of the office`,
     evalFn: (st) => st.suspectRow[speakerId] === 4
   });
 
@@ -390,6 +414,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 15,
     text: `Me encontraba junto a la fachada **Oeste** de la oficina`,
+    textEn: `I was next to the **West** facade of the office`,
     evalFn: (st) => st.suspectCol[speakerId] === 0
   });
 
@@ -401,6 +426,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 15,
     text: `Estaba junto a la fachada **Este** de la oficina`,
+    textEn: `I was next to the **East** facade of the office`,
     evalFn: (st) => st.suspectCol[speakerId] === 4
   });
 
@@ -412,6 +438,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 16,
     text: `Me escaqueé en una de las **4 esquinas exteriores** de la oficina`,
+    textEn: `I hid in one of the **4 outer corners** of the office`,
     evalFn: (st) =>
       (st.suspectRow[speakerId] === 0 || st.suspectRow[speakerId] === 4) &&
       (st.suspectCol[speakerId] === 0 || st.suspectCol[speakerId] === 4)
@@ -425,6 +452,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 15,
     text: `Estaba en el **interior de la oficina**, sin tocar ninguna fachada`,
+    textEn: `I was in the **interior of the office**, not touching any facade`,
     evalFn: (st) =>
       st.suspectRow[speakerId] > 0 &&
       st.suspectRow[speakerId] < 4 &&
@@ -440,6 +468,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 14,
     text: `Estaba ${isFem ? 'sentada' : 'sentado'} en las **2 primeras filas del Norte**`,
+    textEn: `I was sitting in the **first 2 North rows**`,
     evalFn: (st) => st.suspectRow[speakerId] <= 1
   });
 
@@ -451,6 +480,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 14,
     text: `Estaba ${isFem ? 'sentada' : 'sentado'} en las **2 últimas filas del Sur**`,
+    textEn: `I was sitting in the **last 2 South rows**`,
     evalFn: (st) => st.suspectRow[speakerId] >= 3
   });
 
@@ -462,6 +492,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 14,
     text: `Mi sitio estaba en las **2 primeras columnas del Oeste**`,
+    textEn: `My spot was in the **first 2 West columns**`,
     evalFn: (st) => st.suspectCol[speakerId] <= 1
   });
 
@@ -473,6 +504,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 14,
     text: `Mi sitio estaba en las **2 últimas columnas del Este**`,
+    textEn: `My spot was in the **last 2 East columns**`,
     evalFn: (st) => st.suspectCol[speakerId] >= 3
   });
 
@@ -484,6 +516,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 15,
     text: `Mi mesa estaba en el **pasillo central** (**fila o columna del medio**)`,
+    textEn: `My desk was in the **central aisle** (**middle row or column**)`,
     evalFn: (st) => st.suspectRow[speakerId] === 2 || st.suspectCol[speakerId] === 2
   });
 
@@ -495,6 +528,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 15,
     text: `Estaba ${isFem ? 'situada' : 'situado'} en una de las **dos diagonales principales** de la oficina`,
+    textEn: `I was located on one of the **two main diagonals** of the office`,
     evalFn: (st) => {
       const r = st.suspectRow[speakerId];
       const c = st.suspectCol[speakerId];
@@ -510,6 +544,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 13,
     text: `Había **una mujer** junto a la fachada **Norte o Sur**`,
+    textEn: `There was **a woman** next to the **North or South** facade`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) => s.isCarnivore && (st.suspectRow[s.id] === 0 || st.suspectRow[s.id] === 4)
@@ -523,6 +558,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 13,
     text: `Había **una mujer** junto a la fachada **Este u Oeste**`,
+    textEn: `There was **a woman** next to the **East or West** facade`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) => s.isCarnivore && (st.suspectCol[s.id] === 0 || st.suspectCol[s.id] === 4)
@@ -536,6 +572,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 13,
     text: `Había **una mujer** en el **interior de la oficina**, lejos de las fachadas`,
+    textEn: `There was **a woman** in the **interior of the office**, away from the facades`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) =>
@@ -554,6 +591,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 14,
     text: `Había **un hombre** en una de las **4 esquinas exteriores** de la oficina`,
+    textEn: `There was **a man** in one of the **4 outer corners** of the office`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) =>
@@ -572,6 +610,7 @@ export function generateCandidateCluesForSuspect(
     text: isFem
       ? `Las **dos mujeres** de la oficina estábamos en **filas vecinas**`
       : `Las **dos mujeres** de la oficina estaban en **filas vecinas**`,
+    textEn: `The **two women** in the office were in **adjacent rows**`,
     evalFn: (st) => {
       const women = SUSPECTS.filter((s) => s.isCarnivore).map((s) => s.id);
       return Math.abs(st.suspectRow[women[0]] - st.suspectRow[women[1]]) === 1;
@@ -587,6 +626,7 @@ export function generateCandidateCluesForSuspect(
     text: isFem
       ? `Las **dos mujeres** ocupábamos **columnas vecinas**`
       : `Las **dos mujeres** ocupaban **columnas vecinas**`,
+    textEn: `The **two women** occupied **adjacent columns**`,
     evalFn: (st) => {
       const women = SUSPECTS.filter((s) => s.isCarnivore).map((s) => s.id);
       return Math.abs(st.suspectCol[women[0]] - st.suspectCol[women[1]]) === 1;
@@ -605,6 +645,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Fachada',
       weight: 14,
       text: `Yo estaba ${isFem ? 'situada' : 'situado'} más al **Norte** que **${SUSPECTS[otherId].name}**`,
+      textEn: `I was located further **North** than **${SUSPECTS[otherId].nameEn}**`,
       evalFn: (st) => st.suspectRow[speakerId] < st.suspectRow[otherId]
     });
 
@@ -616,6 +657,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Fachada',
       weight: 14,
       text: `Mi sitio estaba más al **Oeste** que el de **${SUSPECTS[otherId].name}**`,
+      textEn: `My spot was further **West** than **${SUSPECTS[otherId].nameEn}**'s`,
       evalFn: (st) => st.suspectCol[speakerId] < st.suspectCol[otherId]
     });
   }
@@ -628,6 +670,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 15,
     text: `El **ladrón** se esconde en las **2 primeras filas del Norte**`,
+    textEn: `The **thief** is hiding in the **first 2 North rows**`,
     evalFn: (st) => st.suspectRow[st.roomSuspect[vaseRoom]] <= 1
   });
 
@@ -638,6 +681,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 15,
     text: `El **ladrón** se esconde en las **2 últimas filas del Sur**`,
+    textEn: `The **thief** is hiding in the **last 2 South rows**`,
     evalFn: (st) => st.suspectRow[st.roomSuspect[vaseRoom]] >= 3
   });
 
@@ -648,6 +692,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 14,
     text: `El **ladrón** estaba junto a una **fachada** de la oficina`,
+    textEn: `The **thief** was next to an office **facade**`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       const r = st.suspectRow[thief];
@@ -663,6 +708,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 15,
     text: `El **ladrón** actuó desde el **interior de la oficina**, lejos de las fachadas`,
+    textEn: `The **thief** acted from the **interior of the office**, away from the facades`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       const r = st.suspectRow[thief];
@@ -678,6 +724,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 14,
     text: `El **ladrón** estaba en una fila más al **Norte** que la mía`,
+    textEn: `The **thief** was in a row further **North** than mine`,
     evalFn: (st) => st.suspectRow[st.roomSuspect[vaseRoom]] < st.suspectRow[speakerId]
   });
 
@@ -688,11 +735,12 @@ export function generateCandidateCluesForSuspect(
     category: 'Fachada',
     weight: 14,
     text: `El **ladrón** estaba en una fila más al **Sur** que la mía`,
+    textEn: `The **thief** was in a row further **South** than mine`,
     evalFn: (st) => st.suspectRow[st.roomSuspect[vaseRoom]] > st.suspectRow[speakerId]
   });
 
   // ==========================================================================
-  // 3. CLAUSTROFOBIA / TAMAÑO (12 anchor + 6 board + 8 relational + 6 paranoia)
+  // 3. CLAUSTROFOBIA / TAMAÑO
   // ==========================================================================
   clues.push({
     id: `self_largest_room`,
@@ -705,6 +753,10 @@ export function generateCandidateCluesForSuspect(
       largestRooms.length === 1
         ? `Me instalé en el **despacho más grande** de la oficina (**${maxSize} casillas**)`
         : `Estaba en uno de los **despachos más grandes** (**${maxSize} casillas**)`,
+    textEn:
+      largestRooms.length === 1
+        ? `I settled in the **largest office** in the building (**${maxSize} tiles**)`
+        : `I was in one of the **largest offices** (**${maxSize} tiles**)`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] === maxSize
   });
 
@@ -719,6 +771,10 @@ export function generateCandidateCluesForSuspect(
       smallestRooms.length === 1
         ? `Me encerraron en el **despacho más pequeño** de la oficina (**${minSize} casillas**)`
         : `Estaba en uno de los **despachos más pequeños** (**${minSize} casillas**)`,
+    textEn:
+      smallestRooms.length === 1
+        ? `They locked me in the **smallest office** in the building (**${minSize} tiles**)`
+        : `I was in one of the **smallest offices** (**${minSize} tiles**)`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] === minSize
   });
 
@@ -730,6 +786,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 12,
     text: `Mi despacho **no es el más grande** de la oficina`,
+    textEn: `My office is **not the largest** in the building`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] < maxSize
   });
 
@@ -741,6 +798,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 12,
     text: `Mi despacho **no es el más pequeño** de la oficina`,
+    textEn: `My office is **not the smallest** in the building`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] > minSize
   });
 
@@ -752,6 +810,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 15,
     text: `Mi despacho mide exactamente **3 casillas**, las conté`,
+    textEn: `My office measures exactly **3 tiles**, I counted them`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] === 3
   });
 
@@ -763,6 +822,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 15,
     text: `Mi despacho mide exactamente **4 casillas**, las conté`,
+    textEn: `My office measures exactly **4 tiles**, I counted them`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] === 4
   });
 
@@ -774,6 +834,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 15,
     text: `Mi despacho mide exactamente **5 casillas**, las conté`,
+    textEn: `My office measures exactly **5 tiles**, I counted them`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] === 5
   });
 
@@ -785,6 +846,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 15,
     text: `Mi despacho es enorme: mide **6 o más casillas**`,
+    textEn: `My office is huge: it measures **6 or more tiles**`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] >= 6
   });
 
@@ -796,6 +858,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 13,
     text: `Mi despacho es amplio, tiene **5 o más casillas**`,
+    textEn: `My office is spacious, it has **5 or more tiles**`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] >= 5
   });
 
@@ -807,6 +870,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 13,
     text: `Mi despacho es compacto, tiene **4 casillas o menos**`,
+    textEn: `My office is compact, it has **4 tiles or fewer**`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] <= 4
   });
 
@@ -818,6 +882,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 13,
     text: `Mi despacho tiene un **número par de casillas**`,
+    textEn: `My office has an **even number of tiles**`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] % 2 === 0
   });
 
@@ -829,6 +894,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 13,
     text: `Mi despacho tiene un **número impar de casillas**`,
+    textEn: `My office has an **odd number of tiles**`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] % 2 !== 0
   });
 
@@ -840,6 +906,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 14,
     text: `Había **una mujer** en un despacho de **${maxSize} casillas** (el tamaño máximo)`,
+    textEn: `There was **a woman** in a **${maxSize}-tile** office (the maximum size)`,
     evalFn: (st) =>
       largestRooms.some((rm) => SUSPECTS[st.roomSuspect[rm]].isCarnivore)
   });
@@ -851,6 +918,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 13,
     text: `Había **un hombre** en un despacho de **${maxSize} casillas** (el tamaño máximo)`,
+    textEn: `There was **a man** in a **${maxSize}-tile** office (the maximum size)`,
     evalFn: (st) =>
       largestRooms.some((rm) => !SUSPECTS[st.roomSuspect[rm]].isCarnivore)
   });
@@ -862,6 +930,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 14,
     text: `Había **una mujer** en un despacho de **${minSize} casillas** (el tamaño mínimo)`,
+    textEn: `There was **a woman** in a **${minSize}-tile** office (the minimum size)`,
     evalFn: (st) =>
       smallestRooms.some((rm) => SUSPECTS[st.roomSuspect[rm]].isCarnivore)
   });
@@ -873,6 +942,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 13,
     text: `Había **un hombre** en un despacho de **${minSize} casillas** (el tamaño mínimo)`,
+    textEn: `There was **a man** in a **${minSize}-tile** office (the minimum size)`,
     evalFn: (st) =>
       smallestRooms.some((rm) => !SUSPECTS[st.roomSuspect[rm]].isCarnivore)
   });
@@ -884,6 +954,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 14,
     text: `Las **dos mujeres** estaban en despachos con un **número par de casillas**`,
+    textEn: `The **two women** were in offices with an **even number of tiles**`,
     evalFn: (st) =>
       SUSPECTS.filter((s) => s.isCarnivore).every(
         (s) => roomSizes[st.suspectRoom[s.id]] % 2 === 0
@@ -897,6 +968,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 14,
     text: `Las **dos mujeres** estaban en despachos con un **número impar de casillas**`,
+    textEn: `The **two women** were in offices with an **odd number of tiles**`,
     evalFn: (st) =>
       SUSPECTS.filter((s) => s.isCarnivore).every(
         (s) => roomSizes[st.suspectRoom[s.id]] % 2 !== 0
@@ -915,6 +987,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Claustrofobia',
       weight: 14,
       text: `Mi despacho tiene **más casillas** que el de **${SUSPECTS[otherId].name}**`,
+      textEn: `My office has **more tiles** than **${SUSPECTS[otherId].nameEn}**'s`,
       evalFn: (st) =>
         roomSizes[st.suspectRoom[speakerId]] > roomSizes[st.suspectRoom[otherId]]
     });
@@ -927,6 +1000,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Claustrofobia',
       weight: 15,
       text: `Mi despacho mide **las mismas casillas** que el de **${SUSPECTS[otherId].name}**`,
+      textEn: `My office has **the same number of tiles** as **${SUSPECTS[otherId].nameEn}**'s`,
       evalFn: (st) =>
         roomSizes[st.suspectRoom[speakerId]] === roomSizes[st.suspectRoom[otherId]]
     });
@@ -940,6 +1014,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 14,
     text: `Mi despacho tiene **más casillas** que el despacho del **ladrón**`,
+    textEn: `My office has **more tiles** than the **thief**'s office`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] > roomSizes[vaseRoom]
   });
 
@@ -950,6 +1025,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 14,
     text: `Mi despacho tiene **menos casillas** que el despacho del **ladrón**`,
+    textEn: `My office has **fewer tiles** than the **thief**'s office`,
     evalFn: (st) => roomSizes[st.suspectRoom[speakerId]] < roomSizes[vaseRoom]
   });
 
@@ -960,6 +1036,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 15,
     text: `Mi despacho mide **las mismas casillas** que el despacho del **ladrón**`,
+    textEn: `My office has **the same number of tiles** as the **thief**'s office`,
     evalFn: (st) =>
       st.suspectRoom[speakerId] !== vaseRoom &&
       roomSizes[st.suspectRoom[speakerId]] === roomSizes[vaseRoom]
@@ -972,6 +1049,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 15,
     text: `Desde su casilla, el **ladrón** tocaba el tabique de un despacho **más grande** que el suyo`,
+    textEn: `From their tile, the **thief** touched the wall of an office **larger** than their own`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       const walls = cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]];
@@ -986,6 +1064,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 15,
     text: `Desde su casilla, el **ladrón** tocaba el tabique de un despacho **más pequeño** que el suyo`,
+    textEn: `From their tile, the **thief** touched the wall of an office **smaller** than their own`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       const walls = cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]];
@@ -1000,6 +1079,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Claustrofobia',
     weight: 15,
     text: `La casilla del **ladrón** tocaba el tabique de un despacho de **${minSize} casillas**`,
+    textEn: `The **thief**'s tile touched the wall of a **${minSize}-tile** office`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       const walls = cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]];
@@ -1008,7 +1088,7 @@ export function generateCandidateCluesForSuspect(
   });
 
   // ==========================================================================
-  // 4. ESCENARIO / TABIQUES (12 anchor + 6 board + 8 relational + 6 paranoia)
+  // 4. ESCENARIO / TABIQUES
   // ==========================================================================
   clues.push({
     id: `touch_many_rooms`,
@@ -1018,6 +1098,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 15,
     text: `Desde mi casilla tocaba los tabiques de **al menos 2 despachos ajenos**`,
+    textEn: `From my tile I touched the walls of **at least 2 other offices**`,
     evalFn: (st) => {
       const r = st.suspectRow[speakerId];
       const c = st.suspectCol[speakerId];
@@ -1033,6 +1114,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 14,
     text: `Desde mi casilla tocaba el tabique de **exactamente 1 despacho ajeno**`,
+    textEn: `From my tile I touched the wall of **exactly 1 other office**`,
     evalFn: (st) => {
       const r = st.suspectRow[speakerId];
       const c = st.suspectCol[speakerId];
@@ -1048,6 +1130,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 15,
     text: `En mi casilla estaba ${isFem ? 'aislada' : 'aislado'}: **no tocaba el tabique** de ningún otro despacho`,
+    textEn: `In my tile I was isolated: **I didn't touch the wall** of any other office`,
     evalFn: (st) => {
       const r = st.suspectRow[speakerId];
       const c = st.suspectCol[speakerId];
@@ -1063,6 +1146,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 15,
     text: `Estaba fuera del despacho del **sándwich**, pero **tocando su tabique**`,
+    textEn: `I was outside the **sandwich**'s office, but **touching its wall**`,
     evalFn: (st) => {
       const r = st.suspectRow[speakerId];
       const c = st.suspectCol[speakerId];
@@ -1078,6 +1162,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 12,
     text: `Estaba fuera del despacho del **sándwich** y **sin tocar su tabique**`,
+    textEn: `I was outside the **sandwich**'s office and **not touching its wall**`,
     evalFn: (st) => {
       const r = st.suspectRow[speakerId];
       const c = st.suspectCol[speakerId];
@@ -1093,6 +1178,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 14,
     text: `Desde mi casilla tocaba el tabique de un despacho de **${maxSize} casillas**`,
+    textEn: `From my tile I touched the wall of a **${maxSize}-tile** office`,
     evalFn: (st) => {
       const r = st.suspectRow[speakerId];
       const c = st.suspectCol[speakerId];
@@ -1108,6 +1194,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 14,
     text: `Desde mi casilla tocaba el tabique de un despacho de **${minSize} casillas**`,
+    textEn: `From my tile I touched the wall of a **${minSize}-tile** office`,
     evalFn: (st) => {
       const r = st.suspectRow[speakerId];
       const c = st.suspectCol[speakerId];
@@ -1117,6 +1204,7 @@ export function generateCandidateCluesForSuspect(
 
   for (let rm = 0; rm < 5; rm++) {
     const rmName = ROOMS[rm].name.toLowerCase();
+    const rmNameEn = ROOMS[rm].nameEn.toLowerCase();
     clues.push({
       id: `touch_wall_of_room_${rm}`,
       role: 'anchor',
@@ -1125,6 +1213,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Escenario',
       weight: 15,
       text: `Estaba fuera del **despacho ${rmName}**, **tocando su tabique**`,
+      textEn: `I was outside the **${rmNameEn} office**, **touching its wall**`,
       evalFn: (st) => {
         const r = st.suspectRow[speakerId];
         const c = st.suspectCol[speakerId];
@@ -1141,6 +1230,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 14,
     text: `Había **una mujer** cuya casilla tocaba los tabiques de **al menos 2 despachos ajenos**`,
+    textEn: `There was **a woman** whose tile touched the walls of **at least 2 other offices**`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) =>
@@ -1156,6 +1246,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 14,
     text: `Había **un hombre** cuya casilla tocaba los tabiques de **al menos 2 despachos ajenos**`,
+    textEn: `There was **a man** whose tile touched the walls of **at least 2 other offices**`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) =>
@@ -1171,6 +1262,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 14,
     text: `Había **alguien** en su despacho que **no tocaba tabiques** de otros despachos`,
+    textEn: `There was **someone** in their office who **didn't touch walls** of other offices`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) => cellTouchesRoomWall[st.suspectRow[s.id]][st.suspectCol[s.id]].size === 0
@@ -1184,6 +1276,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 14,
     text: `**Todos** tocábamos desde nuestra casilla el tabique de **al menos 1 despacho ajeno**`,
+    textEn: `**Everyone** touched the wall of **at least 1 other office** from their tile`,
     evalFn: (st) =>
       SUSPECTS.every(
         (s) => cellTouchesRoomWall[st.suspectRow[s.id]][st.suspectCol[s.id]].size >= 1
@@ -1197,6 +1290,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 14,
     text: `Había **alguien** desde fuera tocando el tabique del despacho del **sándwich**`,
+    textEn: `**Someone** outside was touching the wall of the **sandwich**'s office`,
     evalFn: (st) =>
       SUSPECTS.some((s) =>
         cellTouchesRoomWall[st.suspectRow[s.id]][st.suspectCol[s.id]].has(vaseRoom)
@@ -1210,6 +1304,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 15,
     text: `**Nadie** de los otros despachos tocaba el tabique del despacho del **sándwich**`,
+    textEn: `**Nobody** from the other offices touched the wall of the **sandwich**'s office`,
     evalFn: (st) =>
       !SUSPECTS.some((s) =>
         cellTouchesRoomWall[st.suspectRow[s.id]][st.suspectCol[s.id]].has(vaseRoom)
@@ -1228,6 +1323,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Escenario',
       weight: 15,
       text: `Desde mi sitio tocaba el tabique del despacho de **${SUSPECTS[otherId].name}**`,
+      textEn: `From my spot I touched the wall of **${SUSPECTS[otherId].nameEn}**'s office`,
       evalFn: (st) => {
         const r = st.suspectRow[speakerId];
         const c = st.suspectCol[speakerId];
@@ -1243,6 +1339,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Escenario',
       weight: 15,
       text: `La casilla de **${SUSPECTS[otherId].name}** tocaba el tabique de **mi despacho**`,
+      textEn: `**${SUSPECTS[otherId].nameEn}**'s tile touched the wall of **my office**`,
       evalFn: (st) => {
         const or = st.suspectRow[otherId];
         const oc = st.suspectCol[otherId];
@@ -1259,6 +1356,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 15,
     text: `El **ladrón** tocaba desde su sitio los tabiques de **al menos 2 despachos ajenos**`,
+    textEn: `The **thief** touched the walls of **at least 2 other offices** from their spot`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       return cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]].size >= 2;
@@ -1272,6 +1370,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 14,
     text: `El **ladrón** tocaba como mucho **1 tabique** de otro despacho desde su casilla`,
+    textEn: `The **thief** touched at most **1 wall** of another office from their tile`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       return cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]].size <= 1;
@@ -1285,6 +1384,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 15,
     text: `El **ladrón** estaba en el interior de su despacho, **sin tocar tabiques ajenos**`,
+    textEn: `The **thief** was deep inside their office, **not touching other walls**`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       return cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]].size === 0;
@@ -1298,6 +1398,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 14,
     text: `La casilla del **ladrón** estaba pegada al **tabique de otro despacho**`,
+    textEn: `The **thief**'s tile was right against the **wall of another office**`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       return cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]].size >= 1;
@@ -1311,6 +1412,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 15,
     text: `La casilla del **ladrón** tocaba directamente el tabique de **mi despacho**`,
+    textEn: `The **thief**'s tile directly touched the wall of **my office**`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       return cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]].has(
@@ -1326,6 +1428,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Escenario',
     weight: 14,
     text: `Desde su casilla, el **ladrón** **no tocaba el tabique** de mi despacho`,
+    textEn: `From their tile, the **thief** **didn't touch the wall** of my office`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       return !cellTouchesRoomWall[st.suspectRow[thief]][st.suspectCol[thief]].has(
@@ -1335,7 +1438,7 @@ export function generateCandidateCluesForSuspect(
   });
 
   // ==========================================================================
-  // 5. SANDWICH / CRIMEN (12 anchor + 6 board + 16 relational + 6 paranoia)
+  // 5. SANDWICH / CRIMEN
   // ==========================================================================
   clues.push({
     id: `adj_to_vase_orth`,
@@ -1345,6 +1448,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 16,
     text: `Mi casilla tocaba por un **lado** (no en diagonal) al **sándwich**`,
+    textEn: `My tile touched the **sandwich** by a **side** (not diagonally)`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) +
         Math.abs(st.suspectCol[speakerId] - vasePos.c) ===
@@ -1359,6 +1463,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 16,
     text: `Mi casilla tocaba **en diagonal** la casilla del **sándwich**`,
+    textEn: `My tile touched the **sandwich**'s tile **diagonally**`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) === 1 &&
       Math.abs(st.suspectCol[speakerId] - vasePos.c) === 1
@@ -1372,6 +1477,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 15,
     text: `Estaba en una casilla que **rodea** al **sándwich** (por lado o diagonal)`,
+    textEn: `I was on a tile **surrounding** the **sandwich** (by side or diagonally)`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) <= 1 &&
       Math.abs(st.suspectCol[speakerId] - vasePos.c) <= 1
@@ -1385,6 +1491,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 16,
     text: `Estaba en la **misma fila horizontal** que el **sándwich**`,
+    textEn: `I was in the **same horizontal row** as the **sandwich**`,
     evalFn: (st) => st.suspectRow[speakerId] === vasePos.r
   });
 
@@ -1396,6 +1503,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 16,
     text: `Estaba en la **misma columna vertical** que el **sándwich**`,
+    textEn: `I was in the **same vertical column** as the **sandwich**`,
     evalFn: (st) => st.suspectCol[speakerId] === vasePos.c
   });
 
@@ -1407,6 +1515,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 16,
     text: `Mi casilla y la del **sándwich** estaban a un **salto de L**`,
+    textEn: `My tile and the **sandwich**'s were an **L-jump** apart`,
     evalFn: (st) =>
       Math.abs(st.suspectRow[speakerId] - vasePos.r) *
         Math.abs(st.suspectCol[speakerId] - vasePos.c) ===
@@ -1421,6 +1530,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 15,
     text: `Mi fila era **vecina** (arriba o abajo) a la fila del **sándwich**`,
+    textEn: `My row was **adjacent** (above or below) to the **sandwich**'s row`,
     evalFn: (st) => Math.abs(st.suspectRow[speakerId] - vasePos.r) === 1
   });
 
@@ -1432,6 +1542,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 15,
     text: `Mi columna era **vecina** (izquierda o derecha) a la del **sándwich**`,
+    textEn: `My column was **adjacent** (left or right) to the **sandwich**'s`,
     evalFn: (st) => Math.abs(st.suspectCol[speakerId] - vasePos.c) === 1
   });
 
@@ -1443,6 +1554,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 14,
     text: `Estaba en una fila más al **Norte** que la del **sándwich**`,
+    textEn: `I was in a row further **North** than the **sandwich**'s`,
     evalFn: (st) => st.suspectRow[speakerId] < vasePos.r
   });
 
@@ -1454,6 +1566,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 14,
     text: `Estaba en una fila más al **Sur** que la del **sándwich**`,
+    textEn: `I was in a row further **South** than the **sandwich**'s`,
     evalFn: (st) => st.suspectRow[speakerId] > vasePos.r
   });
 
@@ -1465,6 +1578,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 14,
     text: `Estaba en una columna más al **Oeste** que la del **sándwich**`,
+    textEn: `I was in a column further **West** than the **sandwich**'s`,
     evalFn: (st) => st.suspectCol[speakerId] < vasePos.c
   });
 
@@ -1476,6 +1590,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 14,
     text: `Estaba en una columna más al **Este** que la del **sándwich**`,
+    textEn: `I was in a column further **East** than the **sandwich**'s`,
     evalFn: (st) => st.suspectCol[speakerId] > vasePos.c
   });
 
@@ -1487,6 +1602,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 14,
     text: `Había **una mujer** en la **misma fila o columna** que el **sándwich**`,
+    textEn: `There was **a woman** in the **same row or column** as the **sandwich**`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) =>
@@ -1502,6 +1618,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 13,
     text: `Había **un hombre** en la **misma fila o columna** que el **sándwich**`,
+    textEn: `There was **a man** in the **same row or column** as the **sandwich**`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) =>
@@ -1517,6 +1634,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 14,
     text: `Había **alguien** en las casillas que **rodean** al **sándwich** (lado o diagonal)`,
+    textEn: `There was **someone** on the tiles **surrounding** the **sandwich** (side or diagonal)`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) =>
@@ -1532,6 +1650,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 15,
     text: `No había **nadie** en las casillas que **rodean** al **sándwich** (lado o diagonal)`,
+    textEn: `There was **nobody** on the tiles **surrounding** the **sandwich** (side or diagonal)`,
     evalFn: (st) =>
       !SUSPECTS.some(
         (s) =>
@@ -1547,6 +1666,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 14,
     text: `Había **una mujer** en una de las casillas que **rodean** al **sándwich**`,
+    textEn: `There was **a woman** on one of the tiles **surrounding** the **sandwich**`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) =>
@@ -1563,6 +1683,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 14,
     text: `Había **un hombre** en una de las casillas que **rodean** al **sándwich**`,
+    textEn: `There was **a man** on one of the tiles **surrounding** the **sandwich**`,
     evalFn: (st) =>
       SUSPECTS.some(
         (s) =>
@@ -1572,7 +1693,7 @@ export function generateCandidateCluesForSuspect(
       )
   });
 
-  // Relational (16: 4 puentes x 4 sospechosos)
+  // Relational (16)
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
 
@@ -1584,6 +1705,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Sandwich',
       weight: 16,
       text: `La fila del **sándwich** quedaba **entre** mi fila y la de **${SUSPECTS[otherId].name}**`,
+      textEn: `The **sandwich**'s row was **between** my row and **${SUSPECTS[otherId].nameEn}**'s`,
       evalFn: (st) =>
         (st.suspectRow[speakerId] < vasePos.r && vasePos.r < st.suspectRow[otherId]) ||
         (st.suspectRow[otherId] < vasePos.r && vasePos.r < st.suspectRow[speakerId])
@@ -1597,6 +1719,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Sandwich',
       weight: 16,
       text: `La columna del **sándwich** quedaba **entre** mi columna y la de **${SUSPECTS[otherId].name}**`,
+      textEn: `The **sandwich**'s column was **between** my column and **${SUSPECTS[otherId].nameEn}**'s`,
       evalFn: (st) =>
         (st.suspectCol[speakerId] < vasePos.c && vasePos.c < st.suspectCol[otherId]) ||
         (st.suspectCol[otherId] < vasePos.c && vasePos.c < st.suspectCol[speakerId])
@@ -1610,6 +1733,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Sandwich',
       weight: 14,
       text: `Mi fila estaba **más próxima en vertical** al **sándwich** que la de **${SUSPECTS[otherId].name}**`,
+      textEn: `My row was **closer vertically** to the **sandwich** than **${SUSPECTS[otherId].nameEn}**'s`,
       evalFn: (st) =>
         Math.abs(st.suspectRow[speakerId] - vasePos.r) <
         Math.abs(st.suspectRow[otherId] - vasePos.r)
@@ -1623,6 +1747,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Sandwich',
       weight: 14,
       text: `Mi columna estaba **más próxima en horizontal** al **sándwich** que la de **${SUSPECTS[otherId].name}**`,
+      textEn: `My column was **closer horizontally** to the **sandwich** than **${SUSPECTS[otherId].nameEn}**'s`,
       evalFn: (st) =>
         Math.abs(st.suspectCol[speakerId] - vasePos.c) <
         Math.abs(st.suspectCol[otherId] - vasePos.c)
@@ -1636,11 +1761,11 @@ export function generateCandidateCluesForSuspect(
       category: 'Sandwich',
       weight: 15,
       text: `¡**${SUSPECTS[otherId].name}** **miente**, tiene migas de **sándwich**!`,
+      textEn: `**${SUSPECTS[otherId].nameEn}** **is lying**, they have **sandwich** crumbs!`,
       evalFn: (st) => st.suspectRoom[otherId] === vaseRoom
     });
   }
 
-  // Paranoia adicionales de Sandwich (2 + 4 accuse = 6)
   clues.push({
     id: `thief_surrounding_vase`,
     role: 'paranoia',
@@ -1648,6 +1773,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 15,
     text: `El **ladrón** estaba en una casilla que **rodea** al **sándwich** (lado o diagonal)`,
+    textEn: `The **thief** was on a tile **surrounding** the **sandwich** (side or diagonal)`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       return (
@@ -1664,6 +1790,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Sandwich',
     weight: 15,
     text: `El **ladrón** compartía **fila o columna** con la casilla del **sándwich**`,
+    textEn: `The **thief** shared a **row or column** with the **sandwich**'s tile`,
     evalFn: (st) => {
       const thief = st.roomSuspect[vaseRoom];
       return (
@@ -1673,10 +1800,11 @@ export function generateCandidateCluesForSuspect(
   });
 
   // ==========================================================================
-  // 6. DESPACHO / GÉNERO (10 anchor + 10 board + 12 relational + 6 paranoia)
+  // 6. DESPACHO / GÉNERO
   // ==========================================================================
   for (let rm = 0; rm < 5; rm++) {
     const rmName = ROOMS[rm].name.toLowerCase();
+    const rmNameEn = ROOMS[rm].nameEn.toLowerCase();
 
     clues.push({
       id: `self_in_room_${rm}`,
@@ -1686,6 +1814,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Despacho',
       weight: 13,
       text: `Yo estaba trabajando tranquilamente en el **despacho ${rmName}**`,
+      textEn: `I was working quietly in the **${rmNameEn} office**`,
       evalFn: (st) => st.suspectRoom[speakerId] === rm
     });
 
@@ -1697,6 +1826,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Despacho',
       weight: 12,
       text: `Yo **no pisé** el **despacho ${rmName}** en toda la mañana`,
+      textEn: `I **didn't step into** the **${rmNameEn} office** all morning`,
       evalFn: (st) => st.suspectRoom[speakerId] !== rm
     });
 
@@ -1707,6 +1837,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Despacho',
       weight: 13,
       text: `El **despacho ${rmName}** lo ocupaba **una mujer**`,
+      textEn: `The **${rmNameEn} office** was occupied by **a woman**`,
       evalFn: (st) => SUSPECTS[st.roomSuspect[rm]].isCarnivore
     });
 
@@ -1717,6 +1848,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Despacho',
       weight: 12,
       text: `El **despacho ${rmName}** lo ocupaba **un hombre**`,
+      textEn: `The **${rmNameEn} office** was occupied by **a man**`,
       evalFn: (st) => !SUSPECTS[st.roomSuspect[rm]].isCarnivore
     });
   }
@@ -1732,6 +1864,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Despacho',
       weight: 16,
       text: `Mi casilla y la de **${SUSPECTS[otherId].name}** estaban a **salto de caballo (en L)**`,
+      textEn: `My tile and **${SUSPECTS[otherId].nameEn}**'s were a **knight's move (L-jump)** apart`,
       evalFn: (st) =>
         Math.abs(st.suspectRow[speakerId] - st.suspectRow[otherId]) *
           Math.abs(st.suspectCol[speakerId] - st.suspectCol[otherId]) ===
@@ -1746,6 +1879,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Despacho',
       weight: 15,
       text: `Tanto **${SUSPECTS[otherId].name}** como yo estábamos en despachos fríos (**azul**, **verde** o **morado**)`,
+      textEn: `Both **${SUSPECTS[otherId].nameEn}** and I were in cool offices (**blue**, **green** or **purple**)`,
       evalFn: (st) => {
         const cool = [0, 2, 4];
         return (
@@ -1763,6 +1897,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Despacho',
       weight: 15,
       text: `Tanto **${SUSPECTS[otherId].name}** como yo estábamos en despachos cálidos (**rojo** o **amarillo**)`,
+      textEn: `Both **${SUSPECTS[otherId].nameEn}** and I were in warm offices (**red** or **yellow**)`,
       evalFn: (st) => {
         const warm = [1, 3];
         return (
@@ -1780,6 +1915,7 @@ export function generateCandidateCluesForSuspect(
       category: 'Despacho',
       weight: 13,
       text: `Pongo la mano en el fuego por **${SUSPECTS[otherId].name}**: **dice la verdad**`,
+      textEn: `I vouch for **${SUSPECTS[otherId].nameEn}**: **they are telling the truth**`,
       evalFn: (st) => st.suspectRoom[otherId] !== vaseRoom
     });
   }
@@ -1791,6 +1927,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Despacho',
     weight: 15,
     text: `El **ladrón** del almuerzo es **una mujer**, la vi abrir el tupper`,
+    textEn: `The lunch **thief** is **a woman**, I saw her open the lunchbox`,
     evalFn: (st) => SUSPECTS[st.roomSuspect[vaseRoom]].isCarnivore
   });
 
@@ -1801,6 +1938,7 @@ export function generateCandidateCluesForSuspect(
     category: 'Despacho',
     weight: 14,
     text: `Quien se zampó el **sándwich** es **un hombre**`,
+    textEn: `Whoever ate the **sandwich** is **a man**`,
     evalFn: (st) => !SUSPECTS[st.roomSuspect[vaseRoom]].isCarnivore
   });
 
