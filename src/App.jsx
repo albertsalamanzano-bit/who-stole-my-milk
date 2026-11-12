@@ -332,20 +332,32 @@ const shuffle = (array, rng = Math.random) => {
   return arr;
 };
 
-const COMPLEMENTARY_TRIO_PAIRS = [
-  [['Umbral', 'Fachada', 'Claustrofobia'], ['Escenario', 'Sandwich', 'Despacho']],
-  [['Umbral', 'Fachada', 'Escenario'],     ['Claustrofobia', 'Sandwich', 'Despacho']],
-  [['Umbral', 'Fachada', 'Sandwich'],      ['Claustrofobia', 'Escenario', 'Despacho']],
-  [['Umbral', 'Fachada', 'Despacho'],      ['Claustrofobia', 'Escenario', 'Sandwich']],
-  [['Umbral', 'Claustrofobia', 'Escenario'],['Fachada', 'Sandwich', 'Despacho']],
-  [['Umbral', 'Claustrofobia', 'Sandwich'],['Fachada', 'Escenario', 'Despacho']],
-  [['Umbral', 'Claustrofobia', 'Despacho'],['Fachada', 'Escenario', 'Sandwich']],
-  [['Umbral', 'Escenario', 'Sandwich'],    ['Fachada', 'Claustrofobia', 'Despacho']],
-  [['Umbral', 'Escenario', 'Despacho'],    ['Fachada', 'Claustrofobia', 'Sandwich']],
-  [['Umbral', 'Sandwich', 'Despacho'],     ['Fachada', 'Claustrofobia', 'Escenario']]
+// 15 combinaciones posibles de 2 categorías agrupadas en 5 bloques disjuntos de 3 días (rotación de las 6 categorías cada 3 días)
+const COMPLEMENTARY_PAIR_SETS = [
+  [['Umbral', 'Fachada'],       ['Claustrofobia', 'Escenario'], ['Sandwich', 'Despacho']],
+  [['Umbral', 'Claustrofobia'], ['Fachada', 'Sandwich'],        ['Escenario', 'Despacho']],
+  [['Umbral', 'Escenario'],     ['Fachada', 'Despacho'],        ['Claustrofobia', 'Sandwich']],
+  [['Umbral', 'Sandwich'],      ['Fachada', 'Claustrofobia'],   ['Escenario', 'Despacho']],
+  [['Umbral', 'Despacho'],      ['Fachada', 'Escenario'],       ['Claustrofobia', 'Sandwich']]
 ];
 
-const ALL_CATEGORY_TRIOS = COMPLEMENTARY_TRIO_PAIRS.flat();
+const ALL_CATEGORY_PAIRS = [
+  ['Umbral', 'Fachada'],
+  ['Umbral', 'Claustrofobia'],
+  ['Umbral', 'Escenario'],
+  ['Umbral', 'Sandwich'],
+  ['Umbral', 'Despacho'],
+  ['Fachada', 'Claustrofobia'],
+  ['Fachada', 'Escenario'],
+  ['Fachada', 'Sandwich'],
+  ['Fachada', 'Despacho'],
+  ['Claustrofobia', 'Escenario'],
+  ['Claustrofobia', 'Sandwich'],
+  ['Claustrofobia', 'Despacho'],
+  ['Escenario', 'Sandwich'],
+  ['Escenario', 'Despacho'],
+  ['Sandwich', 'Despacho']
+];
 
 function getDailyConfig(date = new Date()) {
   const epoch = new Date(2026, 0, 1).setHours(0, 0, 0, 0);
@@ -357,16 +369,16 @@ function getDailyConfig(date = new Date()) {
   const d = String(date.getDate()).padStart(2, '0');
   const dateSeed = parseInt(`${y}${m}${d}`, 10);
 
-  const cycleNumber = Math.floor(dayIndex / 20);
-  const dayInCycle = dayIndex % 20;
+  const cycleNumber = Math.floor(dayIndex / 15);
+  const dayInCycle = dayIndex % 15;
   const cycleRng = createPrng(cycleNumber + 77777);
 
-  const shuffledPairs = shuffle(COMPLEMENTARY_TRIO_PAIRS, cycleRng);
-  const pairIdx = Math.floor(dayInCycle / 2);
-  const isSecondOfPair = dayInCycle % 2;
+  const shuffledSets = shuffle(COMPLEMENTARY_PAIR_SETS, cycleRng);
+  const setIdx = Math.floor(dayInCycle / 3);
+  const posInSet = dayInCycle % 3;
 
-  const pairOrder = cycleRng() < 0.5 ? [0, 1] : [1, 0];
-  const dailyCategories = shuffledPairs[pairIdx][pairOrder[isSecondOfPair]];
+  const shuffledGroup = shuffle(shuffledSets[setIdx], cycleRng);
+  const dailyCategories = shuffledGroup[posInSet];
 
   return {
     dayNumber: dayIndex + 1,
@@ -2095,7 +2107,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   }));
 }
 
-function generateCompleteLevel(enabledCategories = null, seed = null) {
+function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = false) {
   // Si no se pasa semilla (modo aleatorio), creamos una de 6 dígitos para poder compartirla
   const actualSeed =
     seed !== null ? seed : Math.floor(100000 + Math.random() * 900000);
@@ -2103,15 +2115,15 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
   const startTime = performance.now();
   let mapAttempts = 0;
 
-  // Tanto el modo diario como el modo aleatorio escogen un trío de 3 categorías de pistas
+  // Tanto el modo diario como el modo aleatorio escogen siempre un par (2) de categorías de pistas
   const categoriesToUse =
-    enabledCategories && enabledCategories.length === 3
+    enabledCategories && enabledCategories.length === 2
       ? enabledCategories
-      : ALL_CATEGORY_TRIOS[Math.floor(rng() * ALL_CATEGORY_TRIOS.length)];
+      : ALL_CATEGORY_PAIRS[Math.floor(rng() * ALL_CATEGORY_PAIRS.length)];
 
   const activeCatSet = new Set(categoriesToUse);
 
-  while (mapAttempts < 280) {
+  while (mapAttempts < 500) {
     mapAttempts++;
 
     const solGeoIdx = Math.floor(rng() * BASE_GEOMETRIES.length);
@@ -2123,7 +2135,13 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
 
     const survivingGeos = getSurvivingGeometries(grid, vasePos);
     const K = survivingGeos.length;
-    if (K < 2 || K > 6) continue;
+
+    // Reto Diario fijo en K = 3 (con fallback tras 350 intentos); Aleatorio entre 2 y 6
+    if (isDaily) {
+      if (mapAttempts < 350 ? K !== 3 : K < 2 || K > 4) continue;
+    } else {
+      if (K < 2 || K > 6) continue;
+    }
 
     const doors = placeStrategicDoors(grid, vasePos, survivingGeos, rng);
     if (!doors) continue;
@@ -2341,9 +2359,9 @@ function generateCompleteLevel(enabledCategories = null, seed = null) {
         survivors.length === 1 &&
         survivors[0] === trueStateIdx
       ) {
-        // GARANTÍA 3: Las 3 categorías del trío están presentes y Analista lleva un ancla afirmativa
+        // GARANTÍA 3: Las 2 categorías elegidas están presentes y Analista lleva un ancla afirmativa
         if (
-          usedCategories.size === 3 &&
+          usedCategories.size === 2 &&
           pickBySuspect[0].role === 'anchor' &&
           pickBySuspect[0].isStrongAnchor &&
           anchorCount >= 2 &&
@@ -2483,10 +2501,10 @@ export default function App() {
 
   const [level, setLevel] = useState(() => {
     if (!initialSession.isDaily && initialSession.randomSeed !== null) {
-      const randomLvl = generateCompleteLevel(null, initialSession.randomSeed);
+      const randomLvl = generateCompleteLevel(null, initialSession.randomSeed, false);
       if (randomLvl) return randomLvl;
     }
-    return generateCompleteLevel(dailyConfig.categories, dailyConfig.seed);
+    return generateCompleteLevel(dailyConfig.categories, dailyConfig.seed, true);
   });
 
   const activeStorageKey = useMemo(() => {
@@ -2723,7 +2741,11 @@ export default function App() {
       return;
     }
 
-    const nextLevel = generateCompleteLevel(dailyConfig.categories, dailyConfig.seed);
+    const nextLevel = generateCompleteLevel(
+      dailyConfig.categories,
+      dailyConfig.seed,
+      true
+    );
     if (!nextLevel) return;
 
     if (typeof window !== 'undefined') {
@@ -2758,7 +2780,7 @@ export default function App() {
   }, [isDailyMode, dailyConfig, dailyStorageKey]);
 
   const handleNewRandomLevel = useCallback(() => {
-    const nextLevel = generateCompleteLevel();
+    const nextLevel = generateCompleteLevel(null, null, false);
     if (nextLevel) {
       if (typeof window !== 'undefined') {
         window.history.replaceState(
@@ -3049,7 +3071,7 @@ export default function App() {
                 : 'bg-white border-neutral-200 hover:border-neutral-400 text-neutral-800 shadow-2xs'
             }`}
           >
-            <Menu className="w-4 h-4"/>
+            <Menu className="w-4 h-4" />
           </button>
 
           <h1 className="font-sans text-[clamp(0.95rem,4.2vw,1.12rem)] font-black tracking-tight leading-tight flex items-center justify-center gap-1.5 min-w-0 text-center px-0.5">
@@ -3084,7 +3106,7 @@ export default function App() {
                 title="Compartir resultado"
                 className={`p-1.5 rounded-lg font-black text-[10px] flex items-center justify-center transition cursor-pointer ${primaryActionBtnClass}`}
               >
-                <Share2 className="w-3.5 h-3.5"/>
+                <Share2 className="w-3.5 h-3.5" />
               </button>
             )}
 
@@ -3100,7 +3122,7 @@ export default function App() {
                 title="Ver Ranking"
                 className="p-1.5 rounded-lg border border-amber-400 bg-amber-400 hover:bg-amber-500 text-white transition cursor-pointer flex items-center justify-center shadow-2xs"
               >
-                <Trophy className="w-3.5 h-3.5 text-white"/>
+                <Trophy className="w-3.5 h-3.5 text-white" />
               </button>
             )}
 
@@ -3323,7 +3345,7 @@ export default function App() {
                 </div>
               ) : (
                 <div className="flex items-center gap-1.5 text-[11px]">
-                  <Check className="w-3.5 h-3.5 text-emerald-500"/>
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
                   <span className={`font-bold ${subTextClass}`}>
                     ¡Caso #{level.caseNumber} resuelto!
                   </span>
@@ -3335,7 +3357,7 @@ export default function App() {
                 onClick={handleNewRandomLevel}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-black flex items-center gap-1 transition cursor-pointer ${primaryActionBtnClass}`}
               >
-                <Shuffle className="w-3 h-3"/>
+                <Shuffle className="w-3 h-3" />
                 <span>Otro robo</span>
               </button>
             </div>
@@ -3397,7 +3419,7 @@ export default function App() {
                 : 'bg-white border-neutral-300 text-neutral-800 hover:bg-neutral-100 shadow-2xs cursor-pointer active:scale-95'
             }`}
           >
-            <RotateCcw className="w-3 h-3"/>
+            <RotateCcw className="w-3 h-3" />
             <span>Limpiar mesa</span>
           </button>
         </div>
@@ -3566,7 +3588,7 @@ export default function App() {
                 }`}
               >
                 {effectiveSuspectedLiar === activeSuspect && (
-                  <Check className="w-2.5 h-2.5 stroke-[3]"/>
+                  <Check className="w-2.5 h-2.5 stroke-[3]" />
                 )}
               </span>
               <span>Mentiroso</span>
@@ -3630,7 +3652,7 @@ export default function App() {
                     : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
                 }`}
               >
-                <X className="w-4 h-4"/>
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -3740,7 +3762,7 @@ export default function App() {
                     : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
                 }`}
               >
-                <X className="w-4 h-4"/>
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -3759,7 +3781,7 @@ export default function App() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Calendar className="w-5 h-5 shrink-0"/>
+                  <Calendar className="w-5 h-5 shrink-0" />
                   <div>
                     <div className="text-xs font-black">Reto del Día</div>
                     <div
@@ -3796,7 +3818,7 @@ export default function App() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <Shuffle className="w-5 h-5 shrink-0"/>
+                  <Shuffle className="w-5 h-5 shrink-0" />
                   <div>
                     <div className="text-xs font-black">Generar crimen</div>
                     <div
@@ -3833,7 +3855,7 @@ export default function App() {
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <HelpCircle className="w-5 h-5 shrink-0"/>
+                  <HelpCircle className="w-5 h-5 shrink-0" />
                   <div>
                     <div className="text-xs font-black">Reglas / Cómo se juega</div>
                     <div className={`text-[11px] ${subTextClass}`}>
@@ -3898,7 +3920,7 @@ export default function App() {
                     : 'bg-neutral-100 border-neutral-200 text-neutral-500 hover:text-neutral-900'
                 }`}
               >
-                <X className="w-4 h-4"/>
+                <X className="w-4 h-4" />
               </button>
             </div>
 
@@ -3936,7 +3958,7 @@ export default function App() {
                   }`}
                 >
                   <span className="w-4 h-4 rounded bg-amber-400 flex items-center justify-center shrink-0">
-                    <Trophy className="w-2.5 h-2.5 text-white"/>
+                    <Trophy className="w-2.5 h-2.5 text-white" />
                   </span>
                   <span>Ranking</span>
                 </button>
@@ -3987,7 +4009,7 @@ export default function App() {
                     onClick={handleNativeOrWhatsAppShare}
                     className={`w-full py-2.5 px-4 rounded-xl font-black text-xs flex items-center justify-center gap-2 transition cursor-pointer shadow-sm ${primaryActionBtnClass}`}
                   >
-                    <Share2 className="w-4 h-4"/>
+                    <Share2 className="w-4 h-4" />
                     <span>Presumir en el grupo</span>
                   </button>
 
@@ -4003,12 +4025,12 @@ export default function App() {
                     >
                       {copiedShare ? (
                         <>
-                          <Check className="w-3.5 h-3.5 text-emerald-500"/>
+                          <Check className="w-3.5 h-3.5 text-emerald-500" />
                           <span>¡Copiado!</span>
                         </>
                       ) : (
                         <>
-                          <Copy className="w-3.5 h-3.5"/>
+                          <Copy className="w-3.5 h-3.5" />
                           <span>Copiar informe</span>
                         </>
                       )}
@@ -4023,7 +4045,7 @@ export default function App() {
                           : 'bg-neutral-100 hover:bg-neutral-200 text-neutral-800 border-neutral-300'
                       }`}
                     >
-                      <Sparkles className="w-3.5 h-3.5"/>
+                      <Sparkles className="w-3.5 h-3.5" />
                       <span>Otro robo</span>
                     </button>
                   </div>
@@ -4055,7 +4077,7 @@ export default function App() {
                         : 'bg-neutral-100 border-neutral-200 hover:bg-neutral-200 text-neutral-800'
                     }`}
                   >
-                    <History className="w-3.5 h-3.5 text-amber-400"/>
+                    <History className="w-3.5 h-3.5 text-amber-400" />
                     <span>
                       {leaderboardDay === 'today'
                         ? 'Ver ranking de ayer'
@@ -4102,7 +4124,7 @@ export default function App() {
                         disabled={isSubmittingScore}
                         className={`px-3 py-2 rounded-xl font-black text-xs flex items-center justify-center gap-1.5 transition cursor-pointer shrink-0 ${primaryActionBtnClass}`}
                       >
-                        <Send className="w-3.5 h-3.5 shrink-0"/>
+                        <Send className="w-3.5 h-3.5 shrink-0" />
                         <span>
                           {isSubmittingScore ? '...' : 'Guardar'}
                         </span>
@@ -4205,7 +4227,7 @@ export default function App() {
         </div>
       )}
 
-      <Analytics/>
+      <Analytics />
     </div>
   );
 }
