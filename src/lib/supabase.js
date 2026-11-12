@@ -21,7 +21,13 @@ export const BAD_WORDS = [
   'maricon',
   'maricón',
   'zorra',
-  'subnormal'
+  'subnormal',
+  'fuck',
+  'shit',
+  'bitch',
+  'asshole',
+  'cunt',
+  'dick'
 ];
 
 export function sanitizeText(str) {
