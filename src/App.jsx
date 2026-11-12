@@ -735,7 +735,6 @@ function getClueRole(clue) {
   return 'relational';
 }
 
-// Genera pistas compensadas por categoría (12 anchor, 6-10 board, 8 relational, 6 paranoia)
 function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, doors, topo) {
   const clues = [];
   const speaker = SUSPECTS[speakerId];
@@ -752,7 +751,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   } = topo;
 
   // ==========================================================================
-  // 1. UMBRAL / PUERTAS (32 pistas: 12 anchor + 6 board + 8 relational + 6 paranoia)
+  // 1. UMBRAL / PUERTAS (12 anchor + 8 board + 8 relational + 6 paranoia)
   // ==========================================================================
   for (let dNum = 1; dNum <= 4; dNum++) {
     clues.push({
@@ -822,7 +821,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     evalFn: (st) => roomDoors[st.suspectRoom[speakerId]].length === 1
   });
 
-  // Board (6)
+  // Board (8)
   clues.push({
     id: `even_doors_empty`,
     role: 'board',
@@ -887,7 +886,29 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       [1, 2, 3, 4].filter((dNum) => st.doorOccupant[dNum] !== -1).length <= 1
   });
 
-  // Relational (8: 2 puentes reales x 4 sospechosos)
+  clues.push({
+    id: `crime_room_door_occupied`,
+    role: 'board',
+    family: 'board_crime_doors',
+    category: 'Umbral',
+    weight: 15,
+    text: `Había **alguien** vigilando una puerta que da al despacho del **sándwich**`,
+    evalFn: (st) =>
+      roomDoors[vaseRoom].some((dNum) => st.doorOccupant[dNum] !== -1)
+  });
+
+  clues.push({
+    id: `crime_room_doors_empty`,
+    role: 'board',
+    family: 'board_crime_doors',
+    category: 'Umbral',
+    weight: 15,
+    text: `Las puertas que dan al despacho del **sándwich** estaban **desiertas**`,
+    evalFn: (st) =>
+      roomDoors[vaseRoom].every((dNum) => st.doorOccupant[dNum] === -1)
+  });
+
+  // Relational (8)
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
 
@@ -1010,7 +1031,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   // ==========================================================================
-  // 2. FACHADA / CARDINAL (32 pistas: 12 anchor + 6 board + 8 relational + 6 paranoia)
+  // 2. FACHADA / CARDINAL (12 anchor + 6 board + 8 relational + 6 paranoia)
   // ==========================================================================
   clues.push({
     id: `facade_north`,
@@ -1245,7 +1266,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     }
   });
 
-  // Relational (8: 2 puentes reales x 4 sospechosos)
+  // Relational (8)
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
 
@@ -1344,7 +1365,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   // ==========================================================================
-  // 3. CLAUSTROFOBIA / TAMAÑO (32 pistas: 12 anchor + 6 board + 8 relational + 6 paranoia)
+  // 3. CLAUSTROFOBIA / TAMAÑO (12 anchor + 6 board + 8 relational + 6 paranoia)
   // ==========================================================================
   clues.push({
     id: `self_largest_room`,
@@ -1555,7 +1576,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       )
   });
 
-  // Relational (8: 2 puentes reales x 4 sospechosos)
+  // Relational (8)
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
 
@@ -1584,7 +1605,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     });
   }
 
-  // Paranoia (6: ninguna es una constante visual del mapa)
+  // Paranoia (6)
   clues.push({
     id: `my_room_bigger_than_thief`,
     role: 'paranoia',
@@ -1660,7 +1681,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   // ==========================================================================
-  // 4. ESCENARIO / TABIQUES (32 pistas: 12 anchor + 6 board + 8 relational + 6 paranoia)
+  // 4. ESCENARIO / TABIQUES (12 anchor + 6 board + 8 relational + 6 paranoia)
   // ==========================================================================
   clues.push({
     id: `touch_many_rooms`,
@@ -1868,7 +1889,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       )
   });
 
-  // Relational (8: 2 puentes reales x 4 sospechosos)
+  // Relational (8)
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
 
@@ -1987,7 +2008,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   // ==========================================================================
-  // 5. SANDWICH / CRIMEN (32 pistas: 12 anchor + 6 board + 8 relational + 6 paranoia)
+  // 5. SANDWICH / CRIMEN (12 anchor + 6 board + 16 relational + 6 paranoia)
   // ==========================================================================
   clues.push({
     id: `adj_to_vase_orth`,
@@ -2222,9 +2243,35 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       )
   });
 
-  // Relational (8: 2 puentes reales x 4 sospechosos comparando distancia de fila/columna al sándwich)
+  // Relational (16: 4 puentes x 4 sospechosos)
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
+
+    clues.push({
+      id: `vase_between_rows_${otherId}`,
+      role: 'relational',
+      family: 'rel_vase_between',
+      targetId: otherId,
+      category: 'Sandwich',
+      weight: 16,
+      text: `La fila del **sándwich** quedaba **entre** mi fila y la de **${SUSPECTS[otherId].name}**`,
+      evalFn: (st) =>
+        (st.suspectRow[speakerId] < vasePos.r && vasePos.r < st.suspectRow[otherId]) ||
+        (st.suspectRow[otherId] < vasePos.r && vasePos.r < st.suspectRow[speakerId])
+    });
+
+    clues.push({
+      id: `vase_between_cols_${otherId}`,
+      role: 'relational',
+      family: 'rel_vase_between',
+      targetId: otherId,
+      category: 'Sandwich',
+      weight: 16,
+      text: `La columna del **sándwich** quedaba **entre** mi columna y la de **${SUSPECTS[otherId].name}**`,
+      evalFn: (st) =>
+        (st.suspectCol[speakerId] < vasePos.c && vasePos.c < st.suspectCol[otherId]) ||
+        (st.suspectCol[otherId] < vasePos.c && vasePos.c < st.suspectCol[speakerId])
+    });
 
     clues.push({
       id: `closer_row_to_vase_${otherId}`,
@@ -2232,8 +2279,8 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       family: 'rel_vase_row_dist',
       targetId: otherId,
       category: 'Sandwich',
-      weight: 15,
-      text: `Mi fila estaba **más cerca del sándwich** que la fila de **${SUSPECTS[otherId].name}**`,
+      weight: 14,
+      text: `Mi fila estaba **más próxima en vertical** al **sándwich** que la de **${SUSPECTS[otherId].name}**`,
       evalFn: (st) =>
         Math.abs(st.suspectRow[speakerId] - vasePos.r) <
         Math.abs(st.suspectRow[otherId] - vasePos.r)
@@ -2245,8 +2292,8 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
       family: 'rel_vase_col_dist',
       targetId: otherId,
       category: 'Sandwich',
-      weight: 15,
-      text: `Mi columna estaba **más cerca del sándwich** que la columna de **${SUSPECTS[otherId].name}**`,
+      weight: 14,
+      text: `Mi columna estaba **más próxima en horizontal** al **sándwich** que la de **${SUSPECTS[otherId].name}**`,
       evalFn: (st) =>
         Math.abs(st.suspectCol[speakerId] - vasePos.c) <
         Math.abs(st.suspectCol[otherId] - vasePos.c)
@@ -2297,7 +2344,7 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
   });
 
   // ==========================================================================
-  // 6. DESPACHO / GÉNERO (36 pistas: 12 anchor + 10 board + 8 relational + 6 paranoia)
+  // 6. DESPACHO / GÉNERO (10 anchor + 10 board + 12 relational + 6 paranoia)
   // ==========================================================================
   for (let rm = 0; rm < 5; rm++) {
     const rmName = ROOMS[rm].name.toLowerCase();
@@ -2345,55 +2392,55 @@ function generateCandidateCluesForSuspect(speakerId, grid, vasePos, vaseRoom, do
     });
   }
 
-  clues.push({
-    id: `self_in_warm_room`,
-    role: 'anchor',
-    isStrongAnchor: true,
-    family: 'self_room_palette',
-    category: 'Despacho',
-    weight: 14,
-    text: `Yo estaba en un despacho de color cálido (**rojo** o **amarillo**)`,
-    evalFn: (st) =>
-      st.suspectRoom[speakerId] === 1 || st.suspectRoom[speakerId] === 3
-  });
-
-  clues.push({
-    id: `self_in_cool_room`,
-    role: 'anchor',
-    isStrongAnchor: true,
-    family: 'self_room_palette',
-    category: 'Despacho',
-    weight: 13,
-    text: `Yo estaba en un despacho de color frío (**azul**, **verde** o **morado**)`,
-    evalFn: (st) =>
-      st.suspectRoom[speakerId] === 0 ||
-      st.suspectRoom[speakerId] === 2 ||
-      st.suspectRoom[speakerId] === 4
-  });
-
   for (let otherId = 0; otherId < 5; otherId++) {
     if (otherId === speakerId) continue;
 
     clues.push({
-      id: `adj_row_with_${otherId}`,
+      id: `knight_move_with_${otherId}`,
       role: 'relational',
-      family: 'rel_adj_row',
+      family: 'rel_knight_move',
       targetId: otherId,
       category: 'Despacho',
-      weight: 14,
-      text: `Mi fila era **vecina** a la fila donde estaba **${SUSPECTS[otherId].name}**`,
-      evalFn: (st) => Math.abs(st.suspectRow[speakerId] - st.suspectRow[otherId]) === 1
+      weight: 16,
+      text: `Mi casilla y la de **${SUSPECTS[otherId].name}** estaban a **salto de caballo (en L)**`,
+      evalFn: (st) =>
+        Math.abs(st.suspectRow[speakerId] - st.suspectRow[otherId]) *
+          Math.abs(st.suspectCol[speakerId] - st.suspectCol[otherId]) ===
+        2
     });
 
     clues.push({
-      id: `adj_col_with_${otherId}`,
+      id: `both_cool_rooms_${otherId}`,
       role: 'relational',
-      family: 'rel_adj_col',
+      family: 'rel_room_palette',
       targetId: otherId,
       category: 'Despacho',
-      weight: 14,
-      text: `Mi columna era **vecina** a la columna de **${SUSPECTS[otherId].name}**`,
-      evalFn: (st) => Math.abs(st.suspectCol[speakerId] - st.suspectCol[otherId]) === 1
+      weight: 15,
+      text: `Tanto **${SUSPECTS[otherId].name}** como yo estábamos en despachos fríos (**azul**, **verde** o **morado**)`,
+      evalFn: (st) => {
+        const cool = [0, 2, 4];
+        return (
+          cool.includes(st.suspectRoom[speakerId]) &&
+          cool.includes(st.suspectRoom[otherId])
+        );
+      }
+    });
+
+    clues.push({
+      id: `both_warm_rooms_${otherId}`,
+      role: 'relational',
+      family: 'rel_room_palette',
+      targetId: otherId,
+      category: 'Despacho',
+      weight: 15,
+      text: `Tanto **${SUSPECTS[otherId].name}** como yo estábamos en despachos cálidos (**rojo** o **amarillo**)`,
+      evalFn: (st) => {
+        const warm = [1, 3];
+        return (
+          warm.includes(st.suspectRoom[speakerId]) &&
+          warm.includes(st.suspectRoom[otherId])
+        );
+      }
     });
 
     clues.push({
