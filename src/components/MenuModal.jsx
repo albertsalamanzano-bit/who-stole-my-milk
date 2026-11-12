@@ -6,7 +6,8 @@ import {
   HelpCircle,
   Sun,
   Moon,
-  Monitor
+  Monitor,
+  Globe
 } from 'lucide-react';
 import { sandwichSvg } from '../constants/gameData';
 
@@ -20,6 +21,9 @@ export default function MenuModal({
   onOpenHelp,
   themeMode,
   setThemeMode,
+  lang,
+  setLang,
+  t,
   subTextClass
 }) {
   if (!isOpen) return null;
@@ -32,7 +36,7 @@ export default function MenuModal({
       <div className="fixed -inset-20 bg-black/75 backdrop-blur-xs pointer-events-none" />
 
       <div
-        className={`relative z-10 w-full max-w-sm rounded-3xl border p-6 shadow-2xl flex flex-col gap-4 ${
+        className={`relative z-10 w-full max-w-sm rounded-3xl border p-6 shadow-2xl flex flex-col gap-3.5 ${
           isDark
             ? 'bg-[#1E2026] border-[#2C303A] text-neutral-100'
             : 'bg-white border-neutral-200 text-neutral-900'
@@ -56,10 +60,10 @@ export default function MenuModal({
             </div>
             <div>
               <h2 className="text-base font-black leading-tight">
-                Archivos de RR.HH.
+                {t.hrArchives}
               </h2>
               <p className={`text-xs mt-0.5 ${subTextClass}`}>
-                ¿Qué sándwich robado investigamos ahora?
+                {t.hrSubtitle}
               </p>
             </div>
           </div>
@@ -76,11 +80,11 @@ export default function MenuModal({
           </button>
         </div>
 
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-2">
           <button
             type="button"
             onClick={onLoadDaily}
-            className={`w-full p-3.5 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${
+            className={`w-full p-3 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${
               isDailyMode
                 ? isDark
                   ? 'bg-white text-black border-white'
@@ -93,7 +97,7 @@ export default function MenuModal({
             <div className="flex items-center gap-3">
               <Calendar className="w-5 h-5 shrink-0" />
               <div>
-                <div className="text-xs font-black">Reto del Día</div>
+                <div className="text-xs font-black">{t.dailyModeTitle}</div>
                 <div
                   className={`text-[11px] ${
                     isDailyMode
@@ -103,13 +107,13 @@ export default function MenuModal({
                       : subTextClass
                   }`}
                 >
-                  El mismo misterio para todos
+                  {t.dailyModeDesc}
                 </div>
               </div>
             </div>
             {isDailyMode && (
               <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-500 text-white">
-                Activo
+                {t.activeBadge}
               </span>
             )}
           </button>
@@ -117,7 +121,7 @@ export default function MenuModal({
           <button
             type="button"
             onClick={onNewRandomLevel}
-            className={`w-full p-3.5 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${
+            className={`w-full p-3 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${
               !isDailyMode
                 ? isDark
                   ? 'bg-white text-black border-white'
@@ -130,7 +134,7 @@ export default function MenuModal({
             <div className="flex items-center gap-3">
               <Shuffle className="w-5 h-5 shrink-0" />
               <div>
-                <div className="text-xs font-black">Generar crimen</div>
+                <div className="text-xs font-black">{t.randomModeTitle}</div>
                 <div
                   className={`text-[11px] ${
                     !isDailyMode
@@ -140,13 +144,13 @@ export default function MenuModal({
                       : subTextClass
                   }`}
                 >
-                  Generar un nuevo drama con semilla
+                  {t.randomModeDesc}
                 </div>
               </div>
             </div>
             {!isDailyMode && (
               <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-md bg-emerald-500 text-white">
-                Activo
+                {t.activeBadge}
               </span>
             )}
           </button>
@@ -154,7 +158,7 @@ export default function MenuModal({
           <button
             type="button"
             onClick={onOpenHelp}
-            className={`w-full p-3.5 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${
+            className={`w-full p-3 rounded-2xl border text-left transition flex items-center justify-between cursor-pointer ${
               isDark
                 ? 'bg-[#14161B] hover:bg-neutral-800/80 text-neutral-200 border-[#2C303A]'
                 : 'bg-neutral-50 hover:bg-neutral-100 text-neutral-800 border-neutral-200'
@@ -163,21 +167,21 @@ export default function MenuModal({
             <div className="flex items-center gap-3">
               <HelpCircle className="w-5 h-5 shrink-0" />
               <div>
-                <div className="text-xs font-black">Reglas / Cómo se juega</div>
+                <div className="text-xs font-black">{t.rulesBtnTitle}</div>
                 <div className={`text-[11px] ${subTextClass}`}>
-                  Repasa el protocolo anti-robos de la oficina
+                  {t.rulesBtnDesc}
                 </div>
               </div>
             </div>
           </button>
         </div>
 
-        {/* Selector de apariencia: Claro / Oscuro / Sistema */}
-        <div className="flex flex-col gap-1.5 pt-1">
+        {/* Selector de Apariencia */}
+        <div className="flex flex-col gap-1">
           <span
             className={`text-[10px] font-black uppercase tracking-wider px-1 ${subTextClass}`}
           >
-            Apariencia
+            {t.appearanceLabel}
           </span>
           <div
             className={`grid grid-cols-3 p-1 rounded-2xl border ${
@@ -187,9 +191,9 @@ export default function MenuModal({
             }`}
           >
             {[
-              { id: 'light', label: 'Claro', Icon: Sun },
-              { id: 'dark', label: 'Oscuro', Icon: Moon },
-              { id: 'system', label: 'Sistema', Icon: Monitor }
+              { id: 'light', label: t.themeLight, Icon: Sun },
+              { id: 'dark', label: t.themeDark, Icon: Moon },
+              { id: 'system', label: t.themeSystem, Icon: Monitor }
             ].map(({ id, label, Icon }) => {
               const active = themeMode === id;
               return (
@@ -206,6 +210,46 @@ export default function MenuModal({
                   }`}
                 >
                   <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span>{label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Selector de Idioma: Español / English */}
+        <div className="flex flex-col gap-1">
+          <span
+            className={`text-[10px] font-black uppercase tracking-wider px-1 ${subTextClass}`}
+          >
+            {t.languageLabel}
+          </span>
+          <div
+            className={`grid grid-cols-2 p-1 rounded-2xl border ${
+              isDark
+                ? 'bg-[#14161B] border-[#2C303A]'
+                : 'bg-neutral-100 border-neutral-200'
+            }`}
+          >
+            {[
+              { id: 'es', label: 'Español' },
+              { id: 'en', label: 'English' }
+            ].map(({ id, label }) => {
+              const active = lang === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setLang(id)}
+                  className={`py-2 px-2 rounded-xl text-xs font-black flex items-center justify-center gap-1.5 transition cursor-pointer ${
+                    active
+                      ? isDark
+                        ? 'bg-[#282B34] text-white shadow-2xs'
+                        : 'bg-white text-neutral-900 shadow-2xs'
+                      : subTextClass
+                  }`}
+                >
+                  <Globe className="w-3.5 h-3.5 shrink-0" />
                   <span>{label}</span>
                 </button>
               );
