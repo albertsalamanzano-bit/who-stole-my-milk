@@ -332,32 +332,16 @@ const shuffle = (array, rng = Math.random) => {
   return arr;
 };
 
-// 15 combinaciones posibles de 2 categorías agrupadas en 5 bloques disjuntos de 3 días (rotación de las 6 categorías cada 3 días)
+// 1-factorización exacta de K6: las 15 parejas posibles sin repetir ninguna en ciclos de 15 días, rotando las 6 categorías cada 3 días
 const COMPLEMENTARY_PAIR_SETS = [
   [['Umbral', 'Fachada'],       ['Claustrofobia', 'Escenario'], ['Sandwich', 'Despacho']],
-  [['Umbral', 'Claustrofobia'], ['Fachada', 'Sandwich'],        ['Escenario', 'Despacho']],
-  [['Umbral', 'Escenario'],     ['Fachada', 'Despacho'],        ['Claustrofobia', 'Sandwich']],
+  [['Umbral', 'Claustrofobia'], ['Fachada', 'Despacho'],        ['Escenario', 'Sandwich']],
+  [['Umbral', 'Escenario'],     ['Fachada', 'Sandwich'],        ['Claustrofobia', 'Despacho']],
   [['Umbral', 'Sandwich'],      ['Fachada', 'Claustrofobia'],   ['Escenario', 'Despacho']],
   [['Umbral', 'Despacho'],      ['Fachada', 'Escenario'],       ['Claustrofobia', 'Sandwich']]
 ];
 
-const ALL_CATEGORY_PAIRS = [
-  ['Umbral', 'Fachada'],
-  ['Umbral', 'Claustrofobia'],
-  ['Umbral', 'Escenario'],
-  ['Umbral', 'Sandwich'],
-  ['Umbral', 'Despacho'],
-  ['Fachada', 'Claustrofobia'],
-  ['Fachada', 'Escenario'],
-  ['Fachada', 'Sandwich'],
-  ['Fachada', 'Despacho'],
-  ['Claustrofobia', 'Escenario'],
-  ['Claustrofobia', 'Sandwich'],
-  ['Claustrofobia', 'Despacho'],
-  ['Escenario', 'Sandwich'],
-  ['Escenario', 'Despacho'],
-  ['Sandwich', 'Despacho']
-];
+const ALL_CATEGORY_PAIRS = COMPLEMENTARY_PAIR_SETS.flat();
 
 function getDailyConfig(date = new Date()) {
   const epoch = new Date(2026, 0, 1).setHours(0, 0, 0, 0);
@@ -2249,6 +2233,7 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
       let survivors = Array.from({ length: N }, (_, i) => i);
       const pickBySuspect = new Array(5);
       const usedCategories = new Set();
+      const categoryCounts = {};
       const usedClueIds = new Set();
       const usedFamilies = new Set();
 
@@ -2268,6 +2253,9 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
           const cand = pool[k];
 
           if (usedClueIds.has(cand.id)) continue;
+
+          // Fuerza un reparto equilibrado 3-2 entre las 2 categorías (ninguna supera 3 pistas)
+          if ((categoryCounts[cand.category] || 0) >= 3) continue;
 
           // GARANTÍA 2: Analista (sId === 0) SIEMPRE lleva pista 'anchor' afirmativa (isStrongAnchor)
           if (sId === 0 && (cand.role !== 'anchor' || !cand.isStrongAnchor)) continue;
@@ -2320,10 +2308,11 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
             score += 65;
           }
           if (!usedCategories.has(cand.category)) {
-            score -= 14;
+            score -= 25;
           }
+          // Penalización proporcional para evitar repetir la misma familia de frases en la misma partida
           if (cand.family && usedFamilies.has(cand.family)) {
-            score += 8;
+            score += Math.max(25, survivors.length * 0.35);
           }
           if (cand.role === 'anchor' && anchorCount < 2) {
             score -= 10;
@@ -2343,6 +2332,8 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
         if (!bestClue) break;
         pickBySuspect[sId] = bestClue;
         usedCategories.add(bestClue.category);
+        categoryCounts[bestClue.category] =
+          (categoryCounts[bestClue.category] || 0) + 1;
         usedClueIds.add(bestClue.id);
         if (bestClue.family) usedFamilies.add(bestClue.family);
 
@@ -2359,7 +2350,7 @@ function generateCompleteLevel(enabledCategories = null, seed = null, isDaily = 
         survivors.length === 1 &&
         survivors[0] === trueStateIdx
       ) {
-        // GARANTÍA 3: Las 2 categorías elegidas están presentes y Analista lleva un ancla afirmativa
+        // GARANTÍA 3: Las 2 categorías elegidas están presentes (con reparto 3-2) y Analista lleva un ancla afirmativa
         if (
           usedCategories.size === 2 &&
           pickBySuspect[0].role === 'anchor' &&
